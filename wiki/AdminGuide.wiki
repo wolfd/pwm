@@ -1,4 +1,6 @@
-*(PWM) Administrator's Guide*
+#labels Featured,Phase-Deploy
+# PWM Administrator's Guide
+*PWM Administrator's Guide*
 Updated for v1.4.3
 <wiki:toc max_depth="3" />
 =Overview and Requirements=
