@@ -1,0 +1,446 @@
+#summary Using Pwm+OpenLDAP on Debian
+
+
+=Integrating pwm with OpenLDAP on Debian Lenny=
+
+== Introduction ==
+
+Using pwm with OpenLDAP is not trivial, as there are tons of moving parts - especially if you want to use the Java Security Manager. This document tries to list the most important configuration steps needed to use pwm and OpenLDAP together on the following setup:
+
+ * Debian Lenny
+ * Tomcat 5.5.26 (from Debian repos)
+ * OpenLDAP 2.4.11 (from Debian repos)
+ * OpenJDK 1.6.0 (from Debian repos)
+ * pwm 1.4.3
+
+There may be some unintended omissions, so if you encounter _any_ trouble with these instructions, send mail to the pwm-general list to get help.
+
+== Configuring OpenLDAP ==
+
+There are a few modifications you may want / need to make to OpenLDAP configuration file, /etc/ldap/slapd.conf. Note that
+these modifications are result of a long trial and error period and may contain unnecessary entries.
+
+{{{
+# Index cn to allow equality checks from the pwm webapp. This is used by the
+# new user registration module to check whether a given username (cn) already
+# exists in the LDAP directory.
+index           cn eq
+}}}
+
+Configuring access control rules properly for pwm is pretty challenging. The following ruleset can be used as a reference. It has been tested to verify that users (or pwmadmin) don't have any more privileges to the directory than absolutely required.
+
+{{{
+# The userPassword by default can be changed
+# by the entry owning it if they are authenticated.
+# Others should not be able to see it, except the
+# admin entry below
+#
+# NOTE: this is mostly standard OpenLDAP stuff.
+# The pwmadmin line can probably be omitted.
+access to attrs=userPassword,shadowLastChange
+        by dn="cn=admin,dc=domain,dc=com" write
+        by dn="cn=pwmadmin,dc=domain,dc=com" write
+        by anonymous auth
+        by self write
+        by * none
+
+# Grant access to subtree "ou=Accounts, dc=domain, dc=com"
+# which contains the accounts created by pwm. Change
+# this path to match your LDAP directory.
+# 
+# Note that here we have two "classes" of pwm users. The
+# dn="cn=pwmadmin,dc=domain,dc=com" user is used during
+# the initial phases of new user registration to create
+# the user into the directory. This is why the pwmadmin
+# account needs to have write access to this subtree.
+# 
+# Right after the user is created, pwm binds to OpenLDAP
+# as the newly created user, so "by anonymous auth" is
+# required. The user also needs to be able modify it's own
+# data, so "by self write" is also needed. If it's missing,
+# the user's password and/or personal information cannot be
+# created/edited.
+access to dn.subtree="ou=Accounts,dc=domain,dc=com"
+        by dn="cn=admin,dc=domain,dc=com" write
+        by dn="cn=pwmadmin,dc=domain,dc=com" write
+        by anonymous auth
+        by self write
+        by * none
+
+# NOTE: this is standard OpenLDAP stuff
+access to dn.base="" by * read
+
+# The admin dn has full write access, pwmadmin has full read access.
+# The pwmadmin entry may not be required. Feel free to experiment.
+access to *
+        by dn="cn=admin,dc=domain,dc=com" write
+        by dn="cn=pwmadmin,dc=domain,dc=com" read
+        by * none
+}}}
+
+== Adding pwm schema extensions ==
+
+Pwm contains a few schemas extensions which are distributed as LDIF files. Some of the content in them is Novell eDirectory-specific, so I converted these files into OpenLDAP schema file and installed it to /etc/ldap/schema:
+
+{{{
+# /etc/ldap/schema/pwm.schema
+#
+# We try to define OID's "correctly" as outlined here:
+#
+# http://www.openldap.org/doc/admin23/schema.html
+#
+# 1.3.6.1.4.1   base OID
+# 591242        organization idenfifier
+# 1             if an objectclass
+# 2             if an attribute
+# yyyy.mm.dd    date of creation
+# n             extra identifier
+#
+
+attributetype ( 1.3.6.1.4.1.591242.2.2010.04.16.1
+        NAME 'pwmEventLog'
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )
+
+attributetype ( 1.3.6.1.4.1.591242.2.2010.04.16.2
+        NAME 'pwmResponseSet'
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.40 )
+
+attributetype ( 1.3.6.1.4.1.591242.2.2010.04.16.3
+        NAME 'pwmLastPwdUpdate'
+        SYNTAX 1.3.6.1.4.1.1466.115.121.1.24 )
+
+objectclass ( 1.3.6.1.4.1.591242.1.2010.04.16.1
+        NAME 'pwmUser'
+        AUXILIARY
+        MAY ( pwmLastPwdUpdate $ pwmEventLog $ pwmResponseSet )
+}}}
+
+This allows pwm to track pwm-specific attributes for each user.
+
+== Configuring Tomcat ==
+
+Here we use Tomcat 5.5.26 from Debian Lenny repositories. This version of Tomcat differs from the one available from Apache. For example, all the directories have been "Debianized" and Java Security Manager is turned on by default. Debian's Tomcat does not require many modifications besides configuring pwm-specific Java Security Manager rules (see below). You _may_ want to configure pwm/manager/admin webapps to listen only on specific interfaces, though. This is done by adding <webappname.xml> files to /etc/tomcat5.5/Catalina/localhost with contents like this:
+
+{{{
+<!-- Context configuration file for the PWM Web App - /etc/tomcat5.5/Catalina/localhost/pwm.xml -->
+<Context path="/pwm" debug="5" privileged="false" allowLinking="true">
+
+  <!-- See http://queuemetrics.com/faq.jsp#faq-055-intranet
+  <Valve className="org.apache.catalina.valves.RemoteAddrValve"
+         allow="10.74.22.*, 127.0.0.1"/>
+
+</Context>
+}}}
+
+
+== Configuring Java Security Manager rules ==
+
+Configuring Tomcat's Java Security Manager (JSM) properly can be very painful and it seems most people just don't bother using it. However, Security Manager makes it very difficult for any potential security holes in PWM to be used for malicious purposes. For generic information about the JSM take a look at these pages:
+
+ * http://java.sun.com/developer/onlineTraining/Programming/JDCBook/appA.html
+ * http://tomcat.apache.org/tomcat-5.5-doc/security-manager-howto.html
+ * http://java.sun.com/j2se/1.4.2/docs/guide/plugin/developer_guide/debugger.html
+
+The ruleset below allows pwm to work properly under JSM under Debian Lenny + Tomcat 5.5.26 from Debian repos. It is the full catalina.policy file which Debian creates automatically when Tomcat is launched, so it should not be edited directly. Instead, pwm-specific rules should be added to a separate file in /etc/tomcat5.5/policy.d. It's probably a good idea to make sure the pwm policy file loads after the default policy files, so name it something like "50user.policy". Also make sure the file has the same permissions as the existing policy files or it may not load properly.
+
+If you wish to use this policy file in a different environment, you will need to change the filesystem paths and possibly make other modifications. It's not often obvious what Security Manager rules you need to add, so you almost certainly have to add JSM debugging to Tomcat command-line. On Debian this is done by editing /etc/default/tomcat5.5:
+
+{{{
+JAVA_OPTS="-Djava.awt.headless=true -Xmx128M -Djava.security.debug=access"
+}}}
+
+After Tomcat is restarted, it starts spitting out "access allowed/denied" messages to /var/log/syslog. You can weed out failures with something like this:
+
+{{{
+$ tail -n 15000 /var/log/syslog|grep "access denied"|cut -d " " -f 7-|sort|uniq -u
+}}}
+
+After spotting the failures, convert them into matching security manager rules and restart Tomcat. Repeat this as many times as necessary. Note that this setup can easily create gigabytes worth of useless logs, so remember to switch off debugging as soon as possible.
+
+
+{{{
+// AUTO-GENERATED FILE -- DO NOT EDIT!
+// Edit the files in /etc/tomcat5.5/policy.d/ instead
+
+// ============================================================================
+// catalina.corepolicy - Security Policy Permissions for Tomcat 5
+//
+// This file contains a default set of security policies to be enforced (by the
+// JVM) when Catalina is executed with the "-security" option.  In addition
+// to the permissions granted here, the following additional permissions are
+// granted to the codebase specific to each web application:
+//
+// * Read access to the document root directory
+//
+// $Id: 01system.policy 2783 2006-11-22 10:50:31Z marcusb-guest $
+// ============================================================================
+
+
+// ========== SYSTEM CODE PERMISSIONS =========================================
+
+
+// These permissions apply to javac
+grant codeBase "file:${java.home}/lib/-" {
+        permission java.security.AllPermission;
+};
+
+// These permissions apply to all shared system extensions
+grant codeBase "file:${java.home}/jre/lib/ext/-" {
+        permission java.security.AllPermission;
+};
+
+// These permissions apply to javac when ${java.home] points at $JAVA_HOME/jre
+grant codeBase "file:${java.home}/../lib/-" {
+        permission java.security.AllPermission;
+};
+
+// These permissions apply to all shared system extensions when
+// ${java.home} points at $JAVA_HOME/jre
+grant codeBase "file:${java.home}/lib/ext/-" {
+        permission java.security.AllPermission;
+};
+// These permissions apply to all JARs from Debian packages
+grant codeBase "file:/usr/share/java/-" {
+  permission java.security.AllPermission;
+};
+grant codeBase "file:/usr/share/ant/lib/-" {
+  permission java.security.AllPermission;
+};
+// ========== CATALINA CODE PERMISSIONS =======================================
+
+// These permissions apply to the launcher code
+grant codeBase "file:${catalina.home}/bin/commons-launcher.jar" {
+        permission java.security.AllPermission;
+};
+
+// These permissions apply to the daemon code
+grant codeBase "file:${catalina.home}/bin/commons-daemon.jar" {
+        permission java.security.AllPermission;
+};
+
+// These permissions apply to the commons-logging API
+grant codeBase "file:${catalina.home}/bin/commons-logging-api.jar" {
+        permission java.security.AllPermission;
+};
+
+// These permissions apply to the server startup code
+grant codeBase "file:${catalina.home}/bin/bootstrap.jar" {
+        permission java.security.AllPermission;
+};
+
+// These permissions apply to the JMX server
+grant codeBase "file:${catalina.home}/bin/jmx.jar" {
+        permission java.security.AllPermission;
+};
+
+// These permissions apply to JULI
+grant codeBase "file:${catalina.home}/bin/tomcat-juli.jar" {
+	permission java.util.PropertyPermission "java.util.logging.config.class", "read";
+	permission java.util.PropertyPermission "java.util.logging.config.file", "read";
+	permission java.lang.RuntimePermission "shutdownHooks";
+	permission java.io.FilePermission "${catalina.base}${file.separator}conf${file.separator}logging.properties", "read";
+	permission java.util.PropertyPermission "catalina.base", "read";
+	permission java.util.logging.LoggingPermission "control";
+	permission java.io.FilePermission "${catalina.base}${file.separator}logs", "read, write";
+	permission java.io.FilePermission "${catalina.base}${file.separator}logs${file.separator}*", "read, write";
+	permission java.lang.RuntimePermission "getClassLoader";
+	// To enable per context logging configuration, permit read access to the appropriate file.
+	// Be sure that the logging configuration is secure before enabling such access
+	// eg for the examples web application:
+	// permission java.io.FilePermission "${catalina.base}${file.separator}webapps${file.separator}examples${file.separator}WEB-INF${file.separator}classes${file.separator}logging.properties", "read";
+};
+
+// These permissions apply to the servlet API classes
+// and those that are shared across all class loaders
+// located in the "common" directory
+grant codeBase "file:${catalina.home}/common/-" {
+        permission java.security.AllPermission;
+};
+
+// These permissions apply to the container's core code, plus any additional
+// libraries installed in the "server" directory
+grant codeBase "file:${catalina.home}/server/-" {
+        permission java.security.AllPermission;
+};
+// ========== WEB APPLICATION PERMISSIONS =====================================
+
+
+// These permissions are granted by default to all web applications
+// In addition, a web application will be given a read FilePermission
+// and JndiPermission for all files and directories in its document root.
+grant { 
+    // Required for JNDI lookup of named JDBC DataSource's and
+    // javamail named MimePart DataSource used to send mail
+    permission java.util.PropertyPermission "java.home", "read";
+    permission java.util.PropertyPermission "java.naming.*", "read";
+    permission java.util.PropertyPermission "javax.sql.*", "read";
+
+    // OS Specific properties to allow read access
+    permission java.util.PropertyPermission "os.name", "read";
+    permission java.util.PropertyPermission "os.version", "read";
+    permission java.util.PropertyPermission "os.arch", "read";
+    permission java.util.PropertyPermission "file.separator", "read";
+    permission java.util.PropertyPermission "path.separator", "read";
+    permission java.util.PropertyPermission "line.separator", "read";
+    permission java.util.PropertyPermission "catalina.base", "read";
+    permission java.util.PropertyPermission "catalina.home", "read";
+
+    // JVM properties to allow read access
+    permission java.util.PropertyPermission "java.version", "read";
+    permission java.util.PropertyPermission "java.vendor", "read";
+    permission java.util.PropertyPermission "java.vendor.url", "read";
+    permission java.util.PropertyPermission "java.class.version", "read";
+	permission java.util.PropertyPermission "java.specification.version", "read";
+	permission java.util.PropertyPermission "java.specification.vendor", "read";
+	permission java.util.PropertyPermission "java.specification.name", "read";
+
+	permission java.util.PropertyPermission "java.vm.specification.version", "read";
+	permission java.util.PropertyPermission "java.vm.specification.vendor", "read";
+	permission java.util.PropertyPermission "java.vm.specification.name", "read";
+	permission java.util.PropertyPermission "java.vm.version", "read";
+	permission java.util.PropertyPermission "java.vm.vendor", "read";
+	permission java.util.PropertyPermission "java.vm.name", "read";
+
+    // Required for OpenJMX
+    permission java.lang.RuntimePermission "getAttribute";
+
+	// Allow read of JAXP compliant XML parser debug
+	permission java.util.PropertyPermission "jaxp.debug", "read";
+
+    // Precompiled JSPs need access to this package.
+    permission java.lang.RuntimePermission "accessClassInPackage.org.apache.jasper.runtime";
+    permission java.lang.RuntimePermission "accessClassInPackage.org.apache.jasper.runtime.*";
+    
+};
+
+// The permissions granted to the balancer WEB-INF/classes and WEB-INF/lib directory
+grant codeBase "file:/usr/share/tomcat5.5-webapps/balancer/-" {
+    permission java.lang.RuntimePermission "accessClassInPackage.org.apache.tomcat.util.digester";
+    permission java.lang.RuntimePermission "defineClassInPackage.org.apache.tomcat.util.digester";
+};
+
+grant codeBase "file:${catalina.home}/bin/tomcat-juli.jar" {
+       permission java.io.FilePermission "/usr/share/tomcat5.5-webapps/jsp-examples/WEB-INF/classes/logging.properties", "read";
+       permission java.io.FilePermission "/usr/share/tomcat5.5-webapps/servlets-examples/WEB-INF/classes/logging.properties", "read";
+};
+grant codeBase "file:/usr/share/struts1.2/struts.jar" {
+  permission java.security.AllPermission;
+};
+
+// ========== PWM-specific settings =====================================
+//
+// Put this into a separate file, e.g. /etc/tomcat5.5/policy.d/50user.policy
+//
+
+grant {
+	// With this everything works great, but it's terribly insecure
+	//permission java.security.AllPermission;
+
+	// This gets us past the first error
+	permission java.lang.RuntimePermission "createClassLoader";
+
+	// This gets us past pwm-db access issues. It seems we cannot use "<snip>/pwm/META-INF/pwm-db/-" without the whole
+	// Tomcat breaking. Apparently this happens because the pwm-db directory is created on the fly and Security Manager
+	// can't find it when it launches -> everything breaks badly.
+	//
+	// This set of FilePermissions seems to work and prevents the webapp from _writing_ to META-INF/context.xml,
+	// which contains security-related settings (e.g. host/subnet-based filtering rules)
+	permission java.io.FilePermission "/var/lib/tomcat5.5/webapps/pwm/META-INF/*", "read, execute";
+	permission java.io.FilePermission "/var/lib/tomcat5.5/webapps/pwm/META-INF/pwm-db", "read, write, delete, execute";
+	permission java.io.FilePermission "/var/lib/tomcat5.5/webapps/pwm/META-INF/pwm-db/-", "read, write, delete, execute";
+	permission java.io.FilePermission "/var/lib/tomcat5.5/webapps/pwm/WEB-INF/classes/-", "read";
+
+	// Misc FilePermissions
+	permission java.io.FilePermission "/usr/share/javazi/ZoneInfoMappings", "read";
+	permission java.io.FilePermission "/usr/share/tomcat5.5/server/classes/org/apache/jk/common/HandlerRequest.class", "read";
+	permission java.io.FilePermission "/usr/share/tomcat5.5/server/classes/org/apache/tomcat/util/buf/DateTool.class", "read";
+	permission java.io.FilePermission "/WEB-INF/classes/org/apache/log4j/-", "read";
+	
+	// Misc RuntimePermissions
+	permission java.lang.RuntimePermission "defineClassInPackage.java.lang";
+	permission java.lang.RuntimePermission "defineClassInPackage.org.apache.jasper.runtime";
+	permission java.lang.RuntimePermission "accessClassInPackage.sun.util.logging.*";
+	permission java.lang.RuntimePermission "accessClassInPackage.org.apache.tomcat.*";
+
+	// Misc PropertyPermissions
+	permission java.util.PropertyPermission "elementAttributeLimit", "read";
+	permission java.util.PropertyPermission "entityExpansionLimit", "read";
+	permission java.util.PropertyPermission "javax.xml.parsers.DocumentBuilderFactory", "read";
+	permission java.util.PropertyPermission "maxOccurLimit", "read";
+	permission java.util.PropertyPermission "user.timezone", "write";
+	permission java.util.PropertyPermission "memAdmin", "read";
+	permission java.util.PropertyPermission "memLock", "read";
+	permission java.util.PropertyPermission "memTree", "read";
+	permission java.util.PropertyPermission "memTxn", "read";
+	permission java.util.PropertyPermission "memTreeAdmin", "read";
+	permission java.util.PropertyPermission "sun.arch.data.model", "read";
+
+	// reCAPTCHA-specific PropertyPermissions
+	permission java.util.PropertyPermission "httpclient.*", "read";
+	permission java.util.PropertyPermission "apache.commons.httpclient.*", "read";
+	permission java.util.PropertyPermission "java.class.path", "read";
+	permission java.util.PropertyPermission "user.name", "read";
+
+	// reCAPTCHA-specific SocketPermissions
+	permission java.net.SocketPermission "*","connect,resolve";
+
+	// Misc SocketPermissions
+	permission java.net.SocketPermission "127.0.0.1:389", "connect, resolve";
+
+	// Log4j-specific properties
+	permission java.util.PropertyPermission "log4j.*", "read";
+
+	// BerkeleyDB-specific properties
+	permission java.util.PropertyPermission "je.*", "read";
+	permission java.util.PropertyPermission "JEDiagnostics", "read";
+	permission java.util.PropertyPermission "JEMonitor", "read";
+
+	// Misc permissions
+	permission java.util.logging.LoggingPermission "control";
+	permission ng.reflect.ReflectPermission "suppressAccessChecks";
+
+};
+}}}
+
+== Configuring PWM ==
+
+Last, but not least, we'll setup pwm. After downloading and unpacking pwm, descend to the pwm-1.4.3/servlet/web/WEB-INF directory and edit the file pwmServlet.properties. The file is thoroughly documented, so read the instructions carefully. There's not much if anything OpenLDAP-specific in the file, but here are a few important things you need to modify:
+
+{{{
+# This account needs to have write access to the subtree containing the user
+# accounts. It's used in the initial phases of new user registration 
+ldapProxyDN=cn=pwmadmin,dc=domain,dc=com
+ldapProxyPassword=replace_with_your_password
+
+# Root dn for user logins. This is separate from the ProxyDN used above, which
+# is used to create the user into the directory initially. 
+ldapContextlessLoginRoot=ou=Accounts,dc=domain,dc=com
+
+# Make sure this matches your directory setup.
+usernameSearchFilter=(&(objectClass=inetOrgPerson)(cn=%USERNAME%))
+
+# Disable all edirectory-specific functionality
+ldap.edirectory.enableNmas=false
+ldap.edirectory.alwaysUseProxy=false
+ldap.edirectory.readPasswordPolicies=false
+ldap.edirectory.readChallengeSets=false
+ldap.edirectory.storeNmasResponses=false
+
+# Make sure this context matches your LDAP directory settings
+newUser.createContext=ou=Accounts,dc=domain,dc=com
+
+# Make sure this matches your LDAP directory settings. It might not, if you're
+# identifying users with "uid" attribute in the posixAccount class
+newUser.creationUniqueAttributes=cn
+}}}
+
+If you wish to disable some of the modules (e.g. "Activate User"), you need disable them in the pwmServlet.properties file. This does not, however, remove the links to these modules from the web interface. To do this, edit pwm-1.4.3/servlet/web/index.jsp file accordingly.
+
+After making the modifications to pwm files, go to pwm-1.4.3/servlet directory and run
+
+{{{
+ant clean
+ant makeWAR
+}}}
+
+This creates a deployable war file (pwm-1.4.3/servlet/build/pwm.war) which you can install to Tomcat either manually to /var/lib/tomcat5.5/webapps or by using the Tomcat Manager webapp.
