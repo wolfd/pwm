@@ -17,7 +17,7 @@ There may be some unintended omissions, so if you encounter _any_ trouble with t
 
 == Configuring OpenLDAP ==
 
-OpenLDAP configuration is described in the [AdminGuide Administration Guide]
+OpenLDAP configuration is described in the [AdminGuide#OpenLDAP_Integration Administration Guide].
 
 == Configuring Tomcat ==
 
@@ -37,7 +37,7 @@ Here we use Tomcat 5.5.26 from Debian Lenny repositories. This version of Tomcat
 
 == Configuring Java Security Manager rules ==
 
-JavaSecurityManagerIntegration
+Java Security Manager integration is described on [JavaSecurityManagerIntegration this page].
 
 == Configuring PWM ==
 
