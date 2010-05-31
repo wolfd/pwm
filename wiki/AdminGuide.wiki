@@ -205,7 +205,8 @@ access to attrs=userPassword,shadowLastChange
 # required. The user also needs to be able modify it's own
 # data, so "by self write" is also needed. If it's missing,
 # the user's password and/or personal information cannot be
-# created/edited.
+# created/edited. This also prevents the new user
+# registration from working properly.
 access to dn.subtree="ou=Accounts,dc=domain,dc=com"
         by dn="cn=admin,dc=domain,dc=com" write
         by dn="cn=pwmadmin,dc=domain,dc=com" write
