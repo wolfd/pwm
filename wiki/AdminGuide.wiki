@@ -469,3 +469,7 @@ PWM also stores a temporary log of recent events in the pwmDB. This log is acces
 PWM has integrated support for Captcha protection. The captcha makes it more difficult for a hacker to launch an automated attack against PWM. PWM uses the online reCaptcha service for captcha generation and validation. You will need to configure a [http://recaptcha.net/ reCaptcha] account to reuse the service. reCaptcha accounts are free.
 
 The online service approach insures that the captcha technology is continuously improved to make it difficult to be compromised. The reCaptcha acount parameters are configured in the _pwmServlet.properties_ configuration file.
+
+=Java Security Manager=
+
+Pwm can be used with Java Security Manager. For those not familiar with it, it's like SELinux for Java. It ensures that the application (pwm) does not do anything it's not supposed to, even if it has security problems. As Java Security Manager is a pain to setup, the usual advise is to turn it off. Fortunately there are full integration instructions available here.
