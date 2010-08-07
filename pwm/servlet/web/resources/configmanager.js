@@ -30,6 +30,7 @@ dojo.require("dijit.form.Textarea");
 dojo.require("dijit.form.ComboBox");
 dojo.require("dijit.Dialog");
 dojo.require("dijit.TitlePane");
+dojo.require("dijit.Dialog");
 
 
 var clientSettingCache = { };
@@ -83,10 +84,10 @@ function toggleBooleanSetting(keyName) {
     var innerValue = valueElement.value;
     if (innerValue == 'true') {
         valueElement.value = 'false';
-        buttonElement.innerHTML = '\u00A0\u00A0\u00A0False\u00A0\u00A0\u00A0';
+        buttonElement.innerHTML = ' False ';
     } else {
         valueElement.value = 'true';
-        buttonElement.innerHTML = '\u00A0\u00A0\u00A0True\u00A0\u00A0\u00A0';
+        buttonElement.innerHTML = ' True ';
     }
 }
 
@@ -116,7 +117,7 @@ function clearDivElements(parentDiv, showLoading) {
 function initLocaleTable(parentDiv, keyName, regExPattern, syntax) {
     clearDivElements(parentDiv,true);
     readSetting(keyName, function(resultValue) {
-        clearDivElements(parentDiv,false)    ;
+        clearDivElements(parentDiv,false);
         for (var i in resultValue) {
             addLocaleTableRow(parentDiv, keyName, i, resultValue[i], regExPattern, syntax)
         }

@@ -1,12 +1,6 @@
-.dj_ie .dojoxGridRtl .dojoxGridHeader table {
+.dj_ie .dijitRtl .dojoxGridHeader table {
 	float:none;
 }
-.dojoxGridRtl .dojoxGridCell {
+.dijitRtl .dojoxGridCell {
 	text-align:right;
-}
-.dj_ie8 .dojoxGridRtl .dojoxGridCell {
-	border-left: none;
-}
-.dojoxGridRtl .dojoxGridArrowButtonNode {
-	float:left;
 }

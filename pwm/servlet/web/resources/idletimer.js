@@ -22,13 +22,11 @@
 
 var SETTING_LOOP_FREQUENCY = 1000;
 var SETTING_PING_FREQUENCY = 10;
-var SETTING_WARN_SECONDS = 30;
 
 var dateFuture = new Date();
 var idleTimeout = 0;
 var sendPing = false;
 var lastPingTime = 0;
-var warningDisplayed = false;
 
 function initCountDownTimer(secondsRemaining)
 {
@@ -43,7 +41,6 @@ function initCountDownTimer(secondsRemaining)
 
 function resetIdleCounter(){
     var idleSeconds = calcIdleSeconds();
-    closeIdleWarning();
     getObject("idle_status").firstChild.nodeValue = makeIdleDisplayString(idleSeconds);
 
     dateFuture = new Date(new Date().getTime() + (idleTimeout * 1000));
@@ -57,35 +54,19 @@ function resetIdleCounter(){
             sendPing = false;
         }
     }
-
-    warningDisplayed = false;
 }
 
 function pollActivity(){
     var idleSeconds = calcIdleSeconds();
-    var idleDisplayString = makeIdleDisplayString(idleSeconds);
-    var idleStatusFooter = getObject("idle_status");
-    if (idleStatusFooter != null) {
-        idleStatusFooter.firstChild.nodeValue = idleDisplayString;
-    }
-
-    var warningDialogText = getObject("IdleDialogWindowIdleText");
-    if (warningDialogText != null){
-        warningDialogText.firstChild.nodeValue = idleDisplayString;
-    }
-
+    getObject("idle_status").firstChild.nodeValue = makeIdleDisplayString(idleSeconds);
     if (idleSeconds < 0) {
         dirtyPageLeaveFlag = false;
-        window.location = PWM_STRINGS['url-logout'];
-    }
-
-    if (idleSeconds < SETTING_WARN_SECONDS) {
-        showIdleWarning();
+        window.location = getObject("Js_LogoutURL").value;
     }
 }
 
 function pingServer() {
-    var pingURL = PWM_STRINGS['url-command'] + "?processAction=idleUpdate&time=" + new Date().getTime();
+    var pingURL = getObject("Js_CommandURL").value + "?processAction=idleUpdate&time=" + new Date().getTime();
     var xmlhttp = createXmlHttpObject();
     xmlhttp.abort();
     xmlhttp.open("POST", pingURL, true);
@@ -119,9 +100,9 @@ function makeIdleDisplayString(amount)
     if (days != 0) {
         output += days + " ";
         if (days != 1) {
-            output += PWM_STRINGS['Display_Days'];
+            output += getObject("Js_Display_Days").value;
         } else {
-            output += PWM_STRINGS['Display_Day'];
+            output += getObject("Js_Display_Day").value;
         }
     }
 
@@ -133,9 +114,9 @@ function makeIdleDisplayString(amount)
 
         output += hours + " ";
         if (hours != 1) {
-            output += PWM_STRINGS['Display_Hours'];
+            output += getObject("Js_Display_Hours").value;
         } else {
-            output += PWM_STRINGS['Display_Hour'];
+            output += getObject("Js_Display_Hour").value;
         }
     }
 
@@ -147,14 +128,14 @@ function makeIdleDisplayString(amount)
 
         output += mins + " ";
         if (mins != 1) {
-            output += PWM_STRINGS['Display_Minutes'];
+            output += getObject("Js_Display_Minutes").value;
         } else {
-            output += PWM_STRINGS['Display_Minute'];
+            output += getObject("Js_Display_Minute").value;
         }
     }
 
     // write number of seconds
-    if (mins < 4) {
+    if (mins < 5) {
         if (output.length > 0) {
             output += ", ";
         }
@@ -162,42 +143,13 @@ function makeIdleDisplayString(amount)
         output += secs + " ";
 
         if (secs != 1) {
-            output += PWM_STRINGS['Display_Seconds'];
+            output += getObject("Js_Display_Seconds").value;
         } else {
-            output += PWM_STRINGS['Display_Second'];
+            output += getObject("Js_Display_Second").value;
         }
     }
 
-    output = PWM_STRINGS['Display_IdleTimeout'] + " " + output;
+    output = getObject("Js_Display_IdleTimeout").value + " " + output;
     return output;
-}
-
-function showIdleWarning() {
-    dojo.require("dijit.Dialog");
-    if (!warningDisplayed) {
-        warningDisplayed = true;
-
-        var dialogBody = PWM_STRINGS['Display_IdleWarningMessage'] + '<br/><br/><span id="IdleDialogWindowIdleText">&nbsp;</span>';
-
-        var theDialog = new dijit.Dialog({
-            title: PWM_STRINGS['Display_IdleWarningTitle'],
-            style: "width: 300px; border: 2px solid #D4D4D4;",
-            content: dialogBody,
-            closable: false,
-            draggable: false,
-            id: "idleDialog"
-
-        });
-        theDialog.setAttribute('class','tundra');
-        theDialog.show();
-    }
-}
-
-function closeIdleWarning() {
-    var dialog = dijit.byId('idleDialog');
-    if (dialog != null) {
-        dialog.hide();
-        dialog.destroyRecursive();
-    }
 }
 

@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2004-2010, The Dojo Foundation All Rights Reserved.
+	Copyright (c) 2004-2009, The Dojo Foundation All Rights Reserved.
 	Available via Academic Free License >= 2.1 OR the modified BSD license.
 	see: http://dojotoolkit.org/license for details
 */
@@ -84,29 +84,28 @@ return;
 }
 dojo.dnd.Source.superclass.onMouseMove.call(this,e);
 var m=dojo.dnd.manager();
-if(!this.isDragging){
-if(this.mouseDown&&this.isSource&&(Math.abs(e.pageX-this._lastX)>this.delay||Math.abs(e.pageY-this._lastY)>this.delay)){
-var _c=this.getSelectedNodes();
-if(_c.length){
-m.startDrag(this,_c,this.copyState(dojo.isCopyKey(e),true));
-}
-}
-}
 if(this.isDragging){
-var _d=false;
+var _c=false;
 if(this.current){
 if(!this.targetBox||this.targetAnchor!=this.current){
 this.targetBox=dojo.position(this.current,true);
 }
 if(this.horizontal){
-_d=(e.pageX-this.targetBox.x)<(this.targetBox.w/2);
+_c=(e.pageX-this.targetBox.x)<(this.targetBox.w/2);
 }else{
-_d=(e.pageY-this.targetBox.y)<(this.targetBox.h/2);
+_c=(e.pageY-this.targetBox.y)<(this.targetBox.h/2);
 }
 }
-if(this.current!=this.targetAnchor||_d!=this.before){
-this._markTargetAnchor(_d);
+if(this.current!=this.targetAnchor||_c!=this.before){
+this._markTargetAnchor(_c);
 m.canDrop(!this.current||m.source!=this||!(this.current.id in this.selection));
+}
+}else{
+if(this.mouseDown&&this.isSource&&(Math.abs(e.pageX-this._lastX)>this.delay||Math.abs(e.pageY-this._lastY)>this.delay)){
+var _d=this.getSelectedNodes();
+if(_d.length){
+m.startDrag(this,_d,this.copyState(dojo.isCopyKey(e),true));
+}
 }
 }
 },onMouseDown:function(e){

@@ -76,7 +76,7 @@ pre {
 	padding: 1.5em;
 }
 table {  font-size:100%; }
-.dojoTabular { 
+table.dojoTabular { 
 	border-collapse: collapse; 
 	border-spacing: 0; 
 	border: 1px solid #ccc; 
@@ -86,13 +86,14 @@ table {  font-size:100%; }
 	text-align: center; 
 	font-weight: bold;
 }
-.dojoTabular thead,
-.dojoTabular tfoot { 
+table.dojoTabular thead, table.dojoTabular tfoot { 
 	background-color: #efefef; 
 	border: 1px solid #ccc; 
 	border-width: 1px 0; 
 }
-.dojoTabular th,
-.dojoTabular td { 
+table.dojoTabular thead tr th,
+table.dojoTabular thead tr td,
+table.dojoTabular tbody tr td,
+table.dojoTabular tfoot tr td { 
 	padding: 0.25em 0.5em;
 }

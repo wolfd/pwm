@@ -1,14 +1,16 @@
 /*
-	Copyright (c) 2004-2010, The Dojo Foundation All Rights Reserved.
+	Copyright (c) 2004-2009, The Dojo Foundation All Rights Reserved.
 	Available via Academic Free License >= 2.1 OR the modified BSD license.
 	see: http://dojotoolkit.org/license for details
 */
 
 /*
-	This is an optimized version of Dojo, built for deployment and not for
-	development. To get sources and documentation, please visit:
+	This is a compiled version of Dojo, built for deployment and not for
+	development. To get an editable version, please visit:
 
 		http://dojotoolkit.org
+
+	for documentation and information on getting the source.
 */
 
 if(!dojo._hasResource["dojox.string.Builder"]){ //_hasResource checks added by build. Do not use _hasResource directly in your code.
@@ -208,14 +210,8 @@ dojo.experimental("dojox.dtl");
 
 	dd._Context = dojo.extend(function(dict){
 		// summary: Pass one of these when rendering a template to tell the template what values to use.
-		if(dict){
-			dojo._mixin(this, dict);
-			if(dict.get){
-				// Preserve passed getter and restore prototype get
-				this._getter = dict.get;
-				delete this.get;
-			}
-		}
+		dojo._mixin(this, dict || {});
+		this._dicts = [];
 	},
 	{
 		push: function(){
@@ -228,17 +224,14 @@ dojo.experimental("dojox.dtl");
 			throw new Error("pop() called on empty Context");
 		},
 		get: function(key, otherwise){
-			var n = this._normalize;
-
-			if(this._getter){
-				var got = this._getter(key);
-				if(typeof got != "undefined"){
-					return n(got);
-				}
+			if(typeof this[key] != "undefined"){
+				return this._normalize(this[key]);
 			}
 
-			if(typeof this[key] != "undefined"){
-				return n(this[key]);
+			for(var i = 0, dict; dict = this._dicts[i]; i++){
+				if(typeof dict[key] != "undefined"){
+					return this._normalize(dict[key]);
+				}
 			}
 
 			return otherwise;
@@ -924,7 +917,7 @@ dojox.dtl.Context = dojo.extend(function(dict){
 	getKeys: function(){
 		var keys = [];
 		for(var key in this){
-			if(this.hasOwnProperty(key) && key != "_this"){
+			if(this.hasOwnProperty(key) && key != "_dicts" && key != "_this"){
 				keys.push(key);
 			}
 		}
@@ -968,15 +961,14 @@ dojox.dtl.Context = dojo.extend(function(dict){
 		return this._this;
 	},
 	hasKey: function(key){
-		if(this._getter){
-			var got = this._getter(key);
-			if(typeof got != "undefined"){
-				return true;
-			}
-		}
-
 		if(typeof this[key] != "undefined"){
 			return true;
+		}
+
+		for(var i = 0, dict; dict = this._dicts[i]; i++){
+			if(typeof dict[key] != "undefined"){
+				return true;
+			}
 		}
 
 		return false;

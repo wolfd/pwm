@@ -26,6 +26,7 @@ import password.pwm.util.PwmLogger;
 import password.pwm.util.PwmRandom;
 import password.pwm.util.db.PwmDB;
 
+import java.io.File;
 import java.util.Collections;
 import java.util.Map;
 
@@ -37,27 +38,33 @@ public class SeedlistManager extends AbstractWordlist implements Wordlist {
      * Fetch the WordlistManager for a given database directory.  Any existing values in the database
      * will be truncated and replaced with the wordlist file.
      *
-     * @param wordlistConfiguration wordlist configuration
+     * @param wordlistFile   ZIP file containing one or more text files with one word per line
      * @param pwmDB          Functioning instance
+     * @param loadFactor     Percentage of time the populator should remain sleeping
      * @return WordlistManager for the instance.
      */
     public synchronized static SeedlistManager createSeedlistManager(
-            final WordlistConfiguration wordlistConfiguration,
-            final PwmDB pwmDB
+            final File wordlistFile,
+            final PwmDB pwmDB,
+            final int loadFactor
     )
     {
         return new SeedlistManager(
-                wordlistConfiguration,
-                pwmDB
+                wordlistFile,
+                pwmDB,
+                loadFactor,
+                true
         );
     }
 
     protected SeedlistManager(
-            final WordlistConfiguration wordlistConfiguration,
-            final PwmDB pwmDB
+            final File wordlistFile,
+            final PwmDB pwmDB,
+            final int loadFactor,
+            final boolean caseSensitive
 
     ) {
-        super(wordlistConfiguration, pwmDB);
+        super(wordlistFile, pwmDB, loadFactor, caseSensitive);
 
         this.LOGGER = PwmLogger.getLogger(this.getClass());
         this.DEBUG_LABEL = "pwm-seedist";                                                                        

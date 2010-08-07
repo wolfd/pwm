@@ -1,1 +1,1 @@
-({"text":"Beschrijving:","insertImageTitle":"Afbeeldingseigenschappen","set":"Instellen","newWindow":"Nieuw venster","topWindow":"Bovenste venster","target":"Doel:","createLinkTitle":"Linkeigenschappen","parentWindow":"Hoofdvenster","currentWindow":"Huidig venster","url":"URL:"})
+({"set":"Instellen","text":"Beschrijving:","insertImageTitle":"Afbeeldingseigenschappen","url":"URL:","createLinkTitle":"Linkeigenschappen","newWindow":"New Window","topWindow":"Topmost Window","target":"Target:","parentWindow":"Parent Window","currentWindow":"Current Window"})

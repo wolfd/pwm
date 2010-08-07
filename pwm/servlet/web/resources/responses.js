@@ -47,14 +47,14 @@ function validateResponses() {
 
     validationInProgress = true;
     dojo.xhrPost({
-        url: PWM_STRINGS['url-setupresponses'] + "?processAction=validateResponses&pwmFormID=" + getObject('pwmFormID').value,
+        url: getObject("Js_SetupResponsesURL").value + "?processAction=validateResponses&pwmFormID=" + getObject('pwmFormID').value,
         postData:  dojo.toJson(parameterData),
         contentType: "application/json;charset=utf-8",
         dataType: "json",
         handleAs: "json",
         error: function(errorObj) {
             validationInProgress = false;
-            clearError(PWM_STRINGS['Display_CommunicationError']);
+            clearError(getObject("Js_Display_CommunicationError").value);
             console.log('error: ' + errorObj);
         },
         load: function(data){
@@ -113,7 +113,7 @@ function clearError(message)
 function showWorking()
 {
     getObject("setresponses_button").disabled = true;
-    getObject("error_msg").firstChild.nodeValue = PWM_STRINGS['Display_CheckingResponses'];
+    getObject("error_msg").firstChild.nodeValue = getObject("Js_Display_CheckingResponses").value;
     dojo.animateProperty({
         node:"error_msg",
         duration: 500,
@@ -161,9 +161,9 @@ function toggleHideResponses()
     }
 
     if (responsesHidden) {
-        getObject("hide_responses_button").value = "\u00A0\u00A0\u00A0" + PWM_STRINGS['Button_Hide_Responses'] + "\u00A0\u00A0\u00A0";
+        getObject("hide_responses_button").value = " " + getObject("Js_Button_Hide_Responses").value + " ";
     } else {
-        getObject("hide_responses_button").value = "\u00A0\u00A0\u00A0" + PWM_STRINGS['Button_Show_Responses'] + "\u00A0\u00A0\u00A0";
+        getObject("hide_responses_button").value = getObject("Js_Button_Show_Responses").value;
     }
 
     responsesHidden = !responsesHidden;

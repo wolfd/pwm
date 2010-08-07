@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2004-2010, The Dojo Foundation All Rights Reserved.
+	Copyright (c) 2004-2009, The Dojo Foundation All Rights Reserved.
 	Available via Academic Free License >= 2.1 OR the modified BSD license.
 	see: http://dojotoolkit.org/license for details
 */
@@ -18,13 +18,8 @@ dd.TOKEN_VAR=-2;
 dd.TOKEN_COMMENT=-3;
 dd.TOKEN_TEXT=3;
 dd._Context=dojo.extend(function(_1){
-if(_1){
-dojo._mixin(this,_1);
-if(_1.get){
-this._getter=_1.get;
-delete this.get;
-}
-}
+dojo._mixin(this,_1||{});
+this._dicts=[];
 },{push:function(){
 var _2=this;
 var _3=dojo.delegate(this);
@@ -35,15 +30,13 @@ return _3;
 },pop:function(){
 throw new Error("pop() called on empty Context");
 },get:function(_4,_5){
-var n=this._normalize;
-if(this._getter){
-var _6=this._getter(_4);
-if(typeof _6!="undefined"){
-return n(_6);
-}
-}
 if(typeof this[_4]!="undefined"){
-return n(this[_4]);
+return this._normalize(this[_4]);
+}
+for(var i=0,_6;_6=this._dicts[i];i++){
+if(typeof _6[_4]!="undefined"){
+return this._normalize(_6[_4]);
+}
 }
 return _5;
 },_normalize:function(_7){

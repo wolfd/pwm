@@ -25,20 +25,21 @@ package password.pwm.util;
 import com.novell.ldapchai.ChaiFactory;
 import com.novell.ldapchai.ChaiUser;
 import com.novell.ldapchai.exception.ChaiUnavailableException;
-import password.pwm.ContextManager;
-import password.pwm.PwmSession;
-import password.pwm.UserHistory;
-import password.pwm.UserStatusHelper;
+import password.pwm.*;
+import password.pwm.bean.EmailItemBean;
 import password.pwm.bean.SessionStateBean;
 import password.pwm.config.Configuration;
+import password.pwm.error.PwmError;
 import password.pwm.config.PwmSetting;
 import password.pwm.error.ErrorInformation;
-import password.pwm.error.PwmError;
 import password.pwm.error.PwmException;
 import password.pwm.util.stats.Statistic;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -209,13 +210,15 @@ public class IntruderManager implements Serializable {
         }
         record.setAlerted(true);
 
-        final Map<String,String> values = new LinkedHashMap<String,String>();
-        values.put("type","user");
-        values.put("username", username);
-        values.put("attempts", String.valueOf(record.getAttemptCount()));
-        values.put("duration", TimeDuration.asCompactString(record.timeRemaining()));
-        AlertHandler.alertIntruder(theManager, values);
-
+        final EmailItemBean emailEvent = new EmailItemBean(
+                pwmSession.getConfig().readSettingAsString(PwmSetting.EMAIL_ADMIN_ALERT_TO),
+                pwmSession.getConfig().readSettingAsString(PwmSetting.EMAIL_ADMIN_ALERT_FROM),
+                "PWM Intruder User Lockout Alert",
+                "The user " + username + " has been locked out after " + record.getAttemptCount() +
+                        " bad attempts.  The lockout will be reset in " + TimeDuration.asCompactString(record.timeRemaining()),
+                null
+        );
+        theManager.sendEmailUsingQueue(emailEvent);
         theManager.getStatisticsManager().incrementValue(Statistic.LOCKED_USERS);
 
         try {
@@ -241,13 +244,15 @@ public class IntruderManager implements Serializable {
         }
         record.setAlerted(true);
 
-        final Map<String,String> values = new LinkedHashMap<String,String>();
-        values.put("type","address");
-        values.put("address", addressString);
-        values.put("attempts", String.valueOf(record.getAttemptCount()));
-        values.put("duration", TimeDuration.asCompactString(record.timeRemaining()));
-        AlertHandler.alertIntruder(theManager, values);
-
+        final EmailItemBean emailEvent = new EmailItemBean(
+                pwmSession.getConfig().readSettingAsString(PwmSetting.EMAIL_ADMIN_ALERT_TO),
+                pwmSession.getConfig().readSettingAsString(PwmSetting.EMAIL_ADMIN_ALERT_FROM),
+                "PWM Intruder Address Lockout Alert",
+                "The address " + addressString + " has been locked out after " + record.getAttemptCount() +
+                        " bad attempts.  The lockout will be reset in " + TimeDuration.asCompactString(record.timeRemaining()),
+                null
+        );
+        theManager.sendEmailUsingQueue(emailEvent);
         theManager.getStatisticsManager().incrementValue(Statistic.LOCKED_ADDRESSES);
     }
 

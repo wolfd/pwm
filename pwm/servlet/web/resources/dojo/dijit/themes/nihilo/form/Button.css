@@ -10,6 +10,10 @@
 .nihilo .dijitSelect .dijitButtonContents {
 	border-right: none;
 }
+.nihilo .dijitButtonNode button {
+	border: 0px;
+	background-color: transparent;
+}
 .nihilo .dijitButtonText {
 	text-align: center;
 	padding: 0 0.3em;
@@ -38,10 +42,7 @@
 	background:#fafafa url("../images/buttonDisabled.png") top repeat-x;
 	opacity: 0.60;
 }
-.dj_ie6 .nihilo .dijitReadOnly INPUT,
-.dj_ie7 .nihilo .dijitReadOnly INPUT,
-.dj_ie6 .nihilo .dijitComboButtonDisabled .dijitButtonText,
-.dj_ie7 .nihilo .dijitComboButtonDisabled .dijitButtonText {
+.dj_ie6 .nihilo .dijitComboButtonDisabled .dijitButtonText {
 	
 	color: #aaa;
 }
@@ -49,20 +50,24 @@
 .nihilo .dijitButtonNodeHover,
 .nihilo .dijitToggleButtonHover .dijitButtonNode,
 .nihilo .dijitDropDownButtonHover .dijitButtonNode,
-.nihilo .dijitButtonContentsHover,
-.nihilo .dijitDownArrowButtonHover,
-.nihilo .dijitUpArrowButtonHover {
+.nihilo .dijitComboButtonHover .dijitButtonContents,
+.nihilo .dijitComboButtonDownArrowHover .dijitDownArrowButton,
+.nihilo .dijitComboBoxHover .dijitDownArrowButton,
+.nihilo .dijitSpinnerUpArrowHover .dijitUpArrowButton,
+.nihilo .dijitSpinnerDownArrowHover .dijitDownArrowButton {
 	
 	
 	color:#243C5F;
 	background:#fcfcfc url("../images/buttonHover.png") repeat-x top left;
 }
-.nihilo .dijitUpArrowButtonActive,
-.nihilo .dijitDownArrowButtonActive,
+.nihilo .dijitSpinnerUpArrowActive .dijitUpArrowButton,
+.nihilo .dijitSpinnerDownArrowActive .dijitDownArrowButton,
 .nihilo .dijitButtonActive .dijitButtonNode,
 .nihilo .dijitToggleButtonActive .dijitButtonNode,
 .nihilo .dijitDropDownButtonActive .dijitButtonNode,
-.nihilo .dijitComboButton .dijitButtonContentsActive,
+.nihilo .dijitComboButtonActive .dijitButtonContents,
+.nihilo .dijitDownArrowActive .dijitDownArrowButton,
+.nihilo .dijitComboBoxActive .dijitDownArrowButton,
 .nihilo .dijitStackController .dijitToggleButtonChecked .dijitButtonNode {
 	
 	border-color:#dedede;
@@ -71,38 +76,18 @@
 .nihilo .dijitArrowButtonInner {
 	background-image: url("../images/spriteArrows.png");
 	background-repeat: no-repeat;
-	background-position: 0px center;
+	background-position: 0px top;
 	width: 11px;
-	height: 11px;
 }
 .nihilo .dijitLeftArrowButton .dijitArrowButtonInner {
-	background-position: -11px center;
+	background-position: -11px top;
 }
 .nihilo .dijitUpArrowButton .dijitArrowButtonInner {
-	background-position: -22px center;
+	background-position: -22px top;
 }
 .nihilo .dijitRightArrowButton .dijitArrowButtonInner {
-	background-position: -33px center;
+	background-position: -33px top;
 }
 .dj_ie6 .nihilo .dijitArrowButtonInner {
 	background-image: url("../images/spriteArrows.gif");
-}
-.dj_webkit .nihilo .dijitSpinner .dijitUpArrowButton .dijitArrowButtonInner {
-	margin-top: -1px; 
-}
-.dj_ie .nihilo .dijitSpinner .dijitUpArrowButton .dijitArrowButtonInner {
-	margin-top: 1px; 
-}
-.nihilo .dijitSpinnerButtonContainer {
-	width: auto;
-	padding: 0;
-}
-.nihilo .dijitSpinner .dijitArrowButton {
-	width: 15px;
-}
-.nihilo .dijitSpinner .dijitSpinnerButtonInner {
-	width: 15px;
-}
-.nihilo .dijitSpinner .dijitArrowButtonInner .dijitInputField {
-	padding: 0;
 }

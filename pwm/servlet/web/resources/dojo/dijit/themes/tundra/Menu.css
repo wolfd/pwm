@@ -4,6 +4,7 @@
 	margin: 0px;
 	padding: 0px;
 	background-color: #f7f7f7;
+	
 }
 .tundra .dijitBorderContainer .dijitMenuBar {
 	border:1px solid #ccc;
@@ -12,7 +13,7 @@
 	font-family: sans-serif;
 	margin: 0;
 }
-.tundra .dijitMenuItem {
+.tundra .dijitMenuBar .dijitMenuItem {
 	padding: 4px 5px;
 }
 .tundra .dijitMenuPreviousButton, .tundra .dijitMenuNextButton {
@@ -31,7 +32,6 @@
 	height: 16px;
 }
 .tundra .dijitMenuExpand {
-	
 	width: 7px;
 	height: 7px;
 	background-image: url('images/spriteArrows.png');

@@ -103,7 +103,7 @@ class Populator {
         this.wordlistDB = rootWordlist.WORD_DB;
         this.wordlistMetaDB = rootWordlist.META_DB;
         this.sleeper = sleeper;
-        this.caseSensitive = rootWordlist.wordlistConfiguration.isCaseSensitive();
+        this.caseSensitive = rootWordlist.caseSensitive;
         this.DEBUG_LABEL = rootWordlist.DEBUG_LABEL;
         this.rootWordlist = rootWordlist;
 
@@ -233,14 +233,13 @@ class Populator {
                 sleeper.sleep();
 
                 if (abortFlag) {
-                    throw PwmException.createPwmException(new ErrorInformation(PwmError.ERROR_CLOSING,"pausing " + DEBUG_LABEL + " population"));
+                    throw PwmException.createPwmException(new ErrorInformation(PwmError.ERROR_UNKNOWN,"pausing " + DEBUG_LABEL + " population"));
                 }
 
                 overallStats.incrementLines();
                 perReportStats.incrementLines();
 
                 addLine(line);
-                loopLines++;
 
                 if (!abortFlag && (System.currentTimeMillis() - lastReportTime) > DEBUG_OUTPUT_FREQUENCY) {
                     LOGGER.info(makeStatString());
@@ -272,16 +271,18 @@ class Populator {
             return;
         }
 
+        if (line.length() > MAX_LINE_LENGTH) {
+            line = line.substring(0, MAX_LINE_LENGTH);
+        }
+
         if (!caseSensitive) line = line.toLowerCase();
 
-        if (line.length() > MAX_LINE_LENGTH) {
-            line = line.substring(0,MAX_LINE_LENGTH);
-        }
+        final Map<String,String> wordTxn = rootWordlist.getWriteTxnForValue(line);
 
-        if (!rootWordlist.containsWord(null,line)) {
-            final Map<String,String> wordTxn = rootWordlist.getWriteTxnForValue(line);
-            bufferedWords.putAll(wordTxn);
-        }
+        // add word to buffered word list
+        bufferedWords.putAll(wordTxn);
+
+        loopLines++;
     }
 
     private void flushBuffer()

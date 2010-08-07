@@ -12,6 +12,9 @@
 	top: -1px;
 	bottom: 2px;
 }
+ .soria .dijitTabContainer .tabStripMenuButton-Hover {
+	cursor: pointer;
+}
 .soria .dijitTabPaneWrapper {
 	background:#fff;
 	border:1px solid #B1BADF;
@@ -50,7 +53,8 @@
 .soria .dijitTabHover .dijitTabInnerDiv .dijitTabContent {
 	background: url("../images/tabContainerSprite.gif") repeat-x 0 -200px;
 }
-.soria .dijitTabChecked
+.soria .dijitTabChecked,
+.soria .dijitTabCloseButtonChecked
 {
 	
 	background: url("../images/tabContainerSprite.gif") no-repeat 0px -0px;
@@ -90,19 +94,19 @@
 .soria .dijitTabPaneWrapperNested {
 	border: none;	
 }
-.soria .dijitTabCloseButton {
+.soria .dijitTab .closeImage {
 	width: 15px;
 	height: 15px;
 	background: url("../images/spriteRoundedIconsSmall.png") no-repeat -60px top;
 	margin-top: -1px;
 }
-.dj_ie6 .soria .dijitTabCloseButton {
+.dj_ie6 .soria .dijitTab .dijitClosable .closeImage {
 	background: url("../images/spriteRoundedIconsSmall.gif") no-repeat -60px top;
 }
-.soria .dijitTabCloseButtonHover {
+.soria .dijitTab .closeButton-hover .closeImage {
 	background: url("../images/spriteRoundedIconsSmall.png") no-repeat -60px -15px;
 }
-.dj_ie6 .soria .dijitTabCloseButtonHover {
+.dj_ie6 .soria .dijitTab .closeButton-hover .closeImage {
 	background: url("../images/spriteRoundedIconsSmall.gif") no-repeat -60px -15px;
 }
 .soria .dijitTab .tabLabel {
@@ -186,7 +190,9 @@
 .soria .dijitTabContainerBottom-tabs .dijitTabHover .dijitTabInnerDiv .dijitTabContent {
 	background: url("../images/tabBottomHoverC.gif") repeat-x bottom left;
 }
-.soria .dijitTabContainerBottom-tabs .dijitTabChecked {
+.soria .dijitTabContainerBottom-tabs .dijitTabChecked,
+.soria .dijitTabContainerBottom-tabs .dijitTabCloseButtonChecked
+{
 	
 	background: url("../images/tabBottomActiveSpriteLR.gif") no-repeat bottom left;
 }
@@ -356,17 +362,23 @@
 .soria .dijitTabContainer .tabStripButton-bottom .dijitTabContent {
 	background: transparent;
 }
-.soria .dijitTabStripIcon {
-	height: 14px;
-	width: 14px;
-	background: url(../images/spriteRoundedIconsSmall.png) no-repeat left top ;
+.soria .dijitTabContainer .tabStripButton {
+	
+	width: 21px;
 }
-.dj_ie6 .soria .dijitTabStripIcon {
+.soria .dijitTabContainer .tabStripButton img {
+	height: 14px;
+	background: url(../images/spriteRoundedIconsSmall.png) no-repeat;
+}
+.dj_ie6 .soria .dijitTabContainer .tabStripButton img {
 	background-image: url(../images/spriteRoundedIconsSmall.gif);
 }
-.soria .dijitTabStripSlideRightIcon {
-	background-position: -30px top;
-}
-.soria .dijitTabStripMenuIcon {
+.soria .dijitTabContainer .tabStripMenuButton img {
 	background-position: -15px top;
+}
+.soria .dijitTabContainer .tabStripSlideButtonLeft img {
+	background-position: 0px top;
+}
+.soria .dijitTabContainer .tabStripSlideButtonRight img {
+	background-position: -30px top;
 }

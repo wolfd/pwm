@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2004-2010, The Dojo Foundation All Rights Reserved.
+	Copyright (c) 2004-2009, The Dojo Foundation All Rights Reserved.
 	Available via Academic Free License >= 2.1 OR the modified BSD license.
 	see: http://dojotoolkit.org/license for details
 */
@@ -22,20 +22,20 @@ h.onMoveStart(this);
 },onMouseMove:function(e){
 dojo.dnd.autoScroll(e);
 var m=this.marginBox;
-this.host.onMove(this,{l:m.l+e.pageX,t:m.t+e.pageY},e);
+this.host.onMove(this,{l:m.l+e.pageX,t:m.t+e.pageY});
 dojo.stopEvent(e);
 },onMouseUp:function(e){
 if(dojo.isWebKit&&dojo.isMac&&this.mouseButton==2?e.button==0:this.mouseButton==e.button){
 this.destroy();
 }
 dojo.stopEvent(e);
-},onFirstMove:function(e){
+},onFirstMove:function(){
 var s=this.node.style,l,t,h=this.host;
 switch(s.position){
 case "relative":
 case "absolute":
-l=Math.round(parseFloat(s.left))||0;
-t=Math.round(parseFloat(s.top))||0;
+l=Math.round(parseFloat(s.left));
+t=Math.round(parseFloat(s.top));
 break;
 default:
 s.position="absolute";
@@ -51,7 +51,7 @@ break;
 this.marginBox.l=l-this.marginBox.l;
 this.marginBox.t=t-this.marginBox.t;
 if(h&&h.onFirstMove){
-h.onFirstMove(this,e);
+h.onFirstMove(this);
 }
 dojo.disconnect(this.events.pop());
 },destroy:function(){

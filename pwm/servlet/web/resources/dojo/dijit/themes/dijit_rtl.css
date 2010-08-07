@@ -1,88 +1,82 @@
-.dijitRtl .dijitPlaceHolder {
-	left: auto;
-	right: 0;
+.dj_gecko-rtl .dijitInputField {
+	direction: ltr; 
 }
-.dijitMenuItemRtl {
+.dj_gecko-rtl .dijitInputField * {
+	direction: rtl; 
+}
+.dijitRtl .dijitMenuItem {
 	text-align: right;
 }
-.dj_iequirks .dijitComboButtonRtl BUTTON {
-	
-	float:left;
+.dijitRtl .dijitComboBox .dijitInputField {
+	border-right-width:1px !important;
+	border-left-width:0 !important;
 }
-.dijit_a11y .dijitTextBoxRtl .dijitValidationContainer,
-.dijitTextBoxRtl .dijitSpinnerButtonContainer,
-.dijitComboBoxRtl .dijitArrowButtonContainer {
-	
-	border-right-width: 1px !important;
-	border-right-style: solid !important;
-	border-left-width: 0px !important;
-	border-left-style: none !important;
-}
-.dijit_a11y .dijitTextBoxRtl .dijitValidationContainer,
-.dijit_a11y .dijitTextBoxRtl .dijitSpinnerButtonContainer,
-.dijit_a11y .dijitComboBoxRtl .dijitArrowButtonContainer {
-	border-right: 1px solid black !important;
-	border-left: 0px none black !important;
-}
-.dijitSpinnerRtl .dijitSpinnerButtonContainer .dijitArrowButton {
-	right: 0;
-	left: auto;
-}
-.dijitTextBoxRtl .dijitSpinnerButtonContainer,
-.dijitTextBoxRtl .dijitValidationContainer,
-.dijitTextBoxRtl .dijitArrowButtonContainer {
-	float: left;
-}
-.dijitCalendarRtl .dijitCalendarNextYear {
+.dijitRtl .dijitCalendarNextYear {
 	margin:0 0.55em 0 0;
 }
-.dijitCalendarRtl .dijitCalendarPreviousYear {
+.dijitRtl .dijitCalendarPreviousYear {
 	margin:0 0 0 0.55em;
 }
-.dijitSliderRtl .dijitSliderImageHandleV {
+.dijitRtl .dijitProgressBarFull .dijitProgressBarLabel {
+	right:0; 
+}
+.dijitRtl .dijitSliderImageHandleV {
 	left:auto;
+	right:-6px;
 }
-.dijitSliderRtl .dijitSliderImageHandleH {
-	left:-50%;
+.dj_ie-rtl .dijitSliderImageHandleV {
+	right:-10px;
 }
-.dijitSliderRtl .dijitSliderMoveableH {
+.dijitRtl .dijitSliderMoveableH {
 	right:auto;
 	left:0;
 }
-.dijitSliderRtl .dijitRuleContainerV {
+.dijitRtl .dijitRuleContainerV {
 	float:right;
 }
-.dj_ie .dijitSliderRtl .dijitRuleContainerV {
+.dj_gecko-rtl .dijitRuleContainerV {
+	float:left;
+}
+.dj_ie-rtl .dijitRuleContainerV {
 	text-align:right;
 }
-.dj_ie .dijitSliderRtl .dijitRuleLabelV {
+.dj_ie-rtl .dijitRuleLabelV {
 	text-align:left;
 }
-.dj_ie .dijitSliderRtl .dijitRuleLabelH {
+.dj_ie-rtl .dijitRuleLabelH {
 	zoom:1;
 }
-.dijitSliderRtl .dijitSliderProgressBarH {
-	
+.dj_ie-rtl .dijitSliderProgressBarH {
+	right:0;
+	left:auto;
+}
+.dj_gecko-rtl .dijitSliderProgressBarH {
 	float:right;
 	right:0;
 	left:auto;
+}
+.dijitRtl .dijitSpinner .dijitInputLayoutContainer .dijitArrowButton {
+	right: auto;
+	left: 0;
+	border-width: 0 1px 0 0 !important;
+}
+.dijitRtl .dijitSpinnerButtonContainer {
+	float: left;
+}
+.dijitRtl .dijit_a11y .dijitSpinnerButtonContainer {
+	margin-left: none;
+	margin-right: 2px;
+}
+.dijitRtl DIV.dijitArrowButton, .dijitRtl .dijitValidationIcon, .dijitRtl .dijitValidationIconText {
+	float: left;
 }
 .dijitRtl .dijitContentPaneLoading, .dijitRtl .dijitContentPaneError {
 	background-position:right;
 	padding-right:25px;
 }
-.dijitTabRtl .dijitTabCloseButton {
-	margin-left: 0px;
-	margin-right: 1em;
+.dijitRtl .dijitTabContainer .tabStripMenuButton {
+	float: left;
 }
-.dj_ie .dijitTimePickerRtl .dijitTimePickerItem {
-	width:100%;
-}
-.dijitColorPaletteRtl .dijitColorPaletteUnder {
-	
-	left: auto;
-	right: 0;
-}
-.dijitSelectRtl .dijitButtonContents {
-	text-align: right;
+.dj_iequirks-rtl .dijitComboButton BUTTON {
+        float:left;
 }

@@ -22,10 +22,10 @@
 
 package password.pwm.config;
 
+import password.pwm.ContextManager;
 import password.pwm.util.PwmLogger;
 
 import java.io.*;
-import java.util.Date;
 
 /**
  * Read the PWM configuration.
@@ -42,8 +42,6 @@ public class ConfigurationReader {
     private final String configFileChecksum;
     private final StoredConfiguration storedConfiguration;
     private final Configuration configuration;
-
-    private Date configurationReadTime;
 
     private final MODE configMode;
 
@@ -121,11 +119,10 @@ public class ConfigurationReader {
             LOGGER.warn("unable to evaluate checksum file: " + e.getMessage());
         }
 
-        configurationReadTime = new Date();
         return storedConfiguration;
     }
 
-    public void saveConfiguration(final StoredConfiguration storedConfiguration)
+    public void saveConfiguration(final StoredConfiguration storedConfiguration, final ContextManager contextManager)
             throws IOException
     {
         if (getConfigMode() == MODE.RUNNING) {
@@ -171,9 +168,6 @@ public class ConfigurationReader {
         return String.valueOf(file.lastModified());
     }
 
-    public Date getConfigurationReadTime() {
-        return configurationReadTime;
-    }
 }
 
 

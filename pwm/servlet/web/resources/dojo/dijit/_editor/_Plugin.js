@@ -1,5 +1,5 @@
 /*
-	Copyright (c) 2004-2010, The Dojo Foundation All Rights Reserved.
+	Copyright (c) 2004-2009, The Dojo Foundation All Rights Reserved.
 	Available via Academic Free License >= 2.1 OR the modified BSD license.
 	see: http://dojotoolkit.org/license for details
 */
@@ -9,6 +9,7 @@ if(!dojo._hasResource["dijit._editor._Plugin"]){
 dojo._hasResource["dijit._editor._Plugin"]=true;
 dojo.provide("dijit._editor._Plugin");
 dojo.require("dijit._Widget");
+dojo.require("dijit.Editor");
 dojo.require("dijit.form.Button");
 dojo.declare("dijit._editor._Plugin",null,{constructor:function(_1,_2){
 this.params=_1||{};
@@ -18,10 +19,11 @@ this._connects=[];
 return this.editor.commands[_3];
 },_initButton:function(){
 if(this.command.length){
-var _4=this.getLabel(this.command),_5=this.editor,_6=this.iconClassPrefix+" "+this.iconClassPrefix+this.command.charAt(0).toUpperCase()+this.command.substr(1);
+var _4=this.getLabel(this.command);
+var _5=this.iconClassPrefix+" "+this.iconClassPrefix+this.command.charAt(0).toUpperCase()+this.command.substr(1);
 if(!this.button){
-var _7=dojo.mixin({label:_4,dir:_5.dir,lang:_5.lang,showLabel:false,iconClass:_6,dropDown:this.dropDown,tabIndex:"-1"},this.params||{});
-this.button=new this.buttonClass(_7);
+var _6=dojo.mixin({label:_4,showLabel:false,iconClass:_5,dropDown:this.dropDown,tabIndex:"-1"},this.params||{});
+this.button=new this.buttonClass(_6);
 }
 }
 },destroy:function(){
@@ -32,42 +34,43 @@ this.dropDown.destroyRecursive();
 },connect:function(o,f,tf){
 this._connects.push(dojo.connect(o,f,this,tf));
 },updateState:function(){
-var e=this.editor,c=this.command,_8,_9;
+var e=this.editor,c=this.command,_7,_8;
 if(!e||!e.isLoaded||!c.length){
 return;
 }
 if(this.button){
 try{
-_9=e.queryCommandEnabled(c);
-if(this.enabled!==_9){
-this.enabled=_9;
-this.button.set("disabled",!_9);
+_8=e.queryCommandEnabled(c);
+if(this.enabled!==_8){
+this.enabled=_8;
+this.button.attr("disabled",!_8);
 }
 if(typeof this.button.checked=="boolean"){
-_8=e.queryCommandState(c);
-if(this.checked!==_8){
-this.checked=_8;
-this.button.set("checked",e.queryCommandState(c));
+_7=e.queryCommandState(c);
+if(this.checked!==_7){
+this.checked=_7;
+this.button.attr("checked",e.queryCommandState(c));
 }
 }
 }
 catch(e){
 }
 }
-},setEditor:function(_a){
-this.editor=_a;
+},setEditor:function(_9){
+this.editor=_9;
 this._initButton();
-if(this.button&&this.useDefaultCommand){
-if(this.editor.queryCommandAvailable(this.command)){
-this.connect(this.button,"onClick",dojo.hitch(this.editor,"execCommand",this.command,this.commandArg));
-}else{
+if(this.command.length&&!this.editor.queryCommandAvailable(this.command)){
+if(this.button){
 this.button.domNode.style.display="none";
 }
 }
+if(this.button&&this.useDefaultCommand){
+this.connect(this.button,"onClick",dojo.hitch(this.editor,"execCommand",this.command,this.commandArg));
+}
 this.connect(this.editor,"onNormalizedDisplayChanged","updateState");
-},setToolbar:function(_b){
+},setToolbar:function(_a){
 if(this.button){
-_b.addChild(this.button);
+_a.addChild(this.button);
 }
 }});
 }

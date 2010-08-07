@@ -192,18 +192,67 @@ public class Configuration implements Serializable {
         final List<String> randomQuestions = readFormSetting(PwmSetting.CHALLENGE_RANDOM_CHALLENGES, locale);
 
         final List<Challenge> challenges = new ArrayList<Challenge>();
-        for (final String question : requiredQuestions) {
-            final Challenge challenge = parseConfigStringToChallenge(question, true);
-            if (challenge != null) {
-                challenges.add(challenge);
+        for (String question : requiredQuestions) {
+            int minLength = 2;
+            int maxLength = 255;
+
+            final String[] s1 = question == null ? new String[0] : question.split("::");
+            if (s1.length > 0) {
+                question = s1[0];
             }
+            if (s1.length > 1) {
+                try {
+                    minLength = Integer.parseInt(s1[1]);
+                } catch (Exception e) {
+                    // nothing to catch
+                }
+            }
+            if (s1.length > 2) {
+                try {
+                    maxLength = Integer.parseInt(s1[2]);
+                } catch (Exception e) {
+                    // nothing to catch
+                }
+            }
+
+            boolean adminDefined = true;
+            if (question != null && question.equalsIgnoreCase("%user%")) {
+                question = null;
+                adminDefined = false;
+            }
+
+            challenges.add(CrFactory.newChallenge(true, question, minLength, maxLength, adminDefined));
         }
 
-        for (final String question : randomQuestions) {
-            final Challenge challenge = parseConfigStringToChallenge(question, false);
-            if (challenge != null) {
-                challenges.add(challenge);
+        for (String question : randomQuestions) {
+            int minLength = 2;
+            int maxLength = 255;
+
+            final String[] s1 = question == null ? new String[0] : question.split("::");
+            if (s1.length > 0) {
+                question = s1[0];
             }
+            if (s1.length > 1) {
+                try {
+                    minLength = Integer.parseInt(s1[1]);
+                } catch (Exception e) {
+                    // nothing to catch
+                }
+            }
+            if (s1.length > 2) {
+                try {
+                    maxLength = Integer.parseInt(s1[2]);
+                } catch (Exception e) {
+                    // nothing to catch
+                }
+            }
+
+            boolean adminDefined = true;
+            if (question != null && question.equalsIgnoreCase("%user%")) {
+                question = null;
+                adminDefined = false;
+            }
+            challenges.add(CrFactory.newChallenge(false, question, minLength, maxLength, adminDefined));
         }
 
         int minimumRands = readSettingAsInt(PwmSetting.CHALLENGE_MIN_RANDOM_REQUIRED);
@@ -217,43 +266,6 @@ public class Configuration implements Serializable {
             LOGGER.warn("invalid challenge set configuration: " + e.getMessage());
         }
         return null;
-    }
-
-    private Challenge parseConfigStringToChallenge(String inputString, final boolean required) {
-
-        if (inputString == null || inputString.length() < 1) {
-            return null;
-        }
-
-        int minLength = 2;
-        int maxLength = 255;
-
-        final String[] s1 = inputString.split("::");
-        if (s1.length > 0) {
-            inputString = s1[0];
-        }
-        if (s1.length > 1) {
-            try {
-                minLength = Integer.parseInt(s1[1]);
-            } catch (Exception e) {
-                LOGGER.debug("unexpected error parsing config input '" + inputString + "' " + e.getMessage());
-            }
-        }
-        if (s1.length > 2) {
-            try {
-                maxLength = Integer.parseInt(s1[2]);
-            } catch (Exception e) {
-                LOGGER.debug("unexpected error parsing config input '" + inputString + "' " + e.getMessage());
-            }
-        }
-
-        boolean adminDefined = true;
-        if (inputString != null && inputString.equalsIgnoreCase("%user%")) {
-            inputString = null;
-            adminDefined = false;
-        }
-
-        return CrFactory.newChallenge(required, inputString, minLength, maxLength, adminDefined);
     }
 
     public static Map<String, String> convertStringListToNameValuePair(final Collection<String> input, final String separator) {
@@ -283,21 +295,15 @@ public class Configuration implements Serializable {
 
         final Map<String, FormConfiguration> returnMap = new LinkedHashMap<String, FormConfiguration>();
         for (final String loopString : input) {
-            if (loopString != null && loopString.length() > 0) {
-                final FormConfiguration formConfig = FormConfiguration.parseConfigString(loopString);
-                final String attrName = formConfig.getAttributeName();
-                returnMap.put(attrName, formConfig);
-            }
+            final FormConfiguration formConfig = FormConfiguration.parseConfigString(loopString);
+            final String attrName = formConfig.getAttributeName();
+            returnMap.put(attrName, formConfig);
         }
         return returnMap;
     }
 
     public String toString() {
         return storedConfiguration.toString();
-    }
-
-    public String toDebugString() {
-        return storedConfiguration.toString(true);
     }
 
     public String readProperty(final String key) {

@@ -48,7 +48,8 @@ public class
     private static final PwmLogger LOGGER = PwmLogger.getLogger(Berkeley_PwmDb.class);
 
     private final static boolean IS_TRANSACTIONAL = true;
-    private final static int MAX_CLEANER_BACKLOG_GOAL = 10;
+    private final static int CLEANUP_TICKS = 2000;
+    private final static int CLEANUP_MS = 5 * 60 * 1000;
 
     private final static TupleBinding<String> STRING_TUPLE = TupleBinding.getPrimitiveBinding(String.class);
 
@@ -61,8 +62,8 @@ public class
 
     private volatile boolean open = false;
 
-    private volatile int outstandingCleanerThreads;
-    private volatile int outstandingCleanerThreadCounter;
+    private CleanupThread cleanupThread;
+    private int modifyTick = 0;
 
 // -------------------------- STATIC METHODS --------------------------
 
@@ -96,6 +97,11 @@ public class
         environmentConfig.setAllowCreate(true);
         environmentConfig.setTransactional(IS_TRANSACTIONAL);
 
+        //disable threads (handled with CleanupThread
+        environmentConfig.setConfigParam(EnvironmentConfig.ENV_RUN_CHECKPOINTER,"false");
+        environmentConfig.setConfigParam(EnvironmentConfig.ENV_RUN_CLEANER,"false");
+        environmentConfig.setConfigParam(EnvironmentConfig.ENV_RUN_IN_COMPRESSOR,"false");
+
         for (final String key : initProps.keySet()) {
             environmentConfig.setConfigParam(key,initProps.get(key));
         }
@@ -121,40 +127,39 @@ public class
     public void close()
             throws PwmDBException
     {
-        LOGGER.debug("pwmDB closing....");
         open = false;
+        try {
+            LOGGER.debug("pwmDB closing....");
+            final long startTime = System.currentTimeMillis();
 
-        for (final DB key : cachedDatabases.keySet()) {
-            try {
-                cachedDatabases.get(key).close();
-            } catch (DatabaseException e) {
-                LOGGER.error("error while closing database " + key.toString() + ": " + e.getMessage() );
+            for (final DB db : cachedMaps.keySet()) {
+                if (dbIterators.containsKey(db)) {
+                    dbIterators.get(db).close();
+                }
+
+                final Database database = cachedDatabases.get(db);
+                database.close();
             }
-        }
 
-        cachedDatabases.clear();
-        cachedMaps.clear();
-        final long startTime = System.currentTimeMillis();
+            cachedDatabases.clear();
+            cachedMaps.clear();
 
-        boolean closed = false;
-        while (!closed && (System.currentTimeMillis() - startTime) < 90 * 1000) {
-            try {
-                environment.close();
-                closed = true;
-            } catch (Exception e) {
-                LOGGER.error("error while attempting to close berkeley pwmDB environment (will retry): " + e.getMessage());
-                Helper.pause(5 * 1000);
+            while (System.currentTimeMillis() - startTime < 30 * 1000 && cleanupThread != null) {
+                Helper.pause(100);
             }
-        }
 
-        final TimeDuration td = new TimeDuration(System.currentTimeMillis() - startTime);
-        LOGGER.info("closed (" + td.asCompactString() + ")");
+            environment.close();
+            final TimeDuration td = new TimeDuration(System.currentTimeMillis() - startTime);
+            LOGGER.info("closed (" + td.asCompactString() + ")");
+        } catch (DatabaseException e) {
+            throw new PwmDBException(e);
+        }
     }
 
     public boolean contains(final DB db, final String key)
             throws PwmDBException
     {
-        preCheck(true);
+        preCheck();
         try {
             return cachedMaps.get(db).containsKey(key);
         } catch (RuntimeExceptionWrapper e) {
@@ -166,7 +171,7 @@ public class
     public String get(final DB db, final String key)
             throws PwmDBException
     {
-        preCheck(true);
+        preCheck();
         try {
             return cachedMaps.get(db).get(key);
         } catch (RuntimeExceptionWrapper e) {
@@ -194,12 +199,17 @@ public class
         }
 
         open = true;
+
+        cleanupThread = new CleanupThread();
+        cleanupThread.setDaemon(true);
+        cleanupThread.setName("pwm-Berkeley_PwmDB cleaner");
+        cleanupThread.start();
     }
 
     public synchronized Iterator<TransactionItem> iterator(final DB db)
             throws PwmDBException
     {
-        preCheck(true);
+        preCheck();
         try {
             if (dbIterators.containsKey(db)) {
                 throw new IllegalArgumentException("multiple outstanding iterators per DB are not permitted");
@@ -216,7 +226,7 @@ public class
     public void putAll(final DB db, final Map<String, String> keyValueMap)
             throws PwmDBException
     {
-        preCheck(true);
+        preCheck();
 
         try {
             cachedMaps.get(db).putAll(keyValueMap);
@@ -224,15 +234,17 @@ public class
             LOGGER.error("error during multiple-put: " + e.toString() );
             throw new PwmDBException(e.getCause());
         }
+        modifyTick += keyValueMap.size();
     }
 
     public boolean put(final DB db, final String key, final String value)
             throws PwmDBException
     {
-        preCheck(true);
+        preCheck();
 
         try {
             final StoredMap<String, String> transactionDB = cachedMaps.get(db);
+            modifyTick++;
             return null != transactionDB.put(key, value);
         } catch (RuntimeExceptionWrapper e) {
             LOGGER.error("error during put: " + e.toString() );
@@ -244,8 +256,9 @@ public class
     public boolean remove(final DB db, final String key)
             throws PwmDBException
     {
-        preCheck(true);
+        preCheck();
         try {
+            modifyTick++;
             return cachedMaps.get(db).keySet().remove(key);
         } catch (RuntimeExceptionWrapper e) {
             LOGGER.error("error during remove: " + e.toString() );
@@ -257,13 +270,14 @@ public class
 
             throws PwmDBException
     {
-        preCheck(true);
+        preCheck();
         try {
             cachedMaps.get(db).keySet().removeAll(keys);
         } catch (RuntimeExceptionWrapper e) {
             LOGGER.error("error during removeAll: " + e.toString() );
             throw new PwmDBException(e.getCause());
         }
+        modifyTick += keys.size();
     }
 
     public synchronized void returnIterator(final DB db)
@@ -284,7 +298,7 @@ public class
     public int size(final DB db)
             throws PwmDBException
     {
-        preCheck(false);
+        preCheck();
         try {
             final StoredMap<String,String> dbMap = cachedMaps.get(db);
             assert dbMap != null;
@@ -298,7 +312,7 @@ public class
     public void truncate(final DB db)
             throws PwmDBException
     {
-        preCheck(true);
+        preCheck();
         try {
             cachedMaps.remove(db);
             cachedDatabases.remove(db).close();
@@ -312,6 +326,7 @@ public class
             LOGGER.error("error during truncate: " + e.toString() );
             throw new PwmDBException(e.getCause());
         }
+        modifyTick++;
     }
 
 // -------------------------- INNER CLASSES --------------------------
@@ -346,6 +361,7 @@ public class
 
         public void remove() {
             innerIter.remove();
+            modifyTick++;
         }
     }
 
@@ -358,39 +374,42 @@ public class
         return 0;
     }
 
-    private void preCheck(final boolean write) throws PwmDBException {
+    private void preCheck() throws PwmDBException {
         if (!open) {
             throw new PwmDBException("pwmDB is closed, cannot begin a new transaction");
         }
+    }
 
-        if (write) {
-            final int cleanerBacklog = environment.getStats(null).getCleanerBacklog();
-            if (cleanerBacklog > MAX_CLEANER_BACKLOG_GOAL) {
-                synchronized(this) {
-                    final int maxThreads = Runtime.getRuntime().availableProcessors();
-                    if (outstandingCleanerThreads < maxThreads) {
-                        final Thread t = new Thread() {
-                            @Override
-                            public void run() {
-                                try {
-                                    LOGGER.debug("starting up auxiliary cleaner process; " + outstandingCleanerThreads + " concurrent processes, cleanerBackLog=" + cleanerBacklog);
-                                    environment.cleanLog();
-                                    environment.checkpoint(null);
-                                } catch (Exception e) {
-                                    LOGGER.error("error from auxiliary cleaner process: " + e.getMessage());
-                                } finally {
-                                    outstandingCleanerThreads--;
-                                }
-                            }
-                        };
-                        t.setDaemon(true);
-                        t.setName("pwm-berkeley-pwmDB cleaner thread " + outstandingCleanerThreadCounter++);
-                        t.start();
-                        outstandingCleanerThreads++;
-                    }
-                    final int sleepTime = 200 + (15 * cleanerBacklog);
-                    Helper.pause( sleepTime );
+
+    private class CleanupThread extends Thread {
+
+        private long lastCleanup = System.currentTimeMillis();
+
+        public void run() {
+            while (open) {
+                if (modifyTick > CLEANUP_TICKS) {
+                    cleanup();
+                    modifyTick = 0;
+                    lastCleanup = System.currentTimeMillis();
+                } else if (System.currentTimeMillis() - lastCleanup > CLEANUP_MS) {
+                    cleanup();
+                    modifyTick = 0;
+                    lastCleanup = System.currentTimeMillis();
                 }
+
+                Helper.pause(1000);
+            }
+
+            cleanupThread = null;
+        }
+
+        private synchronized void cleanup() {
+            try {
+                environment.checkpoint(null);
+                environment.cleanLog();
+                environment.compress();
+            } catch (Exception e) {
+                LOGGER.error("unexpected error during Berkeley pwmDB ");
             }
         }
     }
