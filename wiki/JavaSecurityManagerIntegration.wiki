@@ -24,7 +24,27 @@ After Tomcat is restarted, it starts spitting out "access allowed/denied" messag
 $ tail -n 15000 <logfile>|grep "access denied"|cut -d " " -f 7-|sort|uniq -u
 }}}
 
-After spotting the failures, convert them into matching security manager rules and restart Tomcat. Repeat this as many times as necessary. Note that this setup can easily create gigabytes worth of useless logs, so remember to switch off debugging before going to production.
+Alternatively, you can activate real-time monitoring with
+
+{{{
+$ tail -n 0 -f <logfile> |grep "access denied"
+}}}
+
+before restarting Tomcat. In either case, you should get notices like this:
+
+{{{
+access: access denied (java.lang.management.ManagementPermission monitor)
+access: access denied (java.util.PropertyPermission org.apache.commons.logging.diagnostics.dest read)
+access: access denied (java.util.PropertyPermission org.apache.commons.logging.LogFactory.HashtableImpl read)
+access: access denied (java.util.PropertyPermission org.apache.commons.logging.LogFactory read)
+access: access denied (java.util.PropertyPermission org.apache.commons.logging.Log.allowFlawedContext read)
+access: access denied (java.util.PropertyPermission org.apache.commons.logging.Log.allowFlawedDiscovery read)
+access: access denied (java.util.PropertyPermission org.apache.commons.logging.Log.allowFlawedHierarchy read)
+access: access denied (java.util.PropertyPermission org.apache.commons.logging.Log read)
+access: access denied (java.util.PropertyPermission org.apache.commons.logging.log read)
+}}}
+
+After spotting these failures, convert them into matching security manager rules and restart Tomcat. Repeat this as many times as necessary. Note that this setup can easily create gigabytes worth of useless logs, so remember to switch off debugging before going to production.
 
 On Debian and many other distributions Tomcat's JSM rules are stored in _/etc/tomcat*<version*>/policy.d_. These ruleset fragments are converted into the active ruleset stored in _/var/cache/tomcat*<version*>/catalina.policy_ or similar.
 It's probably a good idea to make sure the pwm-specific policy file loads after the default policy files, so name it something like "50user.policy". Also make sure the file has the same permissions as the existing policy files or it may not load properly.
