@@ -133,3 +133,75 @@ grant {
 
 
 =Pwm 1.5.2 on Debian Squeeze=
+
+A few modifications are needed to adapt Lenny's ruleset for Squeeze and Tomcat6:
+
+{{{
+// ========== PWM-specific settings =====================================
+
+grant {
+	// With this everything works very neatly, but it's terribly insecure: a webapp can basically destroy everything the
+	// Java (tomcat) process has write access to.
+	//permission java.security.AllPermission;
+
+	// This gets us past the first error
+	permission java.lang.RuntimePermission "createClassLoader";
+	// Added between 1.4.2 and 1.5.2
+	permission java.lang.RuntimePermission "modifyThread";
+
+	// This gets us past pwm-db access issues. It seems we cannot use "<snip>/pwm/META-INF/pwm-db/-" without the whole
+	// Tomcat breaking. Apparently this happens because the pwm-db directory is created on the fly and Security Manager
+	// can't find it when it launches -> everything breaks badly.
+	//
+	// This set of FilePermissions seems to work and prevents the webapp from _writing_ to META-INF/context.xml,
+	// which contains security-related settings (e.g. host/subnet-based filtering rules)
+	permission java.io.FilePermission "/var/lib/tomcat6/webapps/pwm/META-INF/*", "read, execute";
+	// pwm-db moved from META-INF to WEB-INF between pwm 1.4.2 and 1.5.2; also renamed from pwm-db to pwmDB
+	permission java.io.FilePermission "/var/lib/tomcat6/webapps/pwm/WEB-INF/pwmDB", "read, write, delete, execute";
+	permission java.io.FilePermission "/var/lib/tomcat6/webapps/pwm/WEB-INF/pwmDB/-", "read, write, delete, execute";
+	permission java.io.FilePermission "/var/lib/tomcat6/webapps/pwm/WEB-INF/classes/-", "read";
+	// permission java.io.FilePermission "/var/lib/tomcat6/webapps/pwm/WEB-INF/lib/*", "read";
+
+	// Next two added between 1.4.2 and 1.5.2
+	permission java.io.FilePermission "/usr/lib/jvm/java-6-openjdk/jre/lib/*", "read";
+	permission java.io.FilePermission "/var/lib/tomcat6/webapps/pwm/WEB-INF/-", "write";
+
+	// Misc FilePermissions
+	permission java.io.FilePermission "/usr/share/javazi/ZoneInfoMappings", "read";
+	permission java.io.FilePermission "/usr/share/tomcat6/.mailcap", "read";
+	permission java.io.FilePermission "/WEB-INF/classes/org/apache/log4j/-", "read";
+	
+	// Misc RuntimePermissions
+	permission java.lang.RuntimePermission "defineClassInPackage.java.lang";
+	permission java.lang.RuntimePermission "defineClassInPackage.org.apache.jasper.runtime";
+	permission java.lang.RuntimePermission "accessClassInPackage.sun.util.logging.*";
+	permission java.lang.RuntimePermission "accessClassInPackage.org.apache.tomcat.*";
+
+	// All PropertyPermissions enabled as there are tons of these
+	permission java.util.PropertyPermission "*", "read,write";
+
+	// reCAPTCHA-specific SocketPermissions
+	permission java.net.SocketPermission "*","connect,resolve";
+
+	// Misc SocketPermissions. Redundant, as the above rule covers this case.
+	permission java.net.SocketPermission "127.0.0.1:389", "connect, resolve";
+
+	// Log4j-specific properties
+	permission java.util.PropertyPermission "log4j.*", "read";
+
+	// BerkeleyDB-specific properties
+	permission java.util.PropertyPermission "je.*", "read";
+	permission java.util.PropertyPermission "JEDiagnostics", "read";
+	permission java.util.PropertyPermission "JEMonitor", "read";
+
+	// Misc permissions
+	permission java.util.logging.LoggingPermission "control";
+
+	// Obsolete in pwm 1.5.2?
+	permission ng.reflect.ReflectPermission "suppressAccessChecks";
+
+	// Next two added to pwm 1.4.2 rules for pwm 1.5.2
+	permission java.lang.reflect.ReflectPermission "suppressAccessChecks";
+	permission java.lang.management.ManagementPermission "monitor";
+};
+}}}
