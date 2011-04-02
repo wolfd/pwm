@@ -1,0 +1,353 @@
+/*
+ * Password Management Servlets (PWM)
+ * http://code.google.com/p/pwm/
+ *
+ * Copyright (c) 2006-2009 Novell, Inc.
+ * Copyright (c) 2009-2010 The PWM Project
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
+package password.pwm.servlet;
+
+import com.google.gson.Gson;
+import com.novell.ldapchai.exception.ChaiUnavailableException;
+import password.pwm.*;
+import password.pwm.bean.SessionStateBean;
+import password.pwm.bean.UserInfoBean;
+import password.pwm.config.*;
+import password.pwm.error.PwmError;
+import password.pwm.error.PwmException;
+import password.pwm.error.ValidationException;
+import password.pwm.health.HealthMonitor;
+import password.pwm.health.HealthRecord;
+import password.pwm.util.Helper;
+import password.pwm.util.PwmLogger;
+import password.pwm.util.ServletHelper;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Processes a variety of different commands sent in an HTTP Request, including logoff.
+ *
+ * @author Jason D. Rivard
+ */
+public class CommandServlet extends TopServlet {
+// ------------------------------ FIELDS ------------------------------
+
+    private static final PwmLogger LOGGER = PwmLogger.getLogger(CommandServlet.class);
+
+// -------------------------- OTHER METHODS --------------------------
+
+    public void processRequest(
+            final HttpServletRequest req,
+            final HttpServletResponse resp
+    )
+            throws ServletException, IOException, ChaiUnavailableException, PwmException {
+        final PwmSession pwmSession = PwmSession.getPwmSession(req);
+        final String action = Validator.readStringFromRequest(req, PwmConstants.PARAM_ACTION_REQUEST, 255);
+        LOGGER.trace(pwmSession, "received request for action " + action);
+
+        if (action.equalsIgnoreCase("idleUpdate")) {
+            processIdleUpdate(req, resp);
+        } else if (action.equalsIgnoreCase("checkResponses") || action.equalsIgnoreCase("checkIfResponseConfigNeeded")) {
+            processCheckResponses(req, resp);
+        } else if (action.equalsIgnoreCase("checkExpire")) {
+            processCheckExpire(req, resp);
+        } else if (action.equalsIgnoreCase("checkAttributes")) {
+            processCheckAttributes(req, resp);
+        } else if (action.equalsIgnoreCase("checkAll")) {
+            processCheckAll(req, resp);
+        } else if (action.equalsIgnoreCase("continue")) {
+            processContinue(req, resp);
+        } else if (action.equalsIgnoreCase("getHealthCheckData")) {
+            processGetHealthCheckData(req, resp);
+        } else {
+            LOGGER.debug(pwmSession, "unknown command sent to CommandServlet: " + action);
+            ServletHelper.forwardToErrorPage(req, resp, this.getServletContext());
+        }
+    }
+
+    private static void processIdleUpdate(
+            final HttpServletRequest req,
+            final HttpServletResponse resp
+    )
+            throws ChaiUnavailableException, IOException, ServletException, PwmException {
+        Validator.validatePwmFormID(req);
+        if (!resp.isCommitted()) {
+            resp.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+            resp.setContentType("text/plain");
+        }
+    }
+
+    private static void processGetHealthCheckData(
+            final HttpServletRequest req, final HttpServletResponse resp
+    )
+            throws ChaiUnavailableException, IOException, ServletException, PwmException {
+        final PwmSession pwmSession = PwmSession.getPwmSession(req);
+        final HealthMonitor healthMonitor = pwmSession.getContextManager().getHealthMonitor();
+
+        boolean refreshImmediate = false;
+        {
+            final String refreshImmediateParam = Validator.readStringFromRequest(req, "refreshImmediate");
+            if (refreshImmediateParam != null && refreshImmediateParam.equalsIgnoreCase("true")) {
+                if (pwmSession.getContextManager().getConfigReader().getConfigMode() == ConfigurationReader.MODE.CONFIGURATION) {
+                    LOGGER.trace(pwmSession, "allowing configuration refresh (ConfigurationMode=CONFIGURATION)");
+                    refreshImmediate = true;
+                } else {
+                    try {
+                        refreshImmediate = Permission.checkPermission(Permission.PWMADMIN, pwmSession);
+                    } catch (Exception e) {
+                        LOGGER.warn(pwmSession, "error during authorization check: " + e.getMessage());
+                    }
+                }
+            }
+        }
+
+        final List<HealthRecord> healthRecords = healthMonitor.getHealthRecords(refreshImmediate);
+        if (healthRecords != null) {
+            final Map<String, Object> returnMap = new HashMap<String, Object>();
+            returnMap.put("date", healthMonitor.getLastHealthCheckDate());
+            returnMap.put("timestamp", healthMonitor.getLastHealthCheckDate().getTime());
+            returnMap.put("data", healthRecords);
+
+            final Gson gson = new Gson();
+            final String outputString = gson.toJson(returnMap);
+            resp.setContentType("application/json;charset=utf-8");
+            resp.getOutputStream().print(outputString);
+        }
+    }
+
+    private static void processCheckResponses(
+            final HttpServletRequest req,
+            final HttpServletResponse resp
+    )
+            throws ChaiUnavailableException, IOException, ServletException, PwmException {
+        if (!preCheckUser(req, resp)) {
+            return;
+        }
+
+        final PwmSession pwmSession = PwmSession.getPwmSession(req);
+
+        final boolean responseConfigNeeded = UserStatusHelper.checkIfResponseConfigNeeded(pwmSession, pwmSession.getSessionManager().getActor(), pwmSession.getUserInfoBean().getChallengeSet());
+
+        if (responseConfigNeeded) {
+            resp.sendRedirect(SessionFilter.rewriteRedirectURL(PwmConstants.URL_SERVLET_SETUP_RESPONSES, req, resp));
+        } else {
+            processContinue(req, resp);
+        }
+    }
+
+    private static boolean preCheckUser(
+            final HttpServletRequest req,
+            final HttpServletResponse resp
+    )
+            throws ChaiUnavailableException, IOException, ServletException, PwmException {
+        final PwmSession pwmSession = PwmSession.getPwmSession(req);
+        final SessionStateBean ssBean = pwmSession.getSessionStateBean();
+
+        if (!ssBean.isAuthenticated() && !AuthenticationFilter.authUserUsingBasicHeader(req)) {
+            final String action = Validator.readStringFromRequest(req, PwmConstants.PARAM_ACTION_REQUEST, 255);
+            LOGGER.info(pwmSession, "authentication required for " + action);
+            ssBean.setSessionError(PwmError.ERROR_AUTHENTICATION_REQUIRED.toInfo());
+            ServletHelper.forwardToErrorPage(req, resp, req.getSession().getServletContext());
+            return false;
+        }
+        return true;
+    }
+
+    private static void processCheckExpire(
+            final HttpServletRequest req,
+            final HttpServletResponse resp
+    )
+            throws ChaiUnavailableException, IOException, ServletException, PwmException {
+        if (!preCheckUser(req, resp)) {
+            return;
+        }
+
+        final PwmSession pwmSession = PwmSession.getPwmSession(req);
+
+        if (checkIfPasswordExpired(pwmSession) || pwmSession.getUserInfoBean().isRequiresNewPassword()) {
+            resp.sendRedirect(SessionFilter.rewriteRedirectURL(PwmConstants.URL_SERVLET_CHANGE_PASSWORD, req, resp));
+        } else if (checkPasswordWarn(pwmSession)) {
+            final String passwordWarnURL = req.getContextPath() + "/private/" + PwmConstants.URL_JSP_PASSWORD_WARN;
+            resp.sendRedirect(SessionFilter.rewriteRedirectURL(passwordWarnURL, req, resp));
+        } else {
+            processContinue(req, resp);
+        }
+    }
+
+    private static boolean checkIfPasswordExpired(final PwmSession pwmSession) {
+        final PasswordStatus passwordState = pwmSession.getUserInfoBean().getPasswordState();
+        final StringBuilder sb = new StringBuilder();
+        boolean expired = false;
+        if (passwordState.isExpired()) {
+            sb.append("EXPIRED");
+            expired = true;
+        } else if (passwordState.isPreExpired()) {
+            sb.append("PRE-EXIRED");
+            expired = true;
+        } else if (passwordState.isViolatesPolicy()) {
+            sb.append("POLICY-VIOLATION");
+            expired = true;
+        }
+
+        if (expired) {
+            sb.insert(0, "checkExpire: password state=");
+            sb.append(", redirecting to change screen");
+            LOGGER.info(pwmSession, sb.toString());
+        }
+
+        return expired;
+    }
+
+    private static boolean checkPasswordWarn(final PwmSession pwmSession) {
+        final PasswordStatus passwordState = pwmSession.getUserInfoBean().getPasswordState();
+        if (passwordState.isWarnPeriod()) {
+            LOGGER.info(pwmSession, "checkExpire: password expiration is within warn period, redirecting to warn screen");
+            return true;
+        }
+        return false;
+    }
+
+    private static void processCheckAttributes(
+            final HttpServletRequest req,
+            final HttpServletResponse resp
+    )
+            throws ChaiUnavailableException, IOException, ServletException, PwmException {
+        if (!preCheckUser(req, resp)) {
+            return;
+        }
+
+        final PwmSession pwmSession = PwmSession.getPwmSession(req);
+
+        if (!checkAttributes(pwmSession)) {
+            resp.sendRedirect(SessionFilter.rewriteRedirectURL(PwmConstants.URL_SERVLET_UPDATE_ATTRIBUTES, req, resp));
+        } else {
+            processContinue(req, resp);
+        }
+    }
+
+    private static boolean checkAttributes(
+            final PwmSession pwmSession
+    )
+            throws ChaiUnavailableException, PwmException {
+        final UserInfoBean uiBean = pwmSession.getUserInfoBean();
+        final String userDN = uiBean.getUserDN();
+
+        if (!Helper.testUserMatchQueryString(pwmSession, userDN, pwmSession.getConfig().readSettingAsString(PwmSetting.UPDATE_ATTRIBUTES_QUERY_MATCH))) {
+            LOGGER.info(pwmSession, "checkAttributes: " + userDN + " is not eligible for checkAttributes due to query match");
+            return true;
+        }
+
+        final Collection<String> configValues = pwmSession.getConfig().readFormSetting(PwmSetting.UPDATE_ATTRIBUTES_FORM, pwmSession.getSessionStateBean().getLocale());
+        final Map<String, FormConfiguration> formSettings = Configuration.convertMapToFormConfiguration(configValues);
+
+        // populate the map with attribute values from the uiBean, which was populated through ldap.
+        for (final String key : formSettings.keySet()) {
+            final FormConfiguration paramConfig = formSettings.get(key);
+            paramConfig.setValue(uiBean.getAllUserAttributes().getProperty(paramConfig.getAttributeName()));
+        }
+
+        try {
+            Validator.validateParmValuesMeetRequirements(formSettings, pwmSession);
+            LOGGER.info(pwmSession, "checkAttributes: " + userDN + " has good attributes");
+            return true;
+        } catch (ValidationException e) {
+            LOGGER.info(pwmSession, "checkAttributes: " + userDN + " does not have good attributes (" + e.getMessage() + ")");
+            return false;
+        }
+    }
+
+    private static void processCheckAll(
+            final HttpServletRequest req,
+            final HttpServletResponse resp
+    )
+            throws ChaiUnavailableException, IOException, ServletException, PwmException {
+        if (!preCheckUser(req, resp)) {
+            return;
+        }
+
+        final PwmSession pwmSession = PwmSession.getPwmSession(req);
+
+        if (checkIfPasswordExpired(pwmSession)) {
+            processCheckExpire(req, resp);
+        } else if (!UserStatusHelper.checkIfResponseConfigNeeded(pwmSession, pwmSession.getSessionManager().getActor(), pwmSession.getUserInfoBean().getChallengeSet())) {
+            processCheckResponses(req, resp);
+        } else if (pwmSession.getConfig().readSettingAsBoolean(PwmSetting.UPDATE_ATTRIBUTES_ENABLE) && !checkAttributes(pwmSession)) {
+            processCheckAttributes(req, resp);
+        } else {
+            processContinue(req, resp);
+        }
+    }
+
+    private static void processContinue(
+            final HttpServletRequest req,
+            final HttpServletResponse resp
+    )
+            throws IOException {
+        final PwmSession pwmSession = PwmSession.getPwmSession(req);
+        final SessionStateBean ssBean = pwmSession.getSessionStateBean();
+        final UserInfoBean uiBean = pwmSession.getUserInfoBean();
+        final ContextManager theManager = pwmSession.getContextManager();
+
+        //check if user has expired password, and expirecheck during auth is turned on.
+        if (ssBean.isAuthenticated()) {
+            if (uiBean.isRequiresNewPassword() || (theManager.getConfig().readSettingAsBoolean(PwmSetting.EXPIRE_CHECK_DURING_AUTH) && checkIfPasswordExpired(pwmSession))) {
+                if (uiBean.isRequiresNewPassword()) {
+                    LOGGER.trace(pwmSession, "user password has been marked as requiring a change");
+                } else {
+                    LOGGER.debug(pwmSession, "user password appears expired, redirecting to ChangePassword url");
+                }
+                final String changePassServletURL = req.getContextPath() + "/public/" + PwmConstants.URL_SERVLET_CHANGE_PASSWORD;
+
+                resp.sendRedirect(SessionFilter.rewriteRedirectURL(changePassServletURL, req, resp));
+                return;
+            }
+
+            //check if we force response configuration, and user requires it.
+            if (uiBean.isRequiresResponseConfig() && (theManager.getConfig().readSettingAsBoolean(PwmSetting.CHALLENGE_FORCE_SETUP))) {
+                LOGGER.info(pwmSession, "user response set needs to be configured, redirecting to setupresponses page");
+                final String setupResponsesURL = req.getContextPath() + "/private/" + PwmConstants.URL_SERVLET_SETUP_RESPONSES;
+
+                resp.sendRedirect(SessionFilter.rewriteRedirectURL(setupResponsesURL, req, resp));
+                return;
+            }
+        }
+
+        // log the user out if our finish action is currently set to log out.
+        if (ssBean.getFinishAction() == SessionStateBean.FINISH_ACTION.LOGOUT) {
+            LOGGER.trace(pwmSession, "logging out user; password has been modified");
+            resp.sendRedirect(SessionFilter.rewriteRedirectURL(PwmConstants.URL_SERVLET_LOGOUT, req, resp));
+            return;
+        }
+
+        String redirectURL = ssBean.getForwardURL();
+        if (redirectURL == null || redirectURL.length() < 1) {
+            redirectURL = theManager.getConfig().readSettingAsString(PwmSetting.URL_FORWARD);
+        }
+
+        LOGGER.trace(pwmSession, "redirecting user to forward url: " + redirectURL);
+        resp.sendRedirect(SessionFilter.rewriteRedirectURL(redirectURL, req, resp));
+    }
+}
+
