@@ -53,6 +53,12 @@ It's probably a good idea to make sure the pwm-specific policy file loads after 
 
 The additional ruleset below allows pwm to work properly under JSM under Debian Lenny + Tomcat 5.5.26 from Debian repos. It depends on the default Debian rules being loaded first.
 
+Note that this ruleset has only been tested with pwm utilizing the following features only:
+
+  * Create new user
+  * Update attributes
+  * Change password
+  * CAPTCHA
 
 
 {{{
@@ -131,18 +137,20 @@ grant {
 };
 }}}
 
+=Pwm 1.5.3 / SVN revision 160 on Debian Squeeze=
 
-=Pwm 1.5.2 on Debian Squeeze=
+A few modifications are needed to adapt Lenny's ruleset for Squeeze, Tomcat6 and pwm 1.5.3+. Note that this ruleset has only been tested with pwm utilizing the following features only:
 
-A few modifications are needed to adapt Lenny's ruleset for Squeeze and Tomcat6:
+  * Create new user
+  * Update attributes
+  * Change password
+  * Password reset with email token
+  * CAPTCHA
 
 {{{
 // ========== PWM-specific settings =====================================
 
 grant {
-	// With this everything works very neatly, but it's terribly insecure: a webapp can basically destroy everything the
-	// Java (tomcat) process has write access to.
-	//permission java.security.AllPermission;
 
 	// This gets us past the first error
 	permission java.lang.RuntimePermission "createClassLoader";
@@ -168,6 +176,9 @@ grant {
 
 	// Misc FilePermissions
 	permission java.io.FilePermission "/usr/share/javazi/ZoneInfoMappings", "read";
+	// Next two missing
+	//permission java.io.FilePermission "/usr/share/tomcat6/server/classes/org/apache/jk/common/HandlerRequest.class", "read";
+	//permission java.io.FilePermission "/usr/share/tomcat6/server/classes/org/apache/tomcat/util/buf/DateTool.class", "read";
 	permission java.io.FilePermission "/usr/share/tomcat6/.mailcap", "read";
 	permission java.io.FilePermission "/WEB-INF/classes/org/apache/log4j/-", "read";
 	
@@ -176,14 +187,35 @@ grant {
 	permission java.lang.RuntimePermission "defineClassInPackage.org.apache.jasper.runtime";
 	permission java.lang.RuntimePermission "accessClassInPackage.sun.util.logging.*";
 	permission java.lang.RuntimePermission "accessClassInPackage.org.apache.tomcat.*";
+	permission java.lang.RuntimePermission "getFileSystemAttributes";
 
-	// All PropertyPermissions enabled as there are tons of these
+	// Misc PropertyPermissions
 	permission java.util.PropertyPermission "*", "read,write";
+	//permission java.util.PropertyPermission "elementAttributeLimit", "read";
+	//permission java.util.PropertyPermission "entityExpansionLimit", "read";
+	//permission java.util.PropertyPermission "javax.xml.parsers.DocumentBuilderFactory", "read";
+	//permission java.util.PropertyPermission "maxOccurLimit", "read";
+	//permission java.util.PropertyPermission "user.timezone", "write";
+	//permission java.util.PropertyPermission "memAdmin", "read";
+	//permission java.util.PropertyPermission "memLock", "read";
+	//permission java.util.PropertyPermission "memTree", "read";
+	//permission java.util.PropertyPermission "memTxn", "read";
+	//permission java.util.PropertyPermission "memTreeAdmin", "read";
+	//permission java.util.PropertyPermission "sun.arch.data.model", "read";
+	// Next two added to pwm 1.4.2 rules for pwm 1.5.2
+	//permission java.util.propertyPermission "org.apache.commons.logging", "read";
+	//permission java.util.PropertyPermission "com.google.gson.annotation_cache_size_hint", "read";
+
+	// reCAPTCHA-specific PropertyPermissions
+	//permission java.util.PropertyPermission "httpclient.*", "read";
+	//permission java.util.PropertyPermission "apache.commons.httpclient.*", "read";
+	//permission java.util.PropertyPermission "java.class.path", "read";
+	//permission java.util.PropertyPermission "user.name", "read";
 
 	// reCAPTCHA-specific SocketPermissions
 	permission java.net.SocketPermission "*","connect,resolve";
 
-	// Misc SocketPermissions. Redundant, as the above rule covers this case.
+	// Misc SocketPermissions
 	permission java.net.SocketPermission "127.0.0.1:389", "connect, resolve";
 
 	// Log4j-specific properties
@@ -196,12 +228,11 @@ grant {
 
 	// Misc permissions
 	permission java.util.logging.LoggingPermission "control";
-
 	// Obsolete in pwm 1.5.2?
 	permission ng.reflect.ReflectPermission "suppressAccessChecks";
-
 	// Next two added to pwm 1.4.2 rules for pwm 1.5.2
 	permission java.lang.reflect.ReflectPermission "suppressAccessChecks";
 	permission java.lang.management.ManagementPermission "monitor";
+
 };
 }}}
