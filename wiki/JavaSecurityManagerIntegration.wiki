@@ -53,7 +53,7 @@ It's probably a good idea to make sure the pwm-specific policy file loads after 
 
 The additional ruleset below allows pwm to work properly under JSM under Debian Lenny + Tomcat 5.5.26 from Debian repos. It depends on the default Debian rules being loaded first.
 
-Note that this ruleset has only been tested with pwm utilizing the following features only:
+Note that this ruleset has only been tested with pwm utilizing the following features:
 
   * Create new user
   * Update attributes
