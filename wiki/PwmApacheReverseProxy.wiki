@@ -62,4 +62,4 @@ Adding reverse proxy support to Apache is relatively easy. Go to _/etc/apache2/s
         ProxyPassReverse /pwm http://<pwm-server-ip>:8080/pwm
 }}}
 
-Note that using any other path than /pwm will not work, at least out of the box. For example, submitting the CAPTCHA for will fail with _"Form submitted with incorrect pwmFormID value"_ error.
+Note that using any other path than /pwm will not work, at least out of the box. For example, submitting the CAPTCHA form will fail with _"Form submitted with incorrect pwmFormID value"_ error.
