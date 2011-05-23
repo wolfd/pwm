@@ -1,0 +1,20 @@
+#summary Pwm behind an Apache reverse proxy
+
+= Introduction =
+
+There are a couple of good reasons to place Pwm behind a reverse proxy:
+
+  * Blocking certains pwm functions for good (e.g. /admin, /config)
+  * Masking pwm server's real DNS name, e.g. to avoid having to buy a separate SSL certificate for it
+
+These instructions are for Apache 2.2 running on Debian Lenny, with Pwm running on Debian Squeeze and Tomcat 6.
+
+= Details =
+
+On Pwm side most configuration is related to security. You have three options:
+
+  * Let Apache contact pwm using insecure HTTP protocol (e.g. port 8080 or 8180). This setup will become slightly more secure if firewall (or Tomcat) is used to block access from IPs other than that of Apache.
+  * Allow Tomcat/Pwm access only using HTTPS. This will require additional configuration at the Apache end. This can be made more secure by limiting access to the webserver's IP.
+  * Secure Apache < - > Tomcat/pwm connection using VPN such as [http://openvpn.net OpenVPN]. Block all other access to Pwm.
+
+  
