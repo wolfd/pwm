@@ -1,0 +1,138 @@
+/*
+ * Password Management Servlets (PWM)
+ * http://code.google.com/p/pwm/
+ *
+ * Copyright (c) 2006-2009 Novell, Inc.
+ * Copyright (c) 2009-2011 The PWM Project
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ */
+
+package password.pwm.tag;
+
+import password.pwm.ContextManager;
+import password.pwm.PwmApplication;
+import password.pwm.PwmConstants;
+import password.pwm.PwmSession;
+import password.pwm.config.Configuration;
+import password.pwm.config.Display;
+import password.pwm.util.PwmLogger;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.jsp.JspTagException;
+import java.util.Locale;
+import java.util.MissingResourceException;
+
+/**
+ * @author Jason D. Rivard
+ */
+public class DisplayTag extends PwmAbstractTag {
+// ------------------------------ FIELDS ------------------------------
+
+    private static final PwmLogger LOGGER = PwmLogger.getLogger(DisplayTag.class);
+
+    private String key;
+    private String value1;
+    private String value2;
+    private boolean displayIfMissing;
+
+// --------------------- GETTER / SETTER METHODS ---------------------
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(final String key) {
+        this.key = key;
+    }
+
+    public String getValue1() {
+        return value1;
+    }
+
+    public void setValue1(final String value1) {
+        this.value1 = value1;
+    }
+
+    public String getValue2() {
+        return value2;
+    }
+
+    public void setValue2(final String value1) {
+        this.value2 = value1;
+    }
+
+    public boolean isDisplayIfMissing() {
+        return displayIfMissing;
+    }
+
+    public void setDisplayIfMissing(boolean displayIfMissing) {
+        this.displayIfMissing = displayIfMissing;
+    }
+
+    // ------------------------ INTERFACE METHODS ------------------------
+
+
+// --------------------- Interface Tag ---------------------
+
+    public int doEndTag()
+            throws javax.servlet.jsp.JspTagException {
+        try {
+            final HttpServletRequest req = (HttpServletRequest) pageContext.getRequest();
+            final Locale locale = PwmSession.getPwmSession(req).getSessionStateBean().getLocale();
+            final PwmApplication pwmApplication = ContextManager.getPwmApplication(req);
+
+            final String displayMessage = figureDisplayMessage(locale, pwmApplication.getConfig());
+
+            pageContext.getOut().write(displayMessage);
+        } catch (Exception e) {
+            LOGGER.debug("error while executing jsp display tag: " + e.getMessage(), e);
+            throw new JspTagException(e.getMessage());
+        }
+        return EVAL_PAGE;
+    }
+
+    private String figureDisplayMessage(Locale locale, final Configuration config) {
+        if (locale == null) {
+            locale = PwmConstants.DEFAULT_LOCALE;
+        }
+        try {
+            String displayMessage = Display.getLocalizedMessage(locale, key, config);
+
+            if (displayMessage != null) {
+                if (value1 != null && value1.length() > 0) {
+                    displayMessage = displayMessage.replaceAll("%1%", value1);
+                }
+
+                if (value2 != null && value2.length() > 0) {
+                    displayMessage = displayMessage.replaceAll("%2%", value2);
+                }
+
+                return displayMessage;
+            } else {
+                if (!displayIfMissing) {
+                    LOGGER.info("no value for: " + key);
+                }
+            }
+        } catch (MissingResourceException e) {
+            if (!displayIfMissing) {
+                LOGGER.info("error while executing jsp display tag: " + e.getMessage());
+            }
+        }
+
+        return displayIfMissing ? key : "";
+    }
+}
+
