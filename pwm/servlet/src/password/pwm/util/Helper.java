@@ -25,7 +25,7 @@ package password.pwm.util;
 import com.novell.ldapchai.ChaiConstant;
 import com.novell.ldapchai.ChaiFactory;
 import com.novell.ldapchai.ChaiUser;
-import com.novell.ldapchai.cr.ChaiResponseSet;
+import com.novell.ldapchai.cr.CrSetting;
 import com.novell.ldapchai.exception.ChaiOperationException;
 import com.novell.ldapchai.exception.ChaiUnavailableException;
 import com.novell.ldapchai.impl.edir.entry.EdirEntries;
@@ -40,9 +40,7 @@ import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.HttpClient;
 import org.apache.http.conn.params.ConnRoutePNames;
 import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.params.HttpProtocolParams;
 import password.pwm.*;
-import password.pwm.bean.SessionStateBean;
 import password.pwm.config.Configuration;
 import password.pwm.config.FormConfiguration;
 import password.pwm.config.PwmSetting;
@@ -53,7 +51,7 @@ import password.pwm.error.PwmUnrecoverableException;
 
 import java.io.*;
 import java.lang.reflect.Method;
-import java.net.URI;
+import java.net.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.NumberFormat;
@@ -113,16 +111,11 @@ public class Helper {
         chaiConfig.setSetting(ChaiSetting.PROMISCUOUS_SSL, Boolean.toString(config.readSettingAsBoolean(PwmSetting.LDAP_PROMISCUOUS_SSL)));
         chaiConfig.setSetting(ChaiSetting.EDIRECTORY_ENABLE_NMAS, Boolean.toString(config.readSettingAsBoolean(PwmSetting.EDIRECTORY_ENABLE_NMAS)));
 
-        chaiConfig.setSetting(ChaiSetting.CR_CHAI_STORAGE_ATTRIBUTE, config.readSettingAsString(PwmSetting.CHALLENGE_USER_ATTRIBUTE));
-        chaiConfig.setSetting(ChaiSetting.CR_ALLOW_DUPLICATE_RESPONSES, Boolean.toString(config.readSettingAsBoolean(PwmSetting.CHALLENGE_ALLOW_DUPLICATE_RESPONSES)));
-        chaiConfig.setSetting(ChaiSetting.CR_CASE_INSENSITIVE, Boolean.toString(config.readSettingAsBoolean(PwmSetting.CHALLENGE_CASE_INSENSITIVE)));
+        chaiConfig.setCrSetting(CrSetting.CHAI_ATTRIBUTE_NAME, config.readSettingAsString(PwmSetting.CHALLENGE_USER_ATTRIBUTE));
+        chaiConfig.setCrSetting(CrSetting.ALLOW_DUPLICATE_RESPONSES, Boolean.toString(config.readSettingAsBoolean(PwmSetting.CHALLENGE_ALLOW_DUPLICATE_RESPONSES)));
+        chaiConfig.setCrSetting(CrSetting.CHAI_CASE_INSENSITIVE, Boolean.toString(config.readSettingAsBoolean(PwmSetting.CHALLENGE_CASE_INSENSITIVE)));
 
-        {
-            final boolean encryptResponses = config.readSettingAsBoolean(PwmSetting.CHALLENGE_STORAGE_HASHED);
-            chaiConfig.setSetting(ChaiSetting.CR_DEFAULT_FORMAT_TYPE, encryptResponses ? ChaiResponseSet.FormatType.SHA1_SALT.toString() : ChaiResponseSet.FormatType.TEXT.toString());
-        }
-
-        final int idleTimeoutMs = (int) config.readSettingAsLong(PwmSetting.LDAP_IDLE_TIMEOUT) * 1000;
+        final int idleTimeoutMs = (int) config.readSettingAsLong(PwmSetting.LDAP_PROXY_IDLE_TIMEOUT) * 1000;
 
         // if possible, set the ldap timeout.
         if (idleTimeoutMs > 0) {
@@ -881,8 +874,7 @@ public class Helper {
                 httpClient.getCredentialsProvider().setCredentials (new AuthScope(host, port),passwordCredentials);
             }
         }
-        final String userAgent = "PWM " + PwmConstants.SERVLET_VERSION;
-        httpClient.getParams().setParameter(HttpProtocolParams.USER_AGENT, userAgent);
+
         return httpClient;
     }
 
@@ -904,44 +896,6 @@ public class Helper {
         }
 
 
-        return sb.toString();
-    }
-
-    static public String buildPwmFormID(final SessionStateBean ssBean) {
-        return ssBean.getSessionVerificationKey() + Long.toString(ssBean.getRequestCounter(),36);
-    }
-
-    /**
-     * Based on {@link https://www.owasp.org/index.php/Preventing_LDAP_Injection_in_Java}.
-     *
-     * @param input
-     * @return ldap escaped script
-     *
-     */
-    public static String escapeLdapString(final String input) {
-        final StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < input.length(); i++) {
-            char curChar = input.charAt(i);
-            switch (curChar) {
-                case '\\':
-                    sb.append("\\5c");
-                    break;
-                case '*':
-                    sb.append("\\2a");
-                    break;
-                case '(':
-                    sb.append("\\28");
-                    break;
-                case ')':
-                    sb.append("\\29");
-                    break;
-                case '\u0000':
-                    sb.append("\\00");
-                    break;
-                default:
-                    sb.append(curChar);
-            }
-        }
         return sb.toString();
     }
 }

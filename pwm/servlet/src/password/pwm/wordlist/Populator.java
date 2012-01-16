@@ -45,6 +45,12 @@ class Populator {
 
     private static final PwmLogger LOGGER = PwmLogger.getLogger(Populator.class);
 
+    private static final long LOW_GOAL = 600; //try to do as many transactions as possible above this time limit (ms)
+    private static final long HIGH_GOAL = 900; //try to do as many transactions as possible below this time limit (ms)
+    private static final long OUT_OF_RANGE = 2000;
+
+    private static final int MAX_TRANSACTION_SIZE = 50 * 1000; // maximum number of transactions (to big would cause OOM)
+    private static final int MIN_TRANSACTION_SIZE = 10; // minimum number of transactions (to big
 
     private static final int MAX_LINE_LENGTH = 64; // words truncated to this length, prevents massive words if the input
 
@@ -62,7 +68,7 @@ class Populator {
     private final PopulationStats overallStats = new PopulationStats();
     private PopulationStats perReportStats = new PopulationStats();
     private int totalLines;
-    private TransactionSizeCalculator transactionCalculator = new TransactionSizeCalculator(600, 900, 10, 50 * 1000);
+    private int transactionSize = 200;
     private int loopLines;
 
     private final Map<String,String> bufferedWords = new TreeMap<String,String>();
@@ -247,7 +253,7 @@ class Populator {
                     lastReportTime = System.currentTimeMillis();
                 }
 
-                if (bufferedWords.size() > transactionCalculator.getTransactionSize()) {
+                if (bufferedWords.size() > transactionSize) {
                     flushBuffer();
                 }
             }
@@ -307,9 +313,9 @@ class Populator {
 
         //mark how long the buffer close took
         final long commitTime = System.currentTimeMillis() - startTime;
-        transactionCalculator.recordLastTransactionDuration(commitTime);
+        transactionSize = calcTransactionSize(commitTime, bufferedWords.size());
 
-        if (bufferedWords.size() > 0) {
+        if (transactionSize > 0) {
             final StringBuilder sb = new StringBuilder();
             sb.append(DEBUG_LABEL).append(" ");
             sb.append("read ").append(loopLines).append(", ");
@@ -324,6 +330,25 @@ class Populator {
         //clear the buffers.
         bufferedWords.clear();
         loopLines = 0;
+    }
+
+    private static int calcTransactionSize(final long lastCommitTime, final int transactionSize)
+    {
+        int newTransactionSize;
+
+        if (lastCommitTime < LOW_GOAL) {
+            newTransactionSize = ((int) (transactionSize + (transactionSize * 0.1)) + 1);
+        } else if (lastCommitTime > HIGH_GOAL && lastCommitTime < OUT_OF_RANGE) {
+            newTransactionSize = ((int) (transactionSize - (transactionSize * 0.1)) - 1);
+        } else if (lastCommitTime > OUT_OF_RANGE) {
+            newTransactionSize = (int) (transactionSize * 0.5);
+        } else {
+            newTransactionSize = transactionSize + PwmRandom.getInstance().nextInt(10);
+        }
+
+        newTransactionSize = newTransactionSize > MAX_TRANSACTION_SIZE ? MAX_TRANSACTION_SIZE : newTransactionSize;
+        newTransactionSize = newTransactionSize < MIN_TRANSACTION_SIZE ? MIN_TRANSACTION_SIZE : newTransactionSize;
+        return newTransactionSize;
     }
 
     private void populationComplete()

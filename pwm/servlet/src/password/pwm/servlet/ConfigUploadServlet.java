@@ -36,7 +36,6 @@ import password.pwm.config.StoredConfiguration;
 import password.pwm.error.ErrorInformation;
 import password.pwm.error.PwmError;
 import password.pwm.error.PwmUnrecoverableException;
-import password.pwm.util.Helper;
 import password.pwm.util.PwmLogger;
 import password.pwm.util.ServletHelper;
 
@@ -89,7 +88,7 @@ public class ConfigUploadServlet extends TopServlet {
 
         pwmSession.getSessionStateBean().setSessionError(null);
         pwmSession.getSessionStateBean().setForwardURL(req.getContextPath() + "/config/ConfigManager");
-        if (pwmApplication.getApplicationMode() == PwmApplication.MODE.RUNNING) {
+        if (pwmApplication.getConfigMode() == PwmApplication.MODE.RUNNING) {
             configManagerBean.setEditMode(ConfigManagerServlet.EDIT_MODE.SETTINGS);
             pwmSession.getSessionStateBean().setSessionSuccess(Message.SUCCESS_CONFIG_UPLOAD,"");
         } else {
@@ -121,7 +120,7 @@ public class ConfigUploadServlet extends TopServlet {
                     if ("uploadFile".equals(item.getFieldName())) {
                         uploadFile = streamToString(item.openStream());
                     } else if ("pwmFormID".equals(item.getFieldName())) {
-                        final String formNonce = Helper.buildPwmFormID(PwmSession.getPwmSession(req).getSessionStateBean());
+                        final String formNonce = PwmSession.getPwmSession(req).getSessionStateBean().getSessionVerificationKey();
                         final String inputpwmFormID = streamToString(item.openStream());
                         if (formNonce.equals(inputpwmFormID)) {
                             pwmFormIDvalidated = true;

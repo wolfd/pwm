@@ -50,8 +50,7 @@
         <form action="<pwm:url url='SetupResponses'/>" method="post" name="setupResponses"
               onkeypress="checkForCapsLock(event);"
               enctype="application/x-www-form-urlencoded"
-              onreset="handleFormClear();showSuccess('<pwm:Display key="Display_ResponsesPrompt"/>');return false"
-              onsubmit="handleFormSubmit('setresponses_button',this);return false" onreset="handleFormClear();return false">
+              onreset="handleFormClear();showSuccess('<pwm:Display key="Display_ResponsesPrompt"/>');return false">
             <%@ include file="fragment/message.jsp" %>
             <% // display fields for REQUIRED challenges.
                 if (!challengeSet.getRequiredChallenges().isEmpty()) {
@@ -150,18 +149,18 @@
             <div id="buttonbar">
                 <input type="hidden" name="processAction" value="setResponses"/>
                 <input type="submit" name="setResponses" class="btn" id="setresponses_button"
-                       value="<pwm:Display key="Button_SetResponses"/>"/>
+                       value="    <pwm:Display key="Button_SetResponses"/>    "/>
                 <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_RESET_BUTTON)) { %>
                 <input type="reset" name="reset" class="btn"
-                       value="<pwm:Display key="Button_Reset"/>"/>
+                       value="    <pwm:Display key="Button_Reset"/>    "/>
                 <% } %>
                 <input type="hidden" name="hideButton" class="btn"
-                       value="<pwm:Display key="Button_Hide_Responses"/>"
+                       value="    <pwm:Display key="Button_Hide_Responses"/>    "
                        onclick="toggleHideResponses();" id="hide_responses_button"/>
                 <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_CANCEL_BUTTON)) { %>
                 <button style="visibility:hidden;" name="button" class="btn" id="button_cancel"
                         onclick="window.location='<%=request.getContextPath()%>/public/<pwm:url url='CommandServlet'/>?processAction=continue';return false">
-                    <pwm:Display key="Button_Cancel"/>
+                    &nbsp;&nbsp;&nbsp;<pwm:Display key="Button_Cancel"/>&nbsp;&nbsp;&nbsp;
                 </button>
                 <script type="text/javascript">getObject('button_cancel').style.visibility = 'visible';</script>
                 <% } %>

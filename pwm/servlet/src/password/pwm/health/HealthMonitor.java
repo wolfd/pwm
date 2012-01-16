@@ -36,7 +36,7 @@ public class HealthMonitor implements Serializable {
     private static final int MAX_INTERVAL_SECONDS = 60 * 60 * 24;
 
     private final PwmApplication pwmApplication;
-    private Set<HealthRecord> healthRecords = Collections.emptySet();
+    private final Set<HealthRecord> healthRecords = new TreeSet<HealthRecord>();
     private final List<HealthChecker> healthCheckers = new ArrayList<HealthChecker>();
 
     private Date lastHealthCheckDate = null;
@@ -54,26 +54,12 @@ public class HealthMonitor implements Serializable {
             intervalSeconds = MAX_INTERVAL_SECONDS;
         }
 
-        final Set<HealthRecord> newHealthRecords = new HashSet<HealthRecord>();
-        newHealthRecords.add(new HealthRecord(HealthStatus.CAUTION, HealthMonitor.class.getSimpleName(), "Health Check operation has not been performed since PWM has started."));
-        healthRecords = Collections.unmodifiableSet(newHealthRecords);
+        final HealthRecord hr = new HealthRecord(HealthStatus.CAUTION, HealthMonitor.class.getSimpleName(), "Health Check operation has not been performed since PWM has started.");
+        healthRecords.add(hr);
     }
 
     public Date getLastHealthCheckDate() {
         return lastHealthCheckDate;
-    }
-
-    public HealthStatus getMostSevereHealthStatus() {
-        final Set<HealthRecord> healthRecords = getHealthRecords();
-        HealthStatus returnStatus = HealthStatus.GOOD;
-        if (healthRecords != null) {
-            for (HealthRecord record : healthRecords) {
-                if (record.getStatus().getSeverityLevel() > returnStatus.getSeverityLevel()) {
-                    returnStatus = record.getStatus();
-                }
-            }
-        }
-        return returnStatus;
     }
 
     public void registerHealthCheck(final HealthChecker healthChecker) {
@@ -84,7 +70,7 @@ public class HealthMonitor implements Serializable {
         return getHealthRecords(false);
     }
 
-    public synchronized Set<HealthRecord> getHealthRecords(final boolean refreshImmediate) {
+    public Set<HealthRecord> getHealthRecords(final boolean refreshImmediate) {
         if (lastHealthCheckDate == null || refreshImmediate) {
             doHealthChecks();
         } else {
@@ -94,13 +80,14 @@ public class HealthMonitor implements Serializable {
                 doHealthChecks();
             }
         }
-        return healthRecords;
+        final Set<HealthRecord> sortedRecordList = new TreeSet<HealthRecord>();
+        sortedRecordList.addAll(healthRecords);
+        return Collections.unmodifiableSet(sortedRecordList);
     }
 
     public void close() {
-        final Set<HealthRecord> closeSet = new HashSet<HealthRecord>();
-        closeSet.add(new HealthRecord(HealthStatus.CAUTION, HealthMonitor.class.getSimpleName(), "Health Monitor has been closed."));
-        healthRecords = Collections.unmodifiableSet(closeSet);
+        healthRecords.clear();
+        healthRecords.add(new HealthRecord(HealthStatus.CAUTION, HealthMonitor.class.getSimpleName(), "Health Monitor has been closed."));
         open = false;
     }
 
@@ -127,9 +114,8 @@ public class HealthMonitor implements Serializable {
                 newResults.addAll(loopResults);
             }
         }
-        final Set<HealthRecord> sortedRecordList = new TreeSet<HealthRecord>();
-        sortedRecordList.addAll(newResults);
-        healthRecords = Collections.unmodifiableSet(sortedRecordList);
+        healthRecords.clear();
+        healthRecords.addAll(newResults);
         lastHealthCheckDate = new Date();
         LOGGER.trace("health check process completed");
     }

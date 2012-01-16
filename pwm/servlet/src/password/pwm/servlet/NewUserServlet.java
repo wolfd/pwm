@@ -44,7 +44,6 @@ import password.pwm.error.PwmUnrecoverableException;
 import password.pwm.health.HealthRecord;
 import password.pwm.health.HealthStatus;
 import password.pwm.util.*;
-import password.pwm.util.operations.PasswordUtility;
 import password.pwm.util.stats.Statistic;
 
 import javax.servlet.ServletException;
@@ -468,7 +467,7 @@ public class NewUserServlet extends TopServlet {
             return;
         }
 
-        pwmApplication.sendEmailUsingQueue(new EmailItemBean(toAddress, fromAddress, subject, plainBody, htmlBody), userInfoBean);
+        pwmApplication.sendEmailUsingQueue(new EmailItemBean(toAddress, fromAddress, subject, plainBody, htmlBody));
     }
 
     private void forwardToJSP(
@@ -505,7 +504,7 @@ public class NewUserServlet extends TopServlet {
         returnURL.append(req.getContextPath());
         returnURL.append(req.getServletPath());
         returnURL.append("?" + PwmConstants.PARAM_ACTION_REQUEST + "=" + "doCreate");
-        returnURL.append("&" + PwmConstants.PARAM_FORM_ID + "=").append(Helper.buildPwmFormID(PwmSession.getPwmSession(req).getSessionStateBean()));
+        returnURL.append("&" + PwmConstants.PARAM_FORM_ID + "=").append(PwmSession.getPwmSession(req).getSessionStateBean().getSessionVerificationKey());
         final String rewrittenURL = SessionFilter.rewriteURL(returnURL.toString(), req, resp);
         req.setAttribute("nextURL",rewrittenURL );
         this.getServletContext().getRequestDispatcher('/' + PwmConstants.URL_JSP_NEW_USER_WAIT).forward(req, resp);
@@ -642,7 +641,7 @@ public class NewUserServlet extends TopServlet {
         plainBody = plainBody.replaceAll("%TOKEN%", tokenKey);
         htmlBody = htmlBody.replaceAll("%TOKEN%", tokenKey);
 
-        pwmApplication.sendEmailUsingQueue(new EmailItemBean(toAddress, fromAddress, subject, plainBody, htmlBody), pwmSession.getUserInfoBean());
+        pwmApplication.sendEmailUsingQueue(new EmailItemBean(toAddress, fromAddress, subject, plainBody, htmlBody));
         pwmApplication.getStatisticsManager().incrementValue(Statistic.RECOVERY_TOKENS_SENT);
         LOGGER.debug(pwmSession, "token email added to send queue for " + toAddress);
     }
@@ -664,7 +663,11 @@ public class NewUserServlet extends TopServlet {
         }
 
         final ChaiUser chaiUser = ChaiFactory.createChaiUser(lookupDN, pwmApplication.getProxyChaiProvider());
-        return PasswordUtility.readPasswordPolicyForUser(pwmApplication, null, chaiUser, userLocale);
+        return PwmPasswordPolicy.createPwmPasswordPolicy(
+                pwmSession, pwmApplication,
+                userLocale,
+                chaiUser
+        );
     }
 
     private static boolean checkForURLcommand(final HttpServletRequest req, final HttpServletResponse resp, final PwmSession pwmSession)
@@ -705,7 +708,7 @@ public class NewUserServlet extends TopServlet {
         redirectURL.append("&");
         redirectURL.append("code=").append(aftPath);
         redirectURL.append("&");
-        redirectURL.append("pwmFormID=").append(Helper.buildPwmFormID(pwmSession.getSessionStateBean()));
+        redirectURL.append("pwmFormID=").append(pwmSession.getSessionStateBean().getSessionVerificationKey());
 
         LOGGER.debug(pwmSession, "detected long servlet url, redirecting user to " + redirectURL);
         resp.sendRedirect(redirectURL.toString());

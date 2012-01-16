@@ -36,13 +36,12 @@
         <form action="<%=request.getContextPath()%>/public/<pwm:url url='CommandServlet'/>" method="post"
               enctype="application/x-www-form-urlencoded" onsubmit="handleFormSubmit('submitBtn',this);return false">
             <p><pwm:SuccessMessage/></p>
-            <% try { PwmSession.getPwmSession(session).getSessionStateBean().setSessionSuccess(null,null); } catch (Exception e) {} %>
             <div id="buttonbar">
                 <input type="hidden"
                        name="processAction"
                        value="continue"/>
                 <input type="submit" name="button" class="btn"
-                       value="<pwm:Display key="Button_Continue"/>"
+                       value="    <pwm:Display key="Button_Continue"/>    "
                        id="submitBtn"/>
             </div>
         </form>

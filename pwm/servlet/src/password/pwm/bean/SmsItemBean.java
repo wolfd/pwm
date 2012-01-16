@@ -22,7 +22,7 @@
 
 package password.pwm.bean;
 
-import password.pwm.util.Helper;
+import password.pwm.PwmConstants;
 
 import java.io.Serializable;
 import java.util.Locale;
@@ -33,10 +33,23 @@ public class SmsItemBean implements Serializable {
     private String message;
     private Integer partlength;
     private Integer pos = 0;
-    private String localeString;
+    private Locale locale;
 
     // --------------------------- CONSTRUCTORS ---------------------------
     private SmsItemBean() {
+    }
+
+    public SmsItemBean(
+            final String to,
+            final String from,
+            final String message,
+            final Integer partlength
+    ) {
+        this.to = to;
+        this.from = from;
+        this.message = message;
+        this.partlength = partlength;
+        this.locale = PwmConstants.DEFAULT_LOCALE;
     }
 
     public SmsItemBean(
@@ -50,7 +63,7 @@ public class SmsItemBean implements Serializable {
         this.from = from;
         this.message = message;
         this.partlength = partlength;
-        this.localeString = locale == null ? "" : locale.toString();
+        this.locale = locale;
     }
 
 // --------------------- GETTER / SETTER METHODS ---------------------
@@ -74,7 +87,7 @@ public class SmsItemBean implements Serializable {
     public boolean hasNextPart() {
         return (pos < message.length());
     }
-
+    
     public String getNextPart() {
         String ret = "";
         Integer l = message.length();
@@ -88,18 +101,22 @@ public class SmsItemBean implements Serializable {
         }
         return ret;
     }
-
+    
     public void reset() {
         pos = 0;
     }
+    
+    public void setLocale(final Locale locale) {
+    	this.locale = locale;
+    }
 
     public Locale getLocale() {
-    	return Helper.parseLocaleString(localeString);
+    	return locale;
     }
 
     public String toString() {
         final StringBuilder sb = new StringBuilder();
-        sb.append("from: ").append(from).append(", to: ").append(to).append(", locale: ").append(getLocale());
+        sb.append("from: ").append(from).append(", to: ").append(to);
         return sb.toString();
     }
 

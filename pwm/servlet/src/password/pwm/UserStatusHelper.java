@@ -39,8 +39,6 @@ import password.pwm.error.*;
 import password.pwm.util.Helper;
 import password.pwm.util.PwmLogger;
 import password.pwm.util.TimeDuration;
-import password.pwm.util.operations.CrUtility;
-import password.pwm.util.operations.PasswordUtility;
 
 import java.util.*;
 
@@ -180,7 +178,7 @@ public class UserStatusHelper {
         }
 
         //populate password policy
-        uiBean.setPasswordPolicy(PasswordUtility.readPasswordPolicyForUser(pwmApplication, pwmSession, theUser, userLocale));
+        uiBean.setPasswordPolicy(PwmPasswordPolicy.createPwmPasswordPolicy(pwmSession, pwmApplication, userLocale, theUser));
 
         //populate c/r challenge set. 
         uiBean.setChallengeSet(CrUtility.readUserChallengeSet(pwmSession, config, theUser, uiBean.getPasswordPolicy(), userLocale));
@@ -206,10 +204,8 @@ public class UserStatusHelper {
         }
 
         {// set userID
-            final String configUsernameAttr = config.readSettingAsString(PwmSetting.LDAP_USERNAME_ATTRIBUTE);
             final String ldapNamingAttribute = config.readSettingAsString(PwmSetting.LDAP_NAMING_ATTRIBUTE);
-            final String uIDattr = configUsernameAttr != null && configUsernameAttr.length() > 0 ? configUsernameAttr : ldapNamingAttribute;
-            uiBean.setUserID(uiBean.getAllUserAttributes().get(uIDattr));
+            uiBean.setUserID(uiBean.getAllUserAttributes().get(ldapNamingAttribute));
         }
 
         { // set guid
@@ -308,7 +304,7 @@ public class UserStatusHelper {
         final SearchHelper searchHelper = new SearchHelper();
         {
             final String filterSetting = config.readSettingAsString(PwmSetting.USERNAME_SEARCH_FILTER);
-            final String filter = filterSetting.replace(PwmConstants.VALUE_REPLACEMENT_USERNAME, Helper.escapeLdapString(username));
+            final String filter = filterSetting.replace(PwmConstants.VALUE_REPLACEMENT_USERNAME, username);
             searchHelper.setFilter(filter);
             searchHelper.setAttributes("");
             searchHelper.setSearchScope(ChaiProvider.SEARCH_SCOPE.SUBTREE);

@@ -84,22 +84,17 @@ public class ContextManager implements Serializable {
             pwmApplication = new PwmApplication(configuration, configReader.getConfigMode(), pwmApplicationPath);
         } catch (OutOfMemoryError e) {
             final String errorMsg = "JAVA OUT OF MEMORY ERROR!, please allocate more memory for java: " + e.getMessage();
+            LOGGER.fatal(errorMsg,e);
             startupErrorInformation = new ErrorInformation(PwmError.ERROR_PWM_UNAVAILABLE, errorMsg);
-            try {LOGGER.fatal(errorMsg);} catch (Exception e2) {/* we tried anyway.. */}
-            System.err.println(errorMsg);
         } catch (Exception e) {
             final String errorMsg = "unable to initialize pwm due to configuration related error: " + e.getMessage();
             startupErrorInformation = new ErrorInformation(PwmError.ERROR_PWM_UNAVAILABLE, errorMsg);
             try {LOGGER.fatal(errorMsg);} catch (Exception e2) {/* we tried anyway.. */}
-            System.err.println(errorMsg);
         }
 
-
-        if ("true".equalsIgnoreCase(servletContext.getInitParameter("configChange-reload"))) {
-            taskMaster = new Timer("pwm-ContextManager timer", true);
-            taskMaster.schedule(new ConfigFileWatcher(), 5 * 1000, 5 * 1000);
-            taskMaster.schedule(new SessionWatcherTask(), 5 * 1000, 5 * 1000);
-        }
+        taskMaster = new Timer("pwm-ContextManager timer", true);
+        taskMaster.schedule(new ConfigFileWatcher(), 5 * 1000, 5 * 1000);
+        taskMaster.schedule(new SessionWatcherTask(), 5 * 1000, 5 * 1000);
     }
 
     void shutdown() {
@@ -115,16 +110,12 @@ public class ContextManager implements Serializable {
     }
 
     public void reinitialize() {
-        if ("true".equalsIgnoreCase(servletContext.getInitParameter("configChange-reload"))) {
-            restartRequestedFlag = true;
-        } else {
-            LOGGER.info("skipping application restart due to web.xml configChange-reload=false");
-        }
+        restartRequestedFlag = true;
     }
 
-        public Set<PwmSession> getPwmSessions() {
-            return Collections.unmodifiableSet(activeSessions.keySet());
-        }
+    public Set<PwmSession> getPwmSessions() {
+        return Collections.unmodifiableSet(activeSessions.keySet());
+    }
 
     public void addPwmSession(final PwmSession pwmSession) {
         try {
@@ -187,12 +178,6 @@ public class ContextManager implements Serializable {
 
             LOGGER.info("application restart; shutdown completed, now starting new application instance");
             initialize();
-
-            LOGGER.info("invalidating all existing http sessions");
-            for (PwmSession pwmSession: getPwmSessions()) {
-                try { pwmSession.invalidate(); } catch (Exception e) { /* no error */ }
-            }
-
             LOGGER.info("application restart completed");
             restartRequestedFlag = false;
         }

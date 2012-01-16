@@ -26,9 +26,6 @@
 <%@ page import="java.text.DateFormat" %>
 <%@ page import="java.text.NumberFormat" %>
 <%@ page import="password.pwm.util.pwmdb.PwmDB" %>
-<%@ page import="password.pwm.servlet.ResourceFileServlet" %>
-<%@ page import="password.pwm.util.stats.StatisticsManager" %>
-<%@ page import="java.math.BigDecimal" %>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <%@ page language="java" session="true" isThreadSafe="true"
@@ -86,6 +83,15 @@
     </tr>
     <tr>
         <td class="key">
+            Configuration Time
+        </td>
+        <td>
+            <%= dateFormat.format(pwmApplication.getConfig().getModifyTime()) %>
+            (epoch <%= ContextManager.getContextManager(session).getConfigReader().getConfigurationEpoch() %>)
+        </td>
+    </tr>
+    <tr>
+        <td class="key">
             Server Timezone
         </td>
         <td>
@@ -127,27 +133,27 @@
 <table class="tablemain">
     <tr>
         <td class="title" colspan="10">
-            Current Activity
+            PWM Health
         </td>
     </tr>
     <tr>
-        <td class="key">
-            <a href="<pwm:url url='activesessions.jsp'/>">
-                Active HTTP Sessions
-            </a>
+        <td colspan="10" style="margin:0; padding:0">
+            <div id="healthBody" style="border:0; margin:0; padding:0"></div>
+            <script type="text/javascript">
+                dojo.addOnLoad(function() {
+                    showPwmHealth('healthBody', false);
+                });
+            </script>
         </td>
-        <td>
-            <a href="<pwm:url url='activesessions.jsp'/>">
-                <%= ContextManager.getContextManager(session).getPwmSessions().size() %>
-            </a>
-        </td>
-        <td class="key">
-            <a href="<pwm:url url='activesessions.jsp'/>">
-                Stored Tokens
-            </a>
-        </td>
-        <td>
-            <%= pwmApplication.getTokenManager().size() %>
+    </tr>
+</table>
+<p style="text-align:center; width:100%">Public PWM Health Page is at <a
+        href="<%=request.getContextPath()%>/public/health.jsp"><%=request.getContextPath()%>/public/health.jsp</a></p>
+<br class="clear"/>
+<table class="tablemain">
+    <tr>
+        <td class="title" colspan="10">
+            Current Status
         </td>
     </tr>
     <tr>
@@ -172,70 +178,27 @@
             </a>
         </td>
     </tr>
-</table>
-<table class="tablemain">
-    <tr>
-        <td style="text-align: center">
-        </td>
-        <td style="text-align: center">
-            5 Minutes
-        </td>
-        <td style="text-align: center">
-            15 Minutes
-        </td>
-        <td style="text-align: center">
-            1 Hour
-        </td>
-    </tr>
     <tr>
         <td class="key">
-            Authentications / Minute
+            <a href="<pwm:url url='activesessions.jsp'/>">
+                Active HTTP Sessions
+            </a>
         </td>
-        <td style="text-align: center">
-            <%= ContextManager.getContextManager(session).getPwmApplication().getStatisticsManager().readEps(StatisticsManager.EpsType.AUTHENTICATION, new TimeDuration(5 * 60 * 1000)) %>
+        <td>
+            <a href="<pwm:url url='activesessions.jsp'/>">
+                <%= ContextManager.getContextManager(session).getPwmSessions().size() %>
+            </a>
         </td>
-        <td style="text-align: center">
-            <%= ContextManager.getContextManager(session).getPwmApplication().getStatisticsManager().readEps(StatisticsManager.EpsType.AUTHENTICATION, new TimeDuration(15 * 60 * 1000)) %>
-        </td>
-        <td style="text-align: center">
-            <%= ContextManager.getContextManager(session).getPwmApplication().getStatisticsManager().readEps(StatisticsManager.EpsType.AUTHENTICATION, TimeDuration.HOUR) %>
-        </td>
-    </tr>
-    <tr>
         <td class="key">
-                Password Changes / Minute
+            <a href="<pwm:url url='activesessions.jsp'/>">
+                Stored Token Keys
+            </a>
         </td>
-        <td style="text-align: center">
-            <%= ContextManager.getContextManager(session).getPwmApplication().getStatisticsManager().readEps(StatisticsManager.EpsType.PASSWORD_CHANGES, new TimeDuration(5 * 60 * 1000)) %>
-        </td>
-        <td style="text-align: center">
-            <%= ContextManager.getContextManager(session).getPwmApplication().getStatisticsManager().readEps(StatisticsManager.EpsType.PASSWORD_CHANGES,new TimeDuration(15 * 60 * 1000)) %>
-        </td>
-        <td style="text-align: center">
-            <%= ContextManager.getContextManager(session).getPwmApplication().getStatisticsManager().readEps(StatisticsManager.EpsType.PASSWORD_CHANGES, TimeDuration.HOUR) %>
+        <td>
+            <%= pwmApplication.getTokenManager().size() %>
         </td>
     </tr>
 </table>
-<br class="clear"/>
-<table class="tablemain">
-    <tr>
-        <td class="title" colspan="10">
-            PWM Health
-        </td>
-    </tr>
-    <tr>
-        <td colspan="10" style="margin:0; padding:0">
-            <div id="healthBody" style="border:0; margin:0; padding:0"></div>
-            <script type="text/javascript">
-                dojo.addOnLoad(function() {
-                    showPwmHealth('healthBody', false);
-                });
-            </script>
-        </td>
-    </tr>
-</table>
-<div style="text-align:center; width:100%; border: 0">Public PWM Health Page is at <a
-        href="<%=request.getContextPath()%>/public/health.jsp"><%=request.getContextPath()%>/public/health.jsp</a></div>
 <br class="clear"/>
 <table class="tablemain">
     <tr>
@@ -342,7 +305,7 @@
             Oldest Log Event
         </td>
         <td>
-            <%= pwmApplication.getPwmDBLogger() != null ? TimeDuration.fromCurrent(pwmApplication.getPwmDBLogger().getTailDate()).asCompactString() : "n/a" %>
+            <%= pwmApplication.getPwmDBLogger() != null ? TimeDuration.fromCurrent(pwmApplication.getPwmDBLogger().getTailTimestamp()).asCompactString() : "n/a" %>
         </td>
     </tr>
     <tr>
@@ -462,15 +425,6 @@
     </tr>
     <tr>
         <td class="key">
-            ResourceFileServlet Cache
-        </td>
-        <td>
-            <%= numberFormat.format(ResourceFileServlet.itemsInCache(session.getServletContext())) %>
-            (<%= numberFormat.format(ResourceFileServlet.bytesInCache(session.getServletContext())) %>)
-        </td>
-    </tr>
-    <tr>
-        <td class="key">
             Memory Limit
         </td>
         <td>
@@ -479,10 +433,10 @@
     </tr>
     <tr>
         <td class="key">
-            <a href="<pwm:url url='threads.jsp'/>">Threads</a>
+            <a href="#threads">Threads</a>
         </td>
         <td>
-            <a href="<pwm:url url='threads.jsp'/>"><%= Thread.activeCount() %></a>
+            <a href="#threads"><%= Thread.activeCount() %>
             </a>
         </td>
     </tr>
@@ -505,6 +459,57 @@
             </script>
         </td>
     </tr>
+
+</table>
+<br class="clear"/>
+<table class="tablemain">
+    <tr>
+        <td class="title" colspan="10">
+            <a name="threads"></a>Java Threads
+        </td>
+    </tr>
+    <tr>
+        <td style="font-weight:bold;">
+            Id
+        </td>
+        <td style="font-weight:bold;">
+            Name
+        </td>
+        <td style="font-weight:bold;">
+            Priority
+        </td>
+        <td style="font-weight:bold;">
+            State
+        </td>
+        <td style="font-weight:bold;">
+            Daemon
+        </td>
+    </tr>
+    <%
+        final Thread[] tArray = new Thread[Thread.activeCount()];
+        Thread.enumerate(tArray);
+        try {
+            for (final Thread t : tArray) {
+    %>
+    <tr>
+        <td>
+            <%= t.getId() %>
+        </td>
+        <td>
+            <%= t.getName() != null ? t.getName() : "n/a" %>
+        </td>
+        <td>
+            <%= t.getPriority() %>
+        </td>
+        <td>
+            <%= t.getState().toString().toLowerCase() %>
+        </td>
+        <td>
+            <%= String.valueOf(t.isDaemon()) %>
+        </td>
+    </tr>
+    <% } %>
+    <% } catch (Exception e) { /* */ } %>
 </table>
 </div>
 </div>

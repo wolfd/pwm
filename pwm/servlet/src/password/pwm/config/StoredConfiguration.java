@@ -80,8 +80,8 @@ public class StoredConfiguration implements Serializable, Cloneable {
         return new StoredConfiguration();
     }
 
-    public static StoredConfiguration fromXml(final String xmlData)
-            throws PwmUnrecoverableException
+    public static StoredConfiguration fromXml(final String xmlData) 
+            throws PwmUnrecoverableException 
     {
         return XmlConverter.fromXml(xmlData);
     }
@@ -217,7 +217,6 @@ public class StoredConfiguration implements Serializable, Cloneable {
         switch (pwmSetting.getSyntax()) {
             case STRING:
             case BOOLEAN:
-            case TEXT_AREA:
             case SELECT:
             case NUMERIC:
                 return StoredValue.StoredValueString.fromJsonString(pwmSetting.getDefaultValue(template));
@@ -430,7 +429,6 @@ public class StoredConfiguration implements Serializable, Cloneable {
     public String readSetting(final PwmSetting setting) {
         switch (setting.getSyntax()) {
             case STRING:
-            case TEXT_AREA:
             case SELECT:
             case BOOLEAN:
             case NUMERIC:
@@ -500,7 +498,6 @@ public class StoredConfiguration implements Serializable, Cloneable {
         preModifyActions();
         switch (setting.getSyntax()) {
             case STRING:
-            case TEXT_AREA:
             case SELECT:
             case BOOLEAN:
             case NUMERIC:
@@ -583,7 +580,7 @@ public class StoredConfiguration implements Serializable, Cloneable {
                 } else {
                     final List<Element> valueElements;
                     if (setting.getSyntax() == PwmSetting.Syntax.PASSWORD) {
-                        final String key = PwmConstants.DEFAULT_DATETIME_FORMAT.format(storedConfiguration.createTime) + StoredConfiguration.class.getSimpleName();
+                        final String key = PwmConstants.PWM_STANDARD_DATE_FORMAT.format(storedConfiguration.createTime) + StoredConfiguration.class.getSimpleName();
                         valueElements = ((StoredValue.StoredValuePassword) storedConfiguration.settingMap.get(setting)).toXmlValues("value", key);
                         settingElement.addContent(new Comment("Note: This value is encrypted and can not be edited directly."));
                         settingElement.addContent(new Comment("Please use the PWM Configuration Manager to modify this value."));
@@ -624,8 +621,8 @@ public class StoredConfiguration implements Serializable, Cloneable {
             pwmConfigElement.setAttribute("pwmVersion", PwmConstants.PWM_VERSION);
             pwmConfigElement.setAttribute("pwmBuild", PwmConstants.BUILD_NUMBER);
             pwmConfigElement.setAttribute("pwmBuildType", PwmConstants.BUILD_TYPE);
-            pwmConfigElement.setAttribute("createTime", PwmConstants.DEFAULT_DATETIME_FORMAT.format(storedConfiguration.createTime));
-            pwmConfigElement.setAttribute("modifyTime", PwmConstants.DEFAULT_DATETIME_FORMAT.format(storedConfiguration.modifyTime));
+            pwmConfigElement.setAttribute("createTime", PwmConstants.PWM_STANDARD_DATE_FORMAT.format(storedConfiguration.createTime));
+            pwmConfigElement.setAttribute("modifyTime", PwmConstants.PWM_STANDARD_DATE_FORMAT.format(storedConfiguration.modifyTime));
             pwmConfigElement.setAttribute("xmlVersion", XML_FORMAT_VERSION);
 
             final Format format = Format.getPrettyFormat();
@@ -657,7 +654,7 @@ public class StoredConfiguration implements Serializable, Cloneable {
                     throw new IllegalArgumentException("missing createTime timestamp");
                 }
                 final String modifyTimeString = rootElement.getAttributeValue("modifyTime");
-                newConfiguration.createTime = PwmConstants.DEFAULT_DATETIME_FORMAT.parse(createTimeString);
+                newConfiguration.createTime = PwmConstants.PWM_STANDARD_DATE_FORMAT.parse(createTimeString);
                 final Element settingsElement = rootElement.getChild("settings");
                 final List settingElements = settingsElement.getChildren("setting");
                 for (final Object loopSetting : settingElements) {
@@ -719,7 +716,7 @@ public class StoredConfiguration implements Serializable, Cloneable {
                                     final Element valueElement = settingElement.getChild("value");
                                     final String encodedValue = valueElement.getText();
                                     try {
-                                        final String key = PwmConstants.DEFAULT_DATETIME_FORMAT.format(newConfiguration.createTime) + StoredConfiguration.class.getSimpleName();
+                                        final String key = PwmConstants.PWM_STANDARD_DATE_FORMAT.format(newConfiguration.createTime) + StoredConfiguration.class.getSimpleName();
                                         final String decodedValue = TextConversations.decryptValue(encodedValue, key);
                                         newConfiguration.writeSetting(pwmSetting, decodedValue);
                                     } catch (Exception e) {
@@ -767,7 +764,7 @@ public class StoredConfiguration implements Serializable, Cloneable {
                 if (modifyTimeString == null) {
                     throw new IllegalArgumentException("missing modifyTime timestamp");
                 }
-                newConfiguration.modifyTime = PwmConstants.DEFAULT_DATETIME_FORMAT.parse(modifyTimeString);
+                newConfiguration.modifyTime = PwmConstants.PWM_STANDARD_DATE_FORMAT.parse(modifyTimeString);
 
                 for (final PwmSetting setting : PwmSetting.values()) {
                     if (!seenSettings.contains(setting)) {
@@ -1038,7 +1035,7 @@ public class StoredConfiguration implements Serializable, Cloneable {
             }
 
             public String toString() {
-                return PwmConstants.LOG_REMOVED_VALUE_REPLACEMENT;
+                return "***removed***";
             }
         }
     }

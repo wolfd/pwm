@@ -36,8 +36,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.Serializable;
 import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @author Jason D. Rivard
@@ -51,7 +49,15 @@ public class PwmSession implements Serializable {
 
     private final SessionStateBean sessionStateBean = new SessionStateBean();
 
-    private final Map<Class,Serializable> userBeans = new HashMap<Class, Serializable>();
+    private ConfigManagerBean configManagerBean;
+    private ForgottenPasswordBean forgottenPasswordBean;
+    private UserInfoBean userInfoBean;
+    private ChangePasswordBean changePasswordBean;
+    private SetupResponsesBean setupResponseBean;
+    private GuestRegistrationBean guestRegistrationBean;
+    private UserInformationServletBean userInformationServletBean;
+    private HelpdeskBean helpdeskBean;
+    private NewUserBean newUserBean;
 
     private Configuration config;
     private SessionManager sessionManager;
@@ -118,7 +124,10 @@ public class PwmSession implements Serializable {
 
 
     public ChangePasswordBean getChangePasswordBean() {
-        return (ChangePasswordBean)getUserBean(ChangePasswordBean.class);
+        if (changePasswordBean == null) {
+            changePasswordBean = new ChangePasswordBean();
+        }
+        return changePasswordBean;
     }
 
     public long getCreationTime() {
@@ -126,19 +135,28 @@ public class PwmSession implements Serializable {
     }
 
     public ForgottenPasswordBean getForgottenPasswordBean() {
-        return (ForgottenPasswordBean)getUserBean(ForgottenPasswordBean.class);
+        if (forgottenPasswordBean == null) {
+            forgottenPasswordBean = new ForgottenPasswordBean();
+        }
+        return forgottenPasswordBean;
     }
 
     public void clearForgottenPasswordBean() {
-        userBeans.remove(ForgottenPasswordBean.class);
+        forgottenPasswordBean = new ForgottenPasswordBean();
     }
 
     public ConfigManagerBean getConfigManagerBean() {
-        return (ConfigManagerBean)getUserBean(ConfigManagerBean.class);
+        if (configManagerBean == null) {
+            configManagerBean = new ConfigManagerBean();
+        }
+        return configManagerBean;
     }
 
     public GuestRegistrationBean getGuestRegistrationBean() {
-        return (GuestRegistrationBean)getUserBean(GuestRegistrationBean.class);
+        if (guestRegistrationBean == null) {
+            guestRegistrationBean = new GuestRegistrationBean();
+        }
+        return guestRegistrationBean;
     }
 
     public SessionManager getSessionManager() {
@@ -150,22 +168,35 @@ public class PwmSession implements Serializable {
     }
 
     public UserInfoBean getUserInfoBean() {
-        return (UserInfoBean)getUserBean(UserInfoBean.class);
+        if (userInfoBean == null) {
+            userInfoBean = new UserInfoBean();
+        }
+        return userInfoBean;
     }
 
     public HelpdeskBean getHelpdeskBean() {
-        return (HelpdeskBean)getUserBean(HelpdeskBean.class);
+        if (helpdeskBean == null) {
+            helpdeskBean = new HelpdeskBean();
+        }
+        return helpdeskBean;
     }
 
 // -------------------------- OTHER METHODS --------------------------
 
     public void clearChangePasswordBean() {
-        userBeans.remove(ChangePasswordBean.class);
+        changePasswordBean = new ChangePasswordBean();
     }
 
     public void clearAllUserBeans() // clears all but the session state bean. 
     {
-        userBeans.clear();
+        forgottenPasswordBean = null;
+        userInfoBean = null;
+        changePasswordBean = null;
+        setupResponseBean = null;
+        configManagerBean = null;
+        userInformationServletBean = null;
+        helpdeskBean = null;
+        newUserBean = null;
 
         if (sessionManager != null) {
             sessionManager.closeConnections();
@@ -235,20 +266,33 @@ public class PwmSession implements Serializable {
                 LOGGER.debug("CAS assertion removed");
             }
         } catch (Exception e) {
-            /* session already invalided */
+            LOGGER.error("error clearing CAS assertion during unauthenticate: " + e.getMessage(),e);
         }
     }
 
     public SetupResponsesBean getSetupResponseBean() {
-        return (SetupResponsesBean)getUserBean(SetupResponsesBean.class);
+        if (setupResponseBean == null) {
+            setupResponseBean = new SetupResponsesBean();
+        }
+        return setupResponseBean;
     }
 
     public UserInformationServletBean getUserInformationServletBean() {
-        return (UserInformationServletBean)getUserBean(UserInformationServletBean.class);
+        if (userInformationServletBean == null) {
+            userInformationServletBean = new UserInformationServletBean();
+        }
+        return userInformationServletBean;
+    }
+
+    public int getMaxInactiveInterval() {
+        return httpSession == null ? -1 : httpSession.getMaxInactiveInterval();
     }
 
     public NewUserBean getNewUserBean() {
-        return (NewUserBean)getUserBean(NewUserBean.class);
+        if (newUserBean == null) {
+            newUserBean = new NewUserBean();
+        }
+        return newUserBean;
     }
 
     public void invalidate() {
@@ -261,20 +305,7 @@ public class PwmSession implements Serializable {
         }
 
         if (httpSession != null) {
-            try { httpSession.invalidate(); } catch (Exception e) { /* nothing to do */ }
+            httpSession.invalidate();
         }
-    }
-
-    private Serializable getUserBean(final Class theClass) {
-        if (!userBeans.containsKey(theClass)) {
-            try {
-                final Object newBean = theClass.newInstance();
-                userBeans.put(theClass,(Serializable)newBean);
-            } catch (Exception e) {
-                LOGGER.error("unexpected error trying to instantiate bean class " + theClass.getName() + ": " + e.getMessage(),e);
-            }
-
-        }
-        return userBeans.get(theClass);
     }
 }

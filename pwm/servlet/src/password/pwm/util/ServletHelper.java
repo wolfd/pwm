@@ -25,7 +25,6 @@ package password.pwm.util;
 import password.pwm.*;
 import password.pwm.bean.SessionStateBean;
 import password.pwm.config.Message;
-import password.pwm.config.PwmSetting;
 import password.pwm.error.PwmUnrecoverableException;
 
 import javax.servlet.ServletContext;
@@ -132,27 +131,9 @@ public class ServletHelper {
             final HttpServletRequest req,
             final HttpServletResponse resp
     )
-            throws IOException, ServletException, PwmUnrecoverableException
-    {
-        final PwmApplication pwmApplication = ContextManager.getPwmApplication(req);
-        final PwmSession pwmSession = PwmSession.getPwmSession(req);
-        final SessionStateBean ssBean = pwmSession.getSessionStateBean();
-
-        if (!pwmApplication.getConfig().readSettingAsBoolean(PwmSetting.DISPLAY_SUCCESS_PAGES)) {
-            ssBean.setSessionSuccess(null, null);
-            LOGGER.trace(pwmSession, "skipping success page due to configuration setting.");
-            final StringBuilder redirectURL = new StringBuilder();
-            redirectURL.append(req.getContextPath());
-            redirectURL.append("/public/");
-            redirectURL.append(SessionFilter.rewriteURL("CommandServlet",req,resp));
-            redirectURL.append("?processAction=continue");
-            redirectURL.append("&pwmFormID=");
-            redirectURL.append(Helper.buildPwmFormID(pwmSession.getSessionStateBean()));
-            resp.sendRedirect(redirectURL.toString());
-            return;
-        }
-
+            throws IOException, ServletException {
         try {
+            final SessionStateBean ssBean = PwmSession.getPwmSession(req).getSessionStateBean();
 
             if (ssBean.getSessionSuccess() == null) {
                 ssBean.setSessionSuccess(Message.SUCCESS_UNKNOWN, null);
@@ -173,14 +154,9 @@ public class ServletHelper {
 
         for (Enumeration enumeration = req.getHeaderNames(); enumeration.hasMoreElements();) {
             final String headerName = (enumeration.nextElement()).toString();
-            sb.append("  ");
             sb.append(headerName);
             sb.append("=");
-            if (headerName.contains("Authorization")) {
-                sb.append(PwmConstants.LOG_REMOVED_VALUE_REPLACEMENT);
-            } else {
-                sb.append(req.getHeader(headerName));
-            }
+            sb.append(req.getHeader(headerName));
             sb.append(enumeration.hasMoreElements() ? "\n" : "");
         }
 
@@ -223,7 +199,7 @@ public class ServletHelper {
                 for (final String paramValue : paramValues) {
                     sb.append("  ").append(paramName).append("=");
                     if (paramName.toLowerCase().contains("password") || paramName.startsWith(PwmConstants.PARAM_RESPONSE_PREFIX)) {
-                        sb.append(PwmConstants.LOG_REMOVED_VALUE_REPLACEMENT);
+                        sb.append("***removed***");
                     } else {
                         sb.append('\'');
                         sb.append(paramValue);

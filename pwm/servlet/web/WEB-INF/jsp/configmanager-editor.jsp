@@ -45,7 +45,7 @@
 <% final boolean showNotes = password.pwm.PwmSession.getPwmSession(session).getConfigManagerBean().isShowNotes(); %>
 <% final ConfigManagerBean configManagerBean = password.pwm.PwmSession.getPwmSession(session).getConfigManagerBean(); %>
 <% final password.pwm.config.PwmSetting.Category category = configManagerBean.getCategory(); %>
-<% final PwmApplication.MODE configMode = ContextManager.getPwmApplication(session).getApplicationMode(); %>
+<% final PwmApplication.MODE configMode = ContextManager.getPwmApplication(session).getConfigMode(); %>
 <body class="tundra">
 <script type="text/javascript" src="<%=request.getContextPath()%>/resources/configmanager.js"></script>
 <script type="text/javascript">
@@ -250,21 +250,6 @@ function buildMenuBar() {
                 });
             }
         }));
-        viewMenu.addChild(new dijit.MenuItem({
-            label: "Show PWM Macro Help",
-            onClick: function() {
-                var idName = 'macroHelpDialog';
-                clearDigitWidget(idName);
-                dojo.require("dijit.Dialog");
-                var theDialog = new dijit.Dialog({
-                    id: idName,
-                    title: 'PWM Macro Help',
-                    style: "width: 500px",
-                    href: "/pwm/resources/macroHelp.html"
-                });
-                theDialog.show();
-            }
-        }));
         topMenuBar.addChild(new dijit.PopupMenuBarItem({
             label: "View",
             popup: viewMenu
@@ -303,7 +288,7 @@ function buildMenuBar() {
     { // Actions
         var actionsMenu = new dijit.Menu({});
 
-    <% if (ContextManager.getPwmApplication(session).getApplicationMode() == PwmApplication.MODE.RUNNING) { %>
+    <% if (ContextManager.getPwmApplication(session).getConfigMode() == PwmApplication.MODE.RUNNING) { %>
         actionsMenu.addChild(new dijit.MenuItem({
             label: "Finish Editing",
             onClick: function() {
@@ -419,8 +404,8 @@ function buildMenuBar() {
 </script>
 </body>
 <script type="text/javascript">
-    if(dojo.isIE <= 8){ // only IE8 and below
-        alert('Internet Explorer 8 and below is not able to correctly load this page.  Please use a newer version of IE or a different browser.');
+    if(dojo.isIE <= 7){ // only IE7 and below
+        alert('Internet Explorer 7 and below is not able to correctly load this page.  Please use a newer version of IE or a different browser.');
     }
 </script>
 </html>

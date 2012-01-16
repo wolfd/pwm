@@ -33,7 +33,6 @@ import password.pwm.config.Display;
 import password.pwm.config.PwmSetting;
 import password.pwm.error.*;
 import password.pwm.util.*;
-import password.pwm.util.operations.PasswordUtility;
 import password.pwm.util.stats.Statistic;
 import password.pwm.util.stats.StatisticsManager;
 
@@ -127,7 +126,7 @@ public class AuthenticationFilter implements Filter {
             ssBean = pwmSession.getSessionStateBean();
 
             // send en error to user.
-            ssBean.setSessionError(new ErrorInformation(PwmError.ERROR_BAD_SESSION,"basic auth header user '" + basicAuthInfo.getUsername() + "' does not match currently logged in user '" + uiBean.getUserDN() + "', session will be logged out"));
+            ssBean.setSessionError(PwmError.ERROR_FIELDS_DONT_MATCH.toInfo());
             ServletHelper.forwardToErrorPage(req, resp, req.getSession().getServletContext());
         } else {
             // user session is authed, and session and auth header match, so forward request on.
@@ -275,7 +274,6 @@ public class AuthenticationFilter implements Filter {
         debugMsg.append(" (").append(TimeDuration.fromCurrent(methodStartTime).asCompactString()).append(")");
         LOGGER.info(pwmSession, debugMsg);
         statisticsManager.incrementValue(Statistic.AUTHENTICATIONS);
-        statisticsManager.updateEps(StatisticsManager.EpsType.AUTHENTICATION,1);
 
         //attempt to add the object class to the user
         Helper.addConfiguredUserObjectClass(userDN, pwmSession, pwmApplication);
@@ -352,9 +350,7 @@ public class AuthenticationFilter implements Filter {
                     final ErrorInformation errorInformation = new ErrorInformation(PwmError.ERROR_INTRUDER_USER, errorMsg);
                     LOGGER.warn(pwmSession, errorInformation.toDebugStr());
                     pwmApplication.getIntruderManager().addBadUserAttempt(userDN, pwmSession);
-                    if (!PwmConstants.DEFAULT_BAD_PASSWORD_ATTEMPT.equals(password)) {
-                        pwmSession.getSessionStateBean().setSessionError(errorInformation);
-                    }
+                    pwmSession.getSessionStateBean().setSessionError(errorInformation);
                     throw new PwmUnrecoverableException(errorInformation);
                 }
                 final String errorMsg = "ldap error during password check: " + e.getMessage();
@@ -406,7 +402,7 @@ public class AuthenticationFilter implements Filter {
         }
 
         //user isn't already authed and has an auth header, so try to auth them.
-        LOGGER.debug(pwmSession, "attempting to authenticate user using basic auth header (username=" + basicAuthInfo.getUsername() + ")");
+        LOGGER.debug(pwmSession, "attempting to authenticate user using basic auth header");
         authenticateUser(basicAuthInfo.getUsername(), basicAuthInfo.getPassword(), null, pwmSession, pwmApplication, req.isSecure());
 
         pwmSession.getSessionStateBean().setOriginalBasicAuthInfo(basicAuthInfo);
@@ -466,7 +462,7 @@ public class AuthenticationFilter implements Filter {
         if (currentPass == null || currentPass.length() <= 0) {
             LOGGER.debug(pwmSession, "attempting to set temporary random password");
             try {
-                final PwmPasswordPolicy passwordPolicy = PasswordUtility.readPasswordPolicyForUser(pwmApplication, pwmSession, theUser, pwmSession.getSessionStateBean().getLocale());
+                final PwmPasswordPolicy passwordPolicy = PwmPasswordPolicy.createPwmPasswordPolicy(pwmSession, pwmApplication, pwmSession.getSessionStateBean().getLocale(), theUser);
                 pwmSession.getUserInfoBean().setPasswordPolicy(passwordPolicy);
 
                 // createSharedHistoryManager random password for user

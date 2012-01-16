@@ -1,7 +1,6 @@
 package password.pwm;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
 import password.pwm.config.Configuration;
 import password.pwm.config.PwmSetting;
 import password.pwm.error.*;
@@ -19,8 +18,8 @@ public class TokenManager implements PwmService {
 
     private static PwmLogger LOGGER = PwmLogger.getLogger(TokenManager.class);
 
-    private static final long MAX_CLEANER_INTERVAL_MS = 24 * 60 * 60 * 1000; // one day
-    private static final long MIN_CLEANER_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+    private static long MAX_CLEANER_INTERVAL_MS = 24 * 60 * 60 * 1000; // one day
+    private static long MIN_CLEANER_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
     private enum StorageMethod {
         STORE_PWMDB,
@@ -34,7 +33,6 @@ public class TokenManager implements PwmService {
     private final DatabaseAccessor databaseAccessor;
     private final StorageMethod storageMethod;
     private final long maxTokenAgeMS;
-    private final long maxTokenPurgeAgeMS;
 
     private STATUS status = STATUS.NEW;
 
@@ -60,13 +58,11 @@ public class TokenManager implements PwmService {
             throw new PwmOperationalException(new ErrorInformation(PwmError.ERROR_INVALID_CONFIG,errorMsg));
         }
 
-        maxTokenPurgeAgeMS = maxTokenAgeMS + PwmConstants.TOKEN_REMOVAL_DELAY_MS;
         timer = new Timer("pwm-TokenManager",true);
         final TimerTask cleanerTask = new CleanerTask();
 
         final long cleanerFrequency = (maxTokenAgeMS*0.5) > MAX_CLEANER_INTERVAL_MS ? MAX_CLEANER_INTERVAL_MS : (maxTokenAgeMS*0.5) < MIN_CLEANER_INTERVAL_MS ? MIN_CLEANER_INTERVAL_MS : (long)(maxTokenAgeMS*0.5);
-        timer.schedule(cleanerTask, 10000, cleanerFrequency + 731);
-        LOGGER.trace("token cleanup will occur every " + TimeDuration.asCompactString(cleanerFrequency));
+        timer.schedule(cleanerTask, 1000, cleanerFrequency);
         status = STATUS.OPEN;
         LOGGER.debug("open");
     }
@@ -78,7 +74,7 @@ public class TokenManager implements PwmService {
         try {
             String tokenKey = null;
             int attempts = 0;
-            while (tokenKey == null && attempts < PwmConstants.TOKEN_MAX_UNIQUE_CREATE_ATTEMPTS) {
+            while (tokenKey == null && attempts < 100) {
                 tokenKey = makeRandomCode(configuration);
                 if (retrieveStoredToken(tokenKey) != null) {
                     tokenKey = null;
@@ -107,18 +103,6 @@ public class TokenManager implements PwmService {
         try {
             final TokenPayload storedToken = retrieveStoredToken(tokenKey);
             if (storedToken != null) {
-
-                if (testIfTokenIsExpired(storedToken)) {
-                    throw new PwmOperationalException(new ErrorInformation(PwmError.ERROR_TOKEN_EXPIRED));
-                }
-
-                if (storedToken.isUsed()) {
-                    throw new PwmOperationalException(new ErrorInformation(PwmError.ERROR_TOKEN_EXPIRED,"token has already been used"));
-                } else {
-                    storedToken.setUsed(true);
-                    storeToken(tokenKey, storedToken);
-                }
-
                 return storedToken;
             }
         } catch (PwmException e) {
@@ -162,14 +146,16 @@ public class TokenManager implements PwmService {
             }
 
             if (storedRawValue != null && storedRawValue.length() > 0 ) {
-                try {
-                    final Gson gson = new Gson();
-                    returnToken = gson.fromJson(storedRawValue,TokenPayload.class);
-                } catch (JsonSyntaxException e) {
-                    LOGGER.error("unexpected syntax error reading token payload: " + e.getMessage());
-                    removeTokenFormStorage(tokenKey);
+                final Gson gson = new Gson();
+                returnToken = gson.fromJson(storedRawValue,TokenPayload.class);
+                if (testIfTokenIsExpired(returnToken)) {
+                    returnToken = null;
                 }
             }
+        }
+
+        if (returnToken != null) {
+            removeTokenFormStorage(tokenKey);
         }
 
         return returnToken;
@@ -183,16 +169,6 @@ public class TokenManager implements PwmService {
         final TimeDuration duration = new TimeDuration(issueDate,new Date());
         return duration.isLongerThan(maxTokenAgeMS);
     }
-
-    private boolean testIfTokenIsPurgable(final TokenPayload theToken) {
-        if (theToken == null) {
-            return false;
-        }
-        final Date issueDate = theToken.getIssueDate();
-        final TimeDuration duration = new TimeDuration(issueDate,new Date());
-        return duration.isLongerThan(maxTokenPurgeAgeMS);
-    }
-
 
     private void storeToken(final String tokenKey, final TokenPayload tokenInformation)
             throws  PwmUnrecoverableException, PwmOperationalException {
@@ -215,13 +191,13 @@ public class TokenManager implements PwmService {
         }
     }
 
-    private void purgeOutdatedTokens() throws
+    private void cleanupOutdatedTokens() throws
             PwmUnrecoverableException, PwmOperationalException
     {
         final long startTime = System.currentTimeMillis();
         int cleanedTokens = 0;
         List<String> tempKeyList = new ArrayList<String>();
-        tempKeyList.addAll(discoverPurgeableTokenKeys(PwmConstants.TOKEN_PURGE_BATCH_SIZE));
+        tempKeyList.addAll(discoverOutdatedTokenKeys(100));
         while (status() == STATUS.OPEN && !tempKeyList.isEmpty()) {
             for (final String loopKey : tempKeyList) {
                 removeTokenFormStorage(loopKey);
@@ -248,10 +224,11 @@ public class TokenManager implements PwmService {
         }
     }
 
-    private List<String> discoverPurgeableTokenKeys(final int maxCount)
+    private List<String> discoverOutdatedTokenKeys(final int maxCount)
             throws PwmUnrecoverableException, PwmOperationalException
     {
         final List<String> returnList = new ArrayList<String>();
+
         Iterator<String> keyIterator = null;
 
         try {
@@ -270,7 +247,7 @@ public class TokenManager implements PwmService {
                 final String loopKey = keyIterator.next();
                 final TokenPayload loopInfo = retrieveStoredToken(loopKey);
                 if (loopInfo != null) {
-                    if (testIfTokenIsPurgable(loopInfo)) {
+                    if (testIfTokenIsExpired(loopInfo)) {
                         returnList.add(loopKey);
                     }
                 }
@@ -304,13 +281,12 @@ public class TokenManager implements PwmService {
         private final java.util.Date issueDate;
         private final String name;
         private final Map<String,String> payloadData;
-        private boolean used;
 
         public TokenPayload(final String name, final Map<String,String> payloadData) {
             this.issueDate = new Date();
             this.payloadData = payloadData;
             this.name = name;
-            this.used = false;
+
         }
 
         public Date getIssueDate() {
@@ -324,20 +300,12 @@ public class TokenManager implements PwmService {
         public Map<String, String> getPayloadData() {
             return payloadData;
         }
-
-        public boolean isUsed() {
-            return used;
-        }
-
-        public void setUsed(final boolean used) {
-            this.used = used;
-        }
     }
 
     private class CleanerTask extends TimerTask {
         public void run() {
             try {
-                purgeOutdatedTokens();
+                cleanupOutdatedTokens();
             } catch (Exception e) {
                 LOGGER.warn("unexpected error while cleaning expired stored tokens: " + e.getMessage(),e);
             }
@@ -363,7 +331,7 @@ public class TokenManager implements PwmService {
                 case STORE_DB:
                     return databaseAccessor.size(PwmDB.DB.TOKENS);
             }
-        } catch (Exception e) {
+        } catch (PwmOperationalException e) {
             LOGGER.error("unexpected error reading size of token storage table: " + e.getMessage());
         }
 

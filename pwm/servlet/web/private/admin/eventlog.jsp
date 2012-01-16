@@ -29,7 +29,6 @@
 <%@ page import="java.text.DateFormat" %>
 <%@ page import="java.text.NumberFormat" %>
 <%@ page import="java.util.Date" %>
-<%@ page import="java.util.ConcurrentModificationException" %>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <%@ page language="java" session="true" isThreadSafe="true"
@@ -68,7 +67,7 @@
     All times listed are in
     the <%= (java.text.DateFormat.getDateTimeInstance()).getTimeZone().getDisplayName() %>
     timezone. The pwmDB contains <%=numberFormat.format(pwmDBLogger.getStoredEventCount())%> events. The oldest event is from
-    <%= SimpleDateFormat.getInstance().format(ContextManager.getPwmApplication(session).getPwmDBLogger().getTailDate()) %>
+    <%= SimpleDateFormat.getInstance().format(new Date(ContextManager.getPwmApplication(session).getPwmDBLogger().getTailTimestamp())) %>
     .
 </p>
 
@@ -142,9 +141,9 @@
                 &nbsp;
             </td>
             <td style="border: 0">
-                <input type="submit" name="submit" id="submit_button" value=" Search " class="btn"/>
+                <input type="submit" name="submit" id="submit_button" value=" Search "/>
                 &nbsp;&nbsp;
-                <button type="button" id="advanced_button" class="btn" onclick="toggleAdvancedPanel()">Advanced</button>
+                <button type="button" id="advanced_button" onclick="toggleAdvancedPanel()">Advanced</button>
             </td>
         </tr>
     </table>
@@ -229,14 +228,9 @@
     } catch (Exception e) {
     }
 
-    PwmDBLogger.SearchResults searchResults = null;
-    try {
-        searchResults = pwmDBLogger.readStoredEvents(PwmSession.getPwmSession(session), logLevel, eventCount, username, text, maxTime, logType);
-    } catch (Exception e) {
-        out.write("<p>Unexpected error while searching: " + e.getMessage()+"</p>");
-    }
+    final PwmDBLogger.SearchResults searchResults = pwmDBLogger.readStoredEvents(PwmSession.getPwmSession(session), logLevel, eventCount, username, text, maxTime, logType);
 %>
-<% if (searchResults == null || searchResults.getEvents().isEmpty()) { %>
+<% if (searchResults.getEvents().isEmpty()) { %>
 <p>No events matched your search. Please refine your search query and try again.</p>
 <% } else { %>
 <p style="text-align:center;">Matched <%= numberFormat.format(searchResults.getEvents().size()) %> entries after

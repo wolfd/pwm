@@ -38,10 +38,8 @@ import java.util.regex.Pattern;
  */
 public enum PwmSetting {
     // general settings
-    VERSION_CHECK_ENABLE(
-            "pwm.versionCheck.enable", Syntax.BOOLEAN, Category.GENERAL, true, Level.BASIC),
-    PUBLISH_STATS_ENABLE(
-            "pwm.publishStats.enable", Syntax.BOOLEAN, Category.GENERAL, true, Level.BASIC),
+    REQUIRE_HTTPS(
+            "pwm.requireHTTPS", Syntax.BOOLEAN, Category.GENERAL, true, Level.BASIC),
     URL_FORWARD(
             "pwm.forwardURL", Syntax.STRING, Category.GENERAL, true, Level.BASIC),
     URL_LOGOUT(
@@ -60,6 +58,8 @@ public enum PwmSetting {
             "passwordSyncMaxWaitTime", Syntax.NUMERIC, Category.GENERAL, true, Level.ADVANCED),
     PASSWORD_REQUIRE_CURRENT(
             "password.change.requireCurrent", Syntax.BOOLEAN, Category.GENERAL, true, Level.BASIC),
+    WORDLIST_FILENAME(
+            "pwm.wordlist.location", Syntax.STRING, Category.GENERAL, false, Level.BASIC),
     SEEDLIST_FILENAME(
             "pwm.seedlist.location", Syntax.STRING, Category.GENERAL, false, Level.ADVANCED),
     GOOGLE_ANAYLTICS_TRACKER(
@@ -74,8 +74,6 @@ public enum PwmSetting {
             "token.lifetime", Syntax.NUMERIC, Category.GENERAL, true, Level.ADVANCED),
     TOKEN_STORAGEMETHOD(
             "token.storageMethod", Syntax.SELECT, Category.GENERAL, true, Level.ADVANCED),
-    IDLE_TIMEOUT_SECONDS(
-            "idleTimeoutSeconds", Syntax.NUMERIC, Category.GENERAL, true, Level.BASIC),
 
 
     // user interface
@@ -99,18 +97,10 @@ public enum PwmSetting {
             "display.showCancelButton", Syntax.BOOLEAN, Category.USER_INTERFACE, true, Level.BASIC),
     DISPLAY_RESET_BUTTON(
             "display.showResetButton", Syntax.BOOLEAN, Category.USER_INTERFACE, true, Level.BASIC),
-    DISPLAY_SUCCESS_PAGES(
-            "display.showSuccessPage", Syntax.BOOLEAN, Category.USER_INTERFACE, true, Level.BASIC),
     DISPLAY_PASSWORD_HISTORY(
             "display.passwordHistory", Syntax.BOOLEAN, Category.USER_INTERFACE, true, Level.BASIC),
     DISPLAY_ACCOUNT_INFORMATION(
             "display.accountInformation", Syntax.BOOLEAN, Category.USER_INTERFACE, true, Level.BASIC),
-    DISPLAY_CSS_CUSTOM_STYLE(
-            "display.css.customStyle", Syntax.TEXT_AREA, Category.USER_INTERFACE, false, Level.BASIC),
-    DISPLAY_CSS_CUSTOM_MOBILE_STYLE(
-            "display.css.customMobileStyle", Syntax.TEXT_AREA, Category.USER_INTERFACE, false, Level.BASIC),
-    DISPLAY_CUSTOM_JAVASCRIPT(
-            "display.js.custom", Syntax.TEXT_AREA, Category.USER_INTERFACE, false, Level.BASIC),
 
 
     //ldap directory
@@ -144,8 +134,8 @@ public enum PwmSetting {
             "passwordLastUpdateAttribute", Syntax.STRING, Category.LDAP, false, Level.ADVANCED),
     LDAP_NAMING_ATTRIBUTE(
             "ldap.namingAttribute", Syntax.STRING, Category.LDAP, true, Level.ADVANCED),
-    LDAP_IDLE_TIMEOUT(
-            "ldap.idleTimeout", Syntax.NUMERIC, Category.LDAP, true, Level.ADVANCED),
+    LDAP_PROXY_IDLE_TIMEOUT(
+            "ldap.proxy.idleTimeout", Syntax.NUMERIC, Category.LDAP, true, Level.ADVANCED),
     LDAP_GUID_ATTRIBUTE(
             "ldap.guidAttribute", Syntax.STRING, Category.LDAP, true, Level.ADVANCED),
     LDAP_GUID_AUTO_ADD(
@@ -156,8 +146,6 @@ public enum PwmSetting {
             "ldap.alwaysUseProxy", Syntax.BOOLEAN, Category.LDAP, true, Level.ADVANCED),
     LDAP_CHAI_SETTINGS(
             "ldapChaiSettings", Syntax.STRING_ARRAY, Category.LDAP, false, Level.ADVANCED),
-    LDAP_USERNAME_ATTRIBUTE(
-            "ldap.username.attr", Syntax.STRING, Category.LDAP, false, Level.ADVANCED),
 
     // email settings
     EMAIL_SERVER_ADDRESS(
@@ -165,7 +153,7 @@ public enum PwmSetting {
     EMAIL_USERNAME(
             "email.smtp.username", Syntax.STRING, Category.EMAIL, false, Level.BASIC),
     EMAIL_PASSWORD(
-            "email.smtp.userpassword", Syntax.PASSWORD, Category.EMAIL, false, Level.BASIC),
+            "email.smtp.password", Syntax.STRING, Category.EMAIL, false, Level.BASIC),
     EMAIL_USER_MAIL_ATTRIBUTE(
             "email.userMailAttribute", Syntax.STRING, Category.EMAIL, true, Level.ADVANCED),
     EMAIL_MAX_QUEUE_AGE(
@@ -175,7 +163,7 @@ public enum PwmSetting {
     EMAIL_ADMIN_ALERT_FROM(
             "email.adminAlert.fromAddress", Syntax.STRING, Category.EMAIL, false, Level.BASIC),
     EMAIL_CHANGEPASSWORD_FROM(
-            "email.changePassword.from", Syntax.LOCALIZED_STRING, Category.EMAIL, false, Level.BASIC),
+            "email.changePassword.form", Syntax.LOCALIZED_STRING, Category.EMAIL, false, Level.BASIC),
     EMAIL_CHANGEPASSWORD_SUBJECT(
             "email.changePassword.subject", Syntax.LOCALIZED_STRING, Category.EMAIL, false, Level.BASIC),
     EMAIL_CHANGEPASSWORD_BODY(
@@ -324,8 +312,6 @@ public enum PwmSetting {
             "password.policy.minimumUnique", Syntax.NUMERIC, Category.PASSWORD_POLICY, true, Level.BASIC),
     PASSWORD_POLICY_MAXIMUM_OLD_PASSWORD_CHARS(
             "password.policy.maximumOldPasswordChars", Syntax.NUMERIC, Category.PASSWORD_POLICY, true, Level.BASIC),
-    PASSWORD_POLICY_CASE_SENSITIVITY(
-            "password.policy.caseSensitivity", Syntax.SELECT, Category.PASSWORD_POLICY, true, Level.BASIC),
     PASSWORD_POLICY_ENABLE_WORDLIST(
             "password.policy.checkWordlist", Syntax.BOOLEAN, Category.PASSWORD_POLICY, true, Level.BASIC),
     PASSWORD_POLICY_AD_COMPLEXITY(
@@ -346,47 +332,27 @@ public enum PwmSetting {
             "password.policy.minimumStrength", Syntax.NUMERIC, Category.PASSWORD_POLICY, true, Level.BASIC),
     PASSWORD_POLICY_CHANGE_MESSAGE(
             "password.policy.changeMessage", Syntax.LOCALIZED_TEXT_AREA, Category.PASSWORD_POLICY, false, Level.BASIC),
-    PASSWORD_POLICY_RULE_TEXT(
-            "password.policy.ruleText", Syntax.LOCALIZED_TEXT_AREA, Category.PASSWORD_POLICY, false, Level.ADVANCED),
-    PASSWORD_POLICY_SOURCE(
-            "password.policy.source", Syntax.SELECT, Category.PASSWORD_POLICY, true, Level.ADVANCED),
-    WORDLIST_FILENAME(
-            "pwm.wordlist.location", Syntax.STRING, Category.PASSWORD_POLICY, false, Level.BASIC),
-    WORDLIST_CASE_SENSITIVE(
-            "wordlistCaseSensitive", Syntax.BOOLEAN, Category.PASSWORD_POLICY, true, Level.BASIC),
 
 
-    // security settings
+    // intruder settings
     INTRUDER_USER_RESET_TIME(
-            "intruder.user.resetTime", Syntax.NUMERIC, Category.SECURITY, true, Level.BASIC),
+            "intruder.user.resetTime", Syntax.NUMERIC, Category.INTRUDER, true, Level.BASIC),
     INTRUDER_USER_MAX_ATTEMPTS(
-            "intruder.user.maxAttempts", Syntax.NUMERIC, Category.SECURITY, true, Level.BASIC ),
+            "intruder.user.maxAttempts", Syntax.NUMERIC, Category.INTRUDER, true, Level.BASIC ),
     INTRUDER_ADDRESS_RESET_TIME(
-            "intruder.address.resetTime", Syntax.NUMERIC, Category.SECURITY, true, Level.BASIC),
+            "intruder.address.resetTime", Syntax.NUMERIC, Category.INTRUDER, true, Level.BASIC),
     INTRUDER_ADDRESS_MAX_ATTEMPTS(
-            "intruder.address.maxAttempts", Syntax.NUMERIC, Category.SECURITY, true, Level.BASIC),
-    SECURITY_SIMULATE_LDAP_BAD_PASSWORD(
-            "security.ldap.simulateBadPassword", Syntax.BOOLEAN, Category.SECURITY, false, Level.BASIC),
+            "intruder.address.maxAttempts", Syntax.NUMERIC, Category.INTRUDER, true, Level.BASIC),
+
+    // captcha
     RECAPTCHA_KEY_PUBLIC(
-            "captcha.recaptcha.publicKey", Syntax.STRING, Category.SECURITY, false, Level.BASIC),
+            "captcha.recaptcha.publicKey", Syntax.STRING, Category.INTRUDER, false, Level.BASIC),
     RECAPTCHA_KEY_PRIVATE(
-            "captcha.recaptcha.privateKey", Syntax.PASSWORD, Category.SECURITY, false, Level.BASIC),
+            "captcha.recaptcha.privateKey", Syntax.PASSWORD, Category.INTRUDER, false, Level.BASIC),
     CAPTCHA_SKIP_PARAM(
-            "captcha.skip.param", Syntax.STRING, Category.SECURITY, false, Level.ADVANCED),
+            "captcha.skip.param", Syntax.STRING, Category.INTRUDER, false, Level.ADVANCED),
     CAPTCHA_SKIP_COOKIE(
-            "captcha.skip.cookie", Syntax.STRING, Category.SECURITY, false, Level.ADVANCED),
-    PAGE_LEAVE_WAIT_TIME(
-            "security.page.leave.waitTime", Syntax.NUMERIC, Category.SECURITY, false, Level.ADVANCED),
-    SECURITY_ENABLE_REQUEST_SEQUENCE(
-            "security.page.enableRequestSequence", Syntax.BOOLEAN, Category.SECURITY, true, Level.ADVANCED),
-    ALLOW_URL_SESSIONS(
-            "allowUrlSessions", Syntax.BOOLEAN, Category.SECURITY, true, Level.ADVANCED),
-    ENABLE_SESSION_VERIFICATION(
-            "enableSessionVerification", Syntax.BOOLEAN, Category.SECURITY, true, Level.ADVANCED),
-    DISALLOWED_HTTP_INPUTS(
-            "disallowedInputs", Syntax.STRING_ARRAY, Category.SECURITY, false, Level.ADVANCED),
-    REQUIRE_HTTPS(
-            "pwm.requireHTTPS", Syntax.BOOLEAN, Category.SECURITY, true, Level.BASIC),
+            "captcha.skip.cookie", Syntax.STRING, Category.INTRUDER, false, Level.ADVANCED),
 
 
     // logger settings
@@ -602,26 +568,32 @@ public enum PwmSetting {
             "helpdesk.displayAttributes", Syntax.STRING_ARRAY, Category.HELPDESK, false, Level.BASIC),
     HELPDESK_ENABLE_UNLOCK(
             "helpdesk.enableUnlock", Syntax.BOOLEAN, Category.HELPDESK, true, Level.BASIC),
-    HELPDESK_CONTEXT(
-            "helpdesk.context", Syntax.STRING, Category.HELPDESK, false, Level.BASIC),
 
     // misc
     USE_X_FORWARDED_FOR_HEADER(
             "useXForwardedForHeader", Syntax.BOOLEAN, Category.MISC, true, Level.ADVANCED),
+    ALLOW_URL_SESSIONS(
+            "allowUrlSessions", Syntax.BOOLEAN, Category.MISC, true, Level.ADVANCED),
+    ENABLE_SESSION_VERIFICATION(
+            "enableSessionVerification", Syntax.BOOLEAN, Category.MISC, true, Level.ADVANCED),
     FORCE_BASIC_AUTH(
             "forceBasicAuth", Syntax.BOOLEAN, Category.MISC, true, Level.ADVANCED),
     REVERSE_DNS_ENABLE(
-            "network.reverseDNS.enable", Syntax.BOOLEAN, Category.MISC, true, Level.BASIC),
+            "network.reverseDNS.enable", Syntax.BOOLEAN, Category.MISC, true, Level.ADVANCED),
     EXTERNAL_CHANGE_METHODS(
             "externalChangeMethod", Syntax.STRING_ARRAY, Category.MISC, false, Level.ADVANCED),
     EXTERNAL_JUDGE_METHODS(
             "externalJudgeMethod", Syntax.STRING_ARRAY, Category.MISC, false, Level.ADVANCED),
     EXTERNAL_RULE_METHODS(
             "externalRuleMethod", Syntax.STRING_ARRAY, Category.MISC, false, Level.ADVANCED),
+    DISALLOWED_HTTP_INPUTS(
+            "disallowedInputs", Syntax.STRING_ARRAY, Category.MISC, false, Level.ADVANCED),
+    WORDLIST_CASE_SENSITIVE(
+            "wordlistCaseSensitive", Syntax.BOOLEAN, Category.MISC, true, Level.BASIC),
     HTTP_PROXY_URL(
-            "http.proxy.url", Syntax.STRING, Category.MISC, false, Level.BASIC),
+            "http.proxy.url", Syntax.STRING, Category.MISC, false, Level.ADVANCED),
     HIDE_CONFIGURATION_HEALTH_WARNINGS(
-            "display.hideConfigHealthWarnings", Syntax.BOOLEAN, Category.MISC, false, Level.BASIC),
+            "display.hideConfigHealthWarnings", Syntax.BOOLEAN, Category.MISC, false, Level.ADVANCED),
     CAS_CLEAR_PASS_URL(
             "cas.clearPassUrl", Syntax.STRING, Category.MISC, false, Level.BASIC),
 
@@ -785,7 +757,7 @@ public enum PwmSetting {
         final String value = readProps("REGEX_" + this.getKey(), PwmConstants.DEFAULT_LOCALE);
 
         if (value == null || value.length() < 1 || Static.RESOURCE_MISSING.equals(value)) {
-            return Pattern.compile(".*",Pattern.DOTALL);
+            return Pattern.compile(".*");
         }
 
         return Pattern.compile(value);
@@ -803,7 +775,6 @@ public enum PwmSetting {
     public static enum Syntax {
         STRING,
         STRING_ARRAY,
-        TEXT_AREA,
         LOCALIZED_STRING,
         LOCALIZED_TEXT_AREA,
         LOCALIZED_STRING_ARRAY,
@@ -821,7 +792,7 @@ public enum PwmSetting {
         CHALLENGE(0),
         EMAIL(0),
         SMS(0),
-        SECURITY(0),
+        INTRUDER(0),
         LOGGING(0),
         RECOVERY(1),
         FORGOTTEN_USERNAME(1),

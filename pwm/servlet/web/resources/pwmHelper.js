@@ -20,6 +20,8 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
+var AJAX_TYPE_DELAY_MS = 100;
+
 var PWM_STRINGS = {};
 var PWM_GLOBAL = {};
 
@@ -77,7 +79,7 @@ function checkForCapsLock(e) {
 
 function handleFormSubmit(buttonID, form) {
     PWM_GLOBAL['idle_suspendTimeout'] = true;
-    getObject(buttonID).value = PWM_STRINGS['Display_PleaseWait'];
+    getObject(buttonID).value = "\u00A0\u00A0\u00A0" + PWM_STRINGS['Display_PleaseWait'] + "\u00A0\u00A0\u00A0";
     getObject(buttonID).disabled = true;
 
     var formElements = getObject(buttonID).form.elements;
@@ -173,10 +175,6 @@ function clearDigitWidget(widgetName) {
 }
 
 function startupLocaleSelectorMenu(localeData, attachNode) {
-    if (getObject(attachNode) == null) {
-        return;
-    }
-
     dojo.require("dijit.Menu");
     var pMenu = new dijit.Menu({
         targetNodeIds: [attachNode],
@@ -184,7 +182,6 @@ function startupLocaleSelectorMenu(localeData, attachNode) {
     });
     pMenu.startup();
 
-    dojo.require("dijit.MenuItem");
     var loopFunction = function(pMenu, localeKey, localeDisplayName, localeIconClass) {
         pMenu.addChild(new dijit.MenuItem({
             label: localeDisplayName,
@@ -242,18 +239,17 @@ function showPwmHealth(parentDivID, refreshNow) {
         }
     }, 1000);
 
-    var refreshUrl = PWM_GLOBAL['url-rest-public'] + "/pwm-health";
+    var refreshUrl = PWM_GLOBAL['url-command'] + "?processAction=getHealthCheckData";
     if (refreshNow) {
-        refreshUrl += "?refreshImmediate=true";
+        refreshUrl += "&refreshImmediate=true";
     }
 
     dojo.xhrGet({
         url: refreshUrl,
+        dataType: "json",
         handleAs: "json",
-        headers: { "Accept": "application/json" },
         timeout: 60 * 1000,
         load: function(data) {
-            PWM_GLOBAL['pwm-health'] = data['overall'];
             var healthRecords = data['data'];
             var htmlBody = '<table width="100%" style="width=100%; border=0">';
             for (var i = 0; i < healthRecords.length; i++) {
@@ -289,7 +285,6 @@ function showPwmHealth(parentDivID, refreshNow) {
             htmlBody += '</div>';
             parentDiv.innerHTML = htmlBody;
             PWM_GLOBAL['healthCheckInProgress'] = false;
-            PWM_GLOBAL['pwm-health'] = 'UNKNOWN';
             setTimeout(function() {
                 showPwmHealth(parentDivID, false);
             }, 10 * 1000);

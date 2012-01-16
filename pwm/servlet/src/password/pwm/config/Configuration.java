@@ -22,10 +22,9 @@
 
 package password.pwm.config;
 
-import com.novell.ldapchai.cr.ChaiChallenge;
-import com.novell.ldapchai.cr.ChaiChallengeSet;
 import com.novell.ldapchai.cr.Challenge;
 import com.novell.ldapchai.cr.ChallengeSet;
+import com.novell.ldapchai.cr.CrFactory;
 import com.novell.ldapchai.exception.ChaiValidationException;
 import com.novell.ldapchai.util.StringHelper;
 import password.pwm.PwmConstants;
@@ -177,7 +176,7 @@ public class Configuration implements Serializable {
         }
 
         try {
-            return new ChaiChallengeSet(challenges, minimumRands, locale, "pwm-defined " + PwmConstants.SERVLET_VERSION);
+            return CrFactory.newChallengeSet(challenges, locale, minimumRands, "pwm-defined " + PwmConstants.SERVLET_VERSION);
         } catch (ChaiValidationException e) {
             LOGGER.warn("invalid challenge set configuration: " + e.getMessage());
         }
@@ -217,7 +216,7 @@ public class Configuration implements Serializable {
             adminDefined = false;
         }
 
-        return new ChaiChallenge(required, inputString, minLength, maxLength, adminDefined);
+        return CrFactory.newChallenge(required, inputString, minLength, maxLength, adminDefined);
     }
 
     public long readSettingAsLong(final PwmSetting setting) {
@@ -252,11 +251,6 @@ public class Configuration implements Serializable {
                     passwordPolicySettings.put(rule.getKey(), value);
                 }
             }
-
-            if (!"read".equals(readSettingAsString(PwmSetting.PASSWORD_POLICY_CASE_SENSITIVITY))) {
-                passwordPolicySettings.put(PwmPasswordRule.CaseSensitive.getKey(),readSettingAsString(PwmSetting.PASSWORD_POLICY_CASE_SENSITIVITY));
-            }
-
             policy = PwmPasswordPolicy.createPwmPasswordPolicy(passwordPolicySettings);
             cachedPasswordPolicy.put(locale,policy);
         }

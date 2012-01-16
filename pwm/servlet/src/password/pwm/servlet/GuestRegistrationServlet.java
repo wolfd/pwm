@@ -42,7 +42,6 @@ import password.pwm.error.PwmError;
 import password.pwm.error.PwmOperationalException;
 import password.pwm.error.PwmUnrecoverableException;
 import password.pwm.util.*;
-import password.pwm.util.operations.PasswordUtility;
 import password.pwm.util.stats.Statistic;
 import password.pwm.wordlist.SeedlistManager;
 
@@ -213,8 +212,7 @@ public class GuestRegistrationServlet extends TopServlet {
             return;
         }
 
-        final EmailItemBean emailItem = new EmailItemBean(toAddress, fromAddress, subject, plainBody, htmlBody);
-        pwmApplication.sendEmailUsingQueue(emailItem, pwmSession.getUserInfoBean());
+        pwmApplication.sendEmailUsingQueue(new EmailItemBean(toAddress, fromAddress, subject, plainBody, htmlBody));
     }
 
     protected void handleSearchRequest(
@@ -380,7 +378,7 @@ public class GuestRegistrationServlet extends TopServlet {
                 notifyAttrs.put(expirationAttr,new SimpleDateFormat().format(expirationDate));
             }
 
-            final PwmPasswordPolicy passwordPolicy = PasswordUtility.readPasswordPolicyForUser(pwmApplication, pwmSession, theUser, locale);
+            final PwmPasswordPolicy passwordPolicy = PwmPasswordPolicy.createPwmPasswordPolicy(pwmSession, pwmApplication, locale, theUser);
             final SeedlistManager seedlistManager = pwmApplication.getSeedlistManager();
             final String newPassword = RandomPasswordGenerator.createRandomPassword(pwmSession, passwordPolicy, seedlistManager, pwmApplication);
             theUser.setPassword(newPassword);
@@ -479,8 +477,7 @@ public class GuestRegistrationServlet extends TopServlet {
             return;
         }
 
-        final EmailItemBean emailItem = new EmailItemBean(toAddress, fromAddress, subject, plainBody, htmlBody);
-        pwmApplication.sendEmailUsingQueue(emailItem, pwmSession.getUserInfoBean());
+        pwmApplication.sendEmailUsingQueue(new EmailItemBean(toAddress, fromAddress, subject, plainBody, htmlBody));
     }
 
     private void forwardToJSP(

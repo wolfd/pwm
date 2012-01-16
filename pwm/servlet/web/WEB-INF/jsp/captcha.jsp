@@ -64,16 +64,16 @@
                 <input type="hidden" name="processAction" value="doVerify"/>
                 <input type="submit" name="verify" class="btn"
                        id="verify_button"
-                       value="<pwm:Display key="Button_Verify"/>"/>
+                       value="    <pwm:Display key="Button_Verify"/>    "/>
                 <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_RESET_BUTTON)) { %>
                 <input type="reset" name="reset" class="btn"
-                       value="<pwm:Display key="Button_Reset"/>"/>
+                       value="    <pwm:Display key="Button_Reset"/>    "/>
                 <% } %>
                 <input type="hidden" name="pwmFormID" value="<pwm:FormID/>"/>
                 <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_CANCEL_BUTTON)) { %>
                 <button style="visibility:hidden;" name="button" class="btn" id="button_cancel"
                         onclick="window.location='<%=request.getContextPath()%>/public/<pwm:url url='CommandServlet'/>?processAction=continue';return false">
-                    <pwm:Display key="Button_Cancel"/>
+                    &nbsp;&nbsp;&nbsp;<pwm:Display key="Button_Cancel"/>&nbsp;&nbsp;&nbsp;
                 </button>
                 <script type="text/javascript">getObject('button_cancel').style.visibility = 'visible';</script>
                 <% } %>

@@ -173,10 +173,6 @@ public class ActivateUserServlet extends TopServlet {
         forwardToJSP(req, resp);
     }
 
-    private void issueToken(PwmApplication pwmApplication, PwmSession pwmSession) {
-
-    }
-
     public void activateUser(
             final PwmSession pwmSession,
             final PwmApplication pwmApplication,
@@ -368,8 +364,7 @@ public class ActivateUserServlet extends TopServlet {
             return;
         }
 
-        final EmailItemBean emailItem = new EmailItemBean(toAddress, fromAddress, subject, plainBody, htmlBody);
-        pwmApplication.sendEmailUsingQueue(emailItem, pwmSession.getUserInfoBean());
+        pwmApplication.sendEmailUsingQueue(new EmailItemBean(toAddress, fromAddress, subject, plainBody, htmlBody));
     }
 }
 

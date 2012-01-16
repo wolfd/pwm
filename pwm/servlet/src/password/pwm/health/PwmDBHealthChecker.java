@@ -23,8 +23,12 @@
 package password.pwm.health;
 
 import password.pwm.PwmApplication;
+import password.pwm.config.PwmSetting;
+import password.pwm.util.PwmDBLogger;
+import password.pwm.util.TimeDuration;
 import password.pwm.util.pwmdb.PwmDB;
 
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -51,6 +55,26 @@ public class PwmDBHealthChecker implements HealthChecker {
         if (PwmDB.Status.CLOSED == pwmDB.getStatus()) {
             healthRecords.add(new HealthRecord(HealthStatus.WARN, "PwmDB", "PwmDB is CLOSED, statistics, online logging, wordlists and other features are disabled.  Check logs to troubleshoot"));
             return healthRecords;
+        }
+
+        if (pwmApplication.getConfig() != null) {
+            final PwmDBLogger pwmDBLogger = pwmApplication.getPwmDBLogger();
+            if (pwmDBLogger != null) {
+                final int eventCount = pwmDBLogger.getStoredEventCount();
+                final int maxEventCount = (int) pwmApplication.getConfig().readSettingAsLong(PwmSetting.EVENTS_PWMDB_MAX_EVENTS);
+                if (eventCount > maxEventCount + 5000) {
+                    healthRecords.add(new HealthRecord(HealthStatus.WARN, "PwmDB", "PwmDB Logger contains " + NumberFormat.getInstance().format(eventCount) + " records, more than the configured maximum of " + NumberFormat.getInstance().format(maxEventCount)));
+                }
+
+                final long maxTailMs = pwmApplication.getConfig().readSettingAsLong(PwmSetting.EVENTS_PWMDB_MAX_AGE) * 1000L;
+                final long tailDate = pwmDBLogger.getTailTimestamp();
+                final long maxTailDate = System.currentTimeMillis() - maxTailMs;
+                if (tailDate < maxTailDate - (60 * 60 * 1000)) { // older than an hour past tail date
+                    healthRecords.add(new HealthRecord(HealthStatus.WARN, "PwmDB", "PwmDB Logger contains records older than the configured maximum of " + new TimeDuration(maxTailMs).asLongString()));
+                }
+            } else {
+                healthRecords.add(new HealthRecord(HealthStatus.WARN, "PwmDB", "PwmDB Logger is not running"));
+            }
         }
 
         if (healthRecords.isEmpty()) {

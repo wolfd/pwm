@@ -22,7 +22,6 @@
 
 package password.pwm;
 
-import password.pwm.config.PwmSetting;
 import password.pwm.error.PwmUnrecoverableException;
 import password.pwm.util.PwmLogger;
 import password.pwm.util.stats.Statistic;
@@ -69,10 +68,6 @@ public class EventManager implements ServletContextListener, HttpSessionListener
                     pwmApplication.getStatisticsManager().incrementValue(Statistic.HTTP_SESSIONS);
                 }
                 ContextManager.getContextManager(httpSessionEvent.getSession().getServletContext()).addPwmSession(pwmSession);
-
-                pwmSession.getSessionStateBean().setMaxInactiveSeconds((int)pwmApplication.getConfig().readSettingAsLong(PwmSetting.IDLE_TIMEOUT_SECONDS));
-            } else {
-                pwmSession.getSessionStateBean().setMaxInactiveSeconds(60 * 5);
             }
 
             LOGGER.trace(pwmSession, "http session created");
@@ -80,6 +75,10 @@ public class EventManager implements ServletContextListener, HttpSessionListener
             LOGGER.error("unable to establish pwm session: " + e.getMessage());
         }
 
+        // add a few grace seconds to the idle interval
+        if (httpSession.getMaxInactiveInterval() % 60 == 0) {
+            httpSession.setMaxInactiveInterval(httpSession.getMaxInactiveInterval() + 2);
+        }
     }
 
     public void sessionDestroyed(final HttpSessionEvent httpSessionEvent)

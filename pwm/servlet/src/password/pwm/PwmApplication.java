@@ -32,7 +32,6 @@ import org.apache.log4j.*;
 import org.apache.log4j.xml.DOMConfigurator;
 import password.pwm.bean.EmailItemBean;
 import password.pwm.bean.SmsItemBean;
-import password.pwm.bean.UserInfoBean;
 import password.pwm.config.Configuration;
 import password.pwm.config.PwmSetting;
 import password.pwm.config.StoredConfiguration;
@@ -76,6 +75,8 @@ public class PwmApplication {
     private String instanceID = DEFAULT_INSTANCE_ID;
     private final IntruderManager intruderManager = new IntruderManager(this);
     private final Configuration configuration;
+    private EmailQueueManager emailQueue;
+    private SmsQueueManager smsQueue;
     private UrlShortenerService urlShort;
 
     private HealthMonitor healthMonitor;
@@ -90,25 +91,23 @@ public class PwmApplication {
     private volatile ChaiProvider proxyChaiProvider;
     private volatile DatabaseAccessor databaseAccessor;
 
-    private final Map<Class,PwmService> pwmServices = new LinkedHashMap<Class, PwmService>();
-
     private final Date startupTime = new Date();
     private Date installTime = new Date();
     private ErrorInformation lastLdapFailure = null;
     private File pwmApplicationPath; //typically the WEB-INF servlet path
 
-    private MODE applicationMode;
+    private MODE configReaderMode;
 
 
 // -------------------------- STATIC METHODS --------------------------
 
     // --------------------------- CONSTRUCTORS ---------------------------
 
-    public PwmApplication(final Configuration config, final MODE applicationMode, final File pwmApplicationPath)
+    public PwmApplication(final Configuration config, final MODE configReaderMode, final File pwmApplicationPath)
             throws PwmDBException
     {
         this.configuration = config;
-        this.applicationMode = applicationMode;
+        this.configReaderMode = configReaderMode;
         this.pwmApplicationPath = pwmApplicationPath;
         initialize();
     }
@@ -146,12 +145,11 @@ public class PwmApplication {
 
     public Set<PwmService> getPwmServices() {
         final Set<PwmService> pwmServices = new HashSet<PwmService>();
+        pwmServices.add(this.emailQueue);
+        pwmServices.add(this.smsQueue);
         pwmServices.add(this.wordlistManager);
-        pwmServices.add(this.seedlistManager);
         pwmServices.add(this.databaseAccessor);
         pwmServices.add(this.urlShort);
-        pwmServices.add(this.pwmDBLogger);
-        pwmServices.addAll(this.pwmServices.values());
         pwmServices.remove(null);
         return Collections.unmodifiableSet(pwmServices);
     }
@@ -186,11 +184,11 @@ public class PwmApplication {
     }
 
     public EmailQueueManager getEmailQueue() {
-        return (EmailQueueManager)pwmServices.get(EmailQueueManager.class);
+        return emailQueue;
     }
 
     public SmsQueueManager getSmsQueue() {
-        return (SmsQueueManager)pwmServices.get(SmsQueueManager.class);
+        return smsQueue;
     }
 
     public UrlShortenerService getUrlShortener() {
@@ -199,10 +197,6 @@ public class PwmApplication {
 
     public ErrorInformation getLastLdapFailure() {
         return lastLdapFailure;
-    }
-
-    public VersionChecker getPwmCloudClient() {
-        return (VersionChecker)pwmServices.get(VersionChecker.class);
     }
 
     public void setLastLdapFailure(final ErrorInformation errorInformation) {
@@ -236,8 +230,8 @@ public class PwmApplication {
         return configuration;
     }
 
-    public MODE getApplicationMode() {
-        return applicationMode;
+    public MODE getConfigMode() {
+        return configReaderMode;
     }
 
     public ChaiUser getProxyChaiUserActor(final PwmSession pwmSession)
@@ -275,7 +269,7 @@ public class PwmApplication {
             final String log4jFileName = configuration.readSettingAsString(PwmSetting.EVENTS_JAVA_LOG4JCONFIG_FILE);
             final File log4jFile = Helper.figureFilepath(log4jFileName,pwmApplicationPath);
             final String logLevel;
-            switch (getApplicationMode()) {
+            switch (getConfigMode()) {
                 case RUNNING:
                     logLevel = configuration.readSettingAsString(PwmSetting.EVENTS_JAVA_STDOUT_LEVEL);
                     break;
@@ -318,10 +312,10 @@ public class PwmApplication {
         LOGGER.info(logEnvironment());
         LOGGER.info(logDebugInfo());
 
-        pwmServices.put(EmailQueueManager.class, new EmailQueueManager(this));
+        emailQueue = new EmailQueueManager(this);
         LOGGER.trace("email queue manager started");
 
-        pwmServices.put(SmsQueueManager.class, new SmsQueueManager(this));
+        smsQueue = new SmsQueueManager(this);
         LOGGER.trace("sms queue manager started");
 
         urlShort = new UrlShortenerService(this);
@@ -329,14 +323,6 @@ public class PwmApplication {
 
         taskMaster = new Timer("pwm-PwmApplication timer", true);
         taskMaster.schedule(new IntruderManager.CleanerTask(intruderManager), 90 * 1000, 90 * 1000);
-
-        {
-            VersionChecker versionChecker = new VersionChecker(this);
-            pwmServices.put(VersionChecker.class, versionChecker);
-            if (!versionChecker.isVersionCurrent()) {
-                LOGGER.warn("this version of PWM is outdated, please check the project website for the current version");
-            }
-        }
 
         final TimeDuration totalTime = new TimeDuration(System.currentTimeMillis() - startTime);
         LOGGER.info("PWM " + PwmConstants.SERVLET_VERSION + " open for bidness! (" + totalTime.asCompactString() + ")");
@@ -359,7 +345,15 @@ public class PwmApplication {
 
         AlertHandler.alertStartup(this);
 
-        // startup the token manager;
+        if (getConfigMode() != MODE.RUNNING) {
+            final Thread t = new Thread(new Runnable(){
+                public void run() {getHealthMonitor().getHealthRecords(true);}
+            },"pwm-Startup-Healthchecker");
+            t.setDaemon(true);
+            t.start();
+        }
+
+        // startup the stats engine;
         PwmInitializer.initializeTokenManager(this);
     }
 
@@ -457,30 +451,20 @@ public class PwmApplication {
         return statisticsManager;
     }
 
-    public void sendEmailUsingQueue(final EmailItemBean emailItem, final UserInfoBean uiBean) {
-        final EmailQueueManager emailQueue = this.getEmailQueue();
+    public void sendEmailUsingQueue(final EmailItemBean emailItem) {
         if (emailQueue == null) {
             LOGGER.error("email queue is unavailable, unable to send email: " + emailItem.toString());
             return;
         }
 
-        final EmailItemBean rewrittenEmailItem = new EmailItemBean(
-                emailItem.getTo(),
-                emailItem.getFrom(),
-                emailItem.getSubject(),
-                PwmMacroMachine.expandMacros(emailItem.getBodyPlain(), this, uiBean),
-                PwmMacroMachine.expandMacros(emailItem.getBodyHtml(), this, uiBean)
-        );
-
         try {
-            emailQueue.addMailToQueue(rewrittenEmailItem);
+            emailQueue.addMailToQueue(emailItem);
         } catch (PwmUnrecoverableException e) {
             LOGGER.warn("unable to add email to queue: " + e.getMessage());
         }
     }
 
     public void sendSmsUsingQueue(final SmsItemBean smsItem) {
-        final SmsQueueManager smsQueue = getSmsQueue();
         if (smsQueue == null) {
             LOGGER.error("SMS queue is unavailable, unable to send SMS: " + smsItem.toString());
             return;
@@ -551,12 +535,22 @@ public class PwmApplication {
             tokenManager = null;
         }
 
-        for (final PwmService loopService : pwmServices.values()) {
+        if (emailQueue != null) {
             try {
-                loopService.close();
+                emailQueue.close();
             } catch (Exception e) {
-                LOGGER.error("error closing " + loopService.getClass().getSimpleName() + ": " + e.getMessage(),e);
+                LOGGER.error("error closing emailQueue: " + e.getMessage(),e);
             }
+            emailQueue = null;
+        }
+
+        if (smsQueue != null) {
+            try {
+                smsQueue.close();
+            } catch (Exception e) {
+                LOGGER.error("error closing smsQueue: " + e.getMessage(),e);
+            }
+            smsQueue = null;
         }
 
         if (databaseAccessor != null) {
@@ -685,12 +679,6 @@ public class PwmApplication {
         }
 
         public static void initializePwmDB(final PwmApplication pwmApplication) {
-            if (pwmApplication.getApplicationMode() == MODE.ERROR || pwmApplication.getApplicationMode() == MODE.NEW) {
-                LOGGER.warn("skipping pwmDB open due to application mode " + pwmApplication.getApplicationMode());
-                return;
-            }
-
-
             final File databaseDirectory;
             // see if META-INF isn't already there, then use WEB-INF.
             try {
@@ -708,7 +696,7 @@ public class PwmApplication {
                 final String classname = pwmApplication.getConfig().readSettingAsString(PwmSetting.PWMDB_IMPLEMENTATION);
                 final List<String> initStrings = pwmApplication.getConfig().readSettingAsStringArray(PwmSetting.PWMDB_INIT_STRING);
                 final Map<String, String> initParamers = Configuration.convertStringListToNameValuePair(initStrings, "=");
-                final boolean readOnly = pwmApplication.getApplicationMode() == MODE.READ_ONLY;
+                final boolean readOnly = pwmApplication.getConfigMode() == MODE.READ_ONLY;
                 pwmApplication.pwmDB = PwmDBFactory.getInstance(databaseDirectory, classname, initParamers, readOnly);
             } catch (Exception e) {
                 LOGGER.warn("unable to initialize pwmDB: " + e.getMessage());
@@ -716,7 +704,7 @@ public class PwmApplication {
         }
 
         public static void initializePwmDBLogger(final PwmApplication pwmApplication) {
-            if (pwmApplication.getApplicationMode() == MODE.READ_ONLY) {
+            if (pwmApplication.getConfigMode() == MODE.READ_ONLY) {
                 LOGGER.trace("skipping pwmDBLogger due to read-only mode");
                 return;
             }

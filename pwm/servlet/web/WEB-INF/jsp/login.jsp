@@ -1,4 +1,4 @@
-<%@ page import="java.net.URLEncoder" %>
+<%@ page import="password.pwm.config.Configuration" %>
 <%--
 ~ Password Management Servlets (PWM)
 ~ http://code.google.com/p/pwm/
@@ -59,18 +59,18 @@
             <div id="buttonbar">
                 <input type="submit" class="btn"
                        name="button"
-                       value="<pwm:Display key="Button_Login"/>"
+                       value="    <pwm:Display key="Button_Login"/>    "
                        id="submitBtn"/>
                 <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_RESET_BUTTON)) { %>
                 <input type="reset" class="btn"
                        name="reset"
-                       value="<pwm:Display key="Button_Reset"/>"/>
+                       value="    <pwm:Display key="Button_Reset"/>    "/>
                 <% } %>
                 <input type="hidden" name="processAction" value="login">
                 <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_CANCEL_BUTTON)) { %>
                 <button style="visibility:hidden;" name="button" class="btn" id="button_cancel"
                         onclick="window.location='<%=request.getContextPath()%>/public/<pwm:url url='CommandServlet'/>?processAction=continue';return false">
-                    <pwm:Display key="Button_Cancel"/>
+                    &nbsp;&nbsp;&nbsp;<pwm:Display key="Button_Cancel"/>&nbsp;&nbsp;&nbsp;
                 </button>
                 <script type="text/javascript">getObject('button_cancel').style.visibility = 'visible';</script>
                 <% } %>

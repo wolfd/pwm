@@ -28,7 +28,6 @@ import password.pwm.util.Helper;
 import password.pwm.util.PwmLogger;
 
 import java.io.Serializable;
-import java.math.BigInteger;
 import java.util.StringTokenizer;
 
 /**
@@ -225,13 +224,11 @@ public class FormConfiguration implements Serializable {
 
         switch (type) {
             case NUMBER:
-                if (value != null && value.length() > 0) {
-                    try {
-                        new BigInteger(value);
-                    } catch (NumberFormatException e) {
-                        final ErrorInformation error = new ErrorInformation(PwmError.ERROR_FIELD_NOT_A_NUMBER, null, this.label);
-                        throw new PwmDataValidationException(error);
-                    }
+                try {
+                    Integer.parseInt(value);
+                } catch (NumberFormatException e) {
+                    final ErrorInformation error = new ErrorInformation(PwmError.ERROR_FIELD_NOT_A_NUMBER, null, this.label);
+                    throw new PwmDataValidationException(error);
                 }
                 break;
 

@@ -27,7 +27,9 @@ import password.pwm.ContextManager;
 import password.pwm.PwmApplication;
 import password.pwm.PwmPasswordPolicy;
 import password.pwm.PwmSession;
-import password.pwm.config.*;
+import password.pwm.config.Configuration;
+import password.pwm.config.Message;
+import password.pwm.config.PwmPasswordRule;
 import password.pwm.util.PwmLogger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -197,19 +199,20 @@ public class PasswordRequirementsTag extends TagSupport {
         value = ruleHelper.readIntValue(PwmPasswordRule.MinimumLifetime);
         if (value > 0) {
             final int SECONDS_PER_DAY = 60 * 60 * 24;
+            String userMsg = getLocalString(Message.REQUIREMENT_MINIMUMFREQUENCY, 0, locale, config);
 
             final String durationStr;
             if (value % SECONDS_PER_DAY == 0) {
                 final int valueAsDays = value / (60 * 60 * 24);
                 final String key = valueAsDays <= 1 ? "Display_Day" : "Display_Days";
-                durationStr = valueAsDays + " " + Display.getLocalizedMessage(locale, key, config);
+                durationStr = valueAsDays + " " + Message.getLocalizedMessage(locale, Message.forResourceKey(key), config);
             } else {
                 final int valueAsHours = value / (60 * 60);
                 final String key = valueAsHours <= 1 ? "Display_Hour" : "Display_Hours";
-                durationStr = valueAsHours + " " + Display.getLocalizedMessage(locale, key, config);
+                durationStr = valueAsHours + " " + Message.getLocalizedMessage(locale, Message.forResourceKey(key), config);
             }
 
-            final String userMsg = Message.getLocalizedMessage(locale, Message.REQUIREMENT_MINIMUMFREQUENCY, config, durationStr);
+            userMsg = userMsg.replace(Message.FIELD_REPLACE_VALUE, durationStr);
             returnValues.add(userMsg);
         }
 
@@ -290,31 +293,24 @@ public class PasswordRequirementsTag extends TagSupport {
             final PwmSession pwmSession = PwmSession.getPwmSession(req);
             final PwmApplication pwmApplication = ContextManager.getPwmApplication(req);
             final Configuration config = pwmApplication.getConfig();
-
-            final String configuredRuleText = config.readSettingAsLocalizedString(PwmSetting.PASSWORD_POLICY_RULE_TEXT, pwmSession.getSessionStateBean().getLocale());
-
-            if (configuredRuleText != null && configuredRuleText.length() > 0) {
-                pageContext.getOut().write(configuredRuleText);
+            final PwmPasswordPolicy passwordPolicy;
+            if (getForm() != null && getForm().equalsIgnoreCase("newuser")) {
+                passwordPolicy = pwmSession.getNewUserBean().getPasswordPolicy();
             } else {
-                final PwmPasswordPolicy passwordPolicy;
-                if (getForm() != null && getForm().equalsIgnoreCase("newuser")) {
-                    passwordPolicy = pwmSession.getNewUserBean().getPasswordPolicy();
-                } else {
-                    passwordPolicy = pwmSession.getUserInfoBean().getPasswordPolicy();
-                }
-                final String pre = prepend != null && prepend.length() > 0 ? prepend : "";
-                final String sep = separator != null && separator.length() > 0 ? separator : "<br/>";
-                final List<String> requirementsList = getPasswordRequirementsStrings(passwordPolicy, config, pwmSession.getSessionStateBean().getLocale());
-
-                final StringBuilder requirementsText = new StringBuilder();
-                for (final String requirementStatement : requirementsList) {
-                    requirementsText.append(pre);
-                    requirementsText.append(requirementStatement);
-                    requirementsText.append(sep);
-                }
-
-                pageContext.getOut().write(requirementsText.toString());
+                passwordPolicy = pwmSession.getUserInfoBean().getPasswordPolicy();
             }
+            final String pre = prepend != null && prepend.length() > 0 ? prepend : "";
+            final String sep = separator != null && separator.length() > 0 ? separator : "<br/>";
+            final List<String> requirementsList = getPasswordRequirementsStrings(passwordPolicy, config, pwmSession.getSessionStateBean().getLocale());
+
+            final StringBuilder requirementsText = new StringBuilder();
+            for (final String requirementStatement : requirementsList) {
+                requirementsText.append(pre);
+                requirementsText.append(requirementStatement);
+                requirementsText.append(sep);
+            }
+
+            pageContext.getOut().write(requirementsText.toString());
         } catch (Exception e) {
             LOGGER.error("unexpected error during password requirements generation: " + e.getMessage(), e);
             throw new JspTagException(e.getMessage());

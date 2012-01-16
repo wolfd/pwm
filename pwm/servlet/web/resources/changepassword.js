@@ -33,9 +33,12 @@ var COLOR_BAR_BOTTOM    = 0xcc0e3e;
 var validationCache = { };
 var validationInProgress = false;
 
+var fetchList = new Array();
+var outstandingFetches = 0;
+
 // takes password values in the password fields, sends an http request to the servlet
 // and then parses (and displays) the response from the servlet.
-function validatePasswords(userDN)
+function validatePasswords()
 {
     if (getObject("password1").value.length <= 0 && getObject("password2").value.length <= 0) {
         updateDisplay(null);
@@ -51,22 +54,23 @@ function validatePasswords(userDN)
         return;
     }
 
-    var passwordData = makeValidationKey(userDN);
+    var passwordData = makeValidationKey();
     {
-        var cachedResult = validationCache[passwordData.passwordCacheKey];
+        var cachedResult = validationCache[passwordData.cacheKey];
         if (cachedResult != null) {
             updateDisplay(cachedResult);
             return;
         }
     }
 
-    setTimeout(function(){ if (validationInProgress) { showInfo(PWM_STRINGS['Display_CheckingPassword']); } },1000);
+    setTimeout(function(){ if (validationInProgress) { showInfo(PWM_STRINGS['Display_CheckingPassword']); } },500);
 
     validationInProgress = true;
     dojo.xhrPost({
-        url: PWM_GLOBAL['url-rest-private'] + "/checkpassword",
-        content: passwordData,
-        headers: {"Accept":"application/json"},
+        url: PWM_STRINGS['url-changepassword'] + "?processAction=validate&pwmFormID=" + PWM_GLOBAL['pwmFormID'],
+        postData: dojo.toJson(passwordData),
+        contentType: "application/json;charset=utf-8",
+        dataType: "json",
         handleAs: "json",
         timeout: 15000,
         error: function(errorObj) {
@@ -78,8 +82,8 @@ function validatePasswords(userDN)
         },
         load: function(data){
             validationInProgress = false;
-            validationCache[passwordData.passwordCacheKey] = data;
-            if (passwordData.passwordCacheKey != makeValidationKey().passwordCacheKey) {
+            validationCache[passwordData.cacheKey] = data;
+            if (passwordData.cacheKey != makeValidationKey().cacheKey) {
                 setTimeout(function() {validatePasswords();}, 1);
             } else {
                 updateDisplay(data);
@@ -88,17 +92,16 @@ function validatePasswords(userDN)
     });
 }
 
-function makeValidationKey(userDN) {
+function makeValidationKey() {
     var validationKey = {
         password1:getObject("password1").value,
         password2:getObject("password2").value,
-        userDN: userDN,
-        passwordCacheKey: getObject("password1").value + getObject("password2").value
+        cacheKey: getObject("password1").value + getObject("password2").value
     };
 
     if (getObject("currentPassword") != null) {
         validationKey.currentPassword = getObject("currentPassword").value;
-        validationKey.passwordCacheKey = getObject("password1").value + getObject("password2").value + getObject("currentPassword").value;
+        validationKey.cacheKey = getObject("password1").value + getObject("password2").value + getObject("currentPassword").value;
     }
 
     return validationKey;
@@ -133,17 +136,8 @@ function updateDisplay(resultInfo) {
         showError(message);
     }
 
-    try {
-        markConfirmationCheck(resultInfo["match"]);
-    } catch (e) {
-        console.log('error updating confirmation check icons: ' + e)
-    }
-
-    try {
-        markStrength(resultInfo["strength"]);
-    } catch (e) {
-        console.log('error updating strength icon: ' + e)
-    }
+    markConfirmationCheck(resultInfo["match"]);
+    markStrength(resultInfo["strength"]);
 }
 
 function markConfirmationCheck(matchStatus) {
@@ -280,11 +274,11 @@ function closeRandomPasswordsDialog() {
 function toggleMaskPasswords()
 {
     if (passwordsMasked) {
-        getObject("hide_button").value = PWM_STRINGS['Button_Hide'];
+        getObject("hide_button").value = "\u00A0\u00A0\u00A0" + PWM_STRINGS['Button_Hide'] + "\u00A0\u00A0\u00A0";
         changeInputTypeField(getObject("password1"),"text");
         changeInputTypeField(getObject("password2"),"text");
     } else {
-        getObject("hide_button").value = PWM_STRINGS['Button_Show'];
+        getObject("hide_button").value = "\u00A0\u00A0\u00A0" + PWM_STRINGS['Button_Show'] + "\u00A0\u00A0\u00A0";
         changeInputTypeField(getObject("password1"),"password");
         changeInputTypeField(getObject("password2"),"password");
     }
@@ -324,7 +318,8 @@ function beginFetchRandoms() {
         try { getObject("randomgen-player").play(); } catch (e){}
     }
     getObject('moreRandomsButton').disabled = true;
-    var fetchList = new Array();
+    outstandingFetches = 0;
+    fetchList = new Array();
     for (var counter = 0; counter < 20; counter++) {
         fetchList[counter] = 'randomGen' + counter;
         var name ='randomGen' + counter;
@@ -336,10 +331,10 @@ function beginFetchRandoms() {
     fetchList.sort(function() {return 0.5 - Math.random()});
     fetchList.sort(function() {return 0.5 - Math.random()});
 
-    fetchRandoms(fetchList);
+    fetchRandoms();
 }
 
-function fetchRandoms(fetchList) {
+function fetchRandoms() {
     if (fetchList.length < 1) {
         var moreButton = getObject('moreRandomsButton');
         if (moreButton != null) {
@@ -349,34 +344,46 @@ function fetchRandoms(fetchList) {
         return;
     }
 
-    if (fetchList.length > 0) {
-        var successFunction = function(resultInfo) {
-            if (resultInfo["version"] != "1") {
-                showError("[ unexpected randomgen version string from server ]");
-                return;
-            }
+    if (outstandingFetches > 3) {
+        setTimeout(function(){fetchRandoms();},100);
+    } else {
+        var name = fetchList.splice(0,1);
+        outstandingFetches++;
+        fetchRandom(function(results) {
+                handleRandomResponse(results, name);
+                outstandingFetches--;
+            },
+            function(errorObj) {outstandingFetches--;}
+        );
+        setTimeout(function(){fetchRandoms();},100);
+    }
+}
 
-            var password = resultInfo["password"];
-            var elementID = fetchList.pop();
-            var element = getObject(elementID);
-            if (element != null) {
-                element.firstChild.nodeValue = password;
-            }
-            fetchRandoms(fetchList);
-        };
+function fetchRandom(successFunction, errorFunction) {
+    dojo.xhrGet({
+        url: "ChangePassword?processAction=getrandom&pwmFormID=" + PWM_GLOBAL['pwmFormID'],
+        contentType: "application/json;charset=utf-8",
+        dataType: "json",
+        timeout: 15000,
+        sync: false,
+        handleAs: "json",
+        load: successFunction,
+        error: errorFunction
+    });
+}
 
-        dojo.xhrGet({
-            url: PWM_GLOBAL['url-rest-private'] + "/randompassword",
-            headers: {"Accept":"application/json"},
-            dataType: "json",
-            timeout: 15000,
-            sync: false,
-            handleAs: "json",
-            load: successFunction,
-            error: function(errorObj){
-                showError("unexpected randomgen version string from server: " + errorObj);
-            }
-        });
+function handleRandomResponse(resultInfo, elementID)
+{
+    if (resultInfo["version"] != "1") {
+        showError("[ unexpected randomgen version string from server ]");
+        return;
+    }
+
+    var password = resultInfo["password"];
+
+    var element = getObject(elementID);
+    if (element != null) {
+        element.firstChild.nodeValue = password;
     }
 }
 

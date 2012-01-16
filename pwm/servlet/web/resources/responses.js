@@ -121,9 +121,9 @@ function toggleHideResponses()
     }
 
     if (responsesHidden) {
-        getObject("hide_responses_button").value = PWM_STRINGS['Button_Hide_Responses'];
+        getObject("hide_responses_button").value = "\u00A0\u00A0\u00A0" + PWM_STRINGS['Button_Hide_Responses'] + "\u00A0\u00A0\u00A0";
     } else {
-        getObject("hide_responses_button").value = PWM_STRINGS['Button_Show_Responses'];
+        getObject("hide_responses_button").value = "\u00A0\u00A0\u00A0" + PWM_STRINGS['Button_Show_Responses'] + "\u00A0\u00A0\u00A0";
     }
 
     responsesHidden = !responsesHidden;

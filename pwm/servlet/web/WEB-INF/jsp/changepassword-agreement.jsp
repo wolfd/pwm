@@ -48,10 +48,7 @@
     <div id="centerbody">
         <%@ include file="fragment/message.jsp" %>
 
-        <span>
-            <% final String agreementText = ContextManager.getPwmApplication(session).getConfig().readSettingAsLocalizedString(PwmSetting.PASSWORD_CHANGE_AGREEMENT_MESSAGE, PwmSession.getPwmSession(session).getSessionStateBean().getLocale()); %>
-            <%= PwmMacroMachine.expandMacros(agreementText,ContextManager.getPwmApplication(session),PwmSession.getPwmSession(session).getUserInfoBean()) %>
-        </span>
+        <span><%=ContextManager.getPwmApplication(session).getConfig().readSettingAsLocalizedString(PwmSetting.PASSWORD_CHANGE_AGREEMENT_MESSAGE, PwmSession.getPwmSession(session).getSessionStateBean().getLocale())%></span>
 
         <div id="buttonbar">
             <form action="<pwm:url url='ChangePassword'/>" method="post"
@@ -64,7 +61,7 @@
                        name="processAction"
                        value="agree"/>
                 <input type="submit" name="button" class="btn"
-                       value="<pwm:Display key="Button_Continue"/>"
+                       value="    <pwm:Display key="Button_Continue"/>    "
                        id="button_continue"/>
                 <input type="hidden" name="pwmFormID" id="pwmFormID" value="<pwm:FormID/>"/>
             </form>
@@ -73,7 +70,7 @@
             <form action="<%=request.getContextPath()%>/public/<pwm:url url='Logout'/>" method="post"
                   enctype="application/x-www-form-urlencoded">
                 <input type="submit" name="button" class="btn"
-                       value="<pwm:Display key="Button_Logout"/>"
+                       value="    <pwm:Display key="Button_Logout"/>    "
                        id="button_logout"/>
             </form>
         </div>

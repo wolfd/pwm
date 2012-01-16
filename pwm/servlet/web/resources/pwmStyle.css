@@ -35,7 +35,7 @@ a {
 }
 
 p {
-    max-width: 100%;
+    max-width: 600px;
     color: #2D2D2D;
     position: relative;
     margin-left: auto;
@@ -44,7 +44,7 @@ p {
 
 hr {
     float: none;
-    width: 100%;
+    width: 100px;
     position: relative;
     margin-left: 5px;
     margin-top: 30px;
@@ -65,7 +65,7 @@ h3 {
 
 select {
     font-family: Trebuchet MS, sans-serif;
-    width: 80%
+    width: 500px
 }
 
 #form {
@@ -99,47 +99,32 @@ table td.key {
     text-align: right;
     font-weight: bold;
     padding-right: 10px;
-    width: 40%;
+    width: 200px;
 }
 
-.health-GOOD {
+table td.health-GOOD {
+    width: 1px;
     white-space:nowrap;
     background-color: #8ced3f;
-    text-align: center;
+    filter: none;
+    opacity: 100;
 }
 
-.health-CAUTION {
+table td.health-CAUTION {
+    width: 1px;
     white-space:nowrap;
     background-color: #ffcd59;
-    text-align: center;
 }
-
-.health-CONFIG {
-    white-space:nowrap;
-    background-color: #ecd5d5;
-    text-align: center;
-}
-
-.health-WARN {
+table td.health-WARN {
+    width: 1px;
     white-space:nowrap;
     background-color: #d20734;
-    text-align: center;
-}
-
-.health-UNKNOWN {
-    white-space:nowrap;
-    background-color: red;
-    text-align: center;
 }
 
 .inputfield {
-    width: 60%;
+    width: 400px;
     margin: 5px;
-    height: 18px;
-}
-
-.changepasswordfield {
-    width: 90%;
+    height: 18px
 }
 
 /* main body wrapper, all elements (except footer) should be within wrapper */
@@ -167,18 +152,18 @@ table td.key {
 /* all forms use a buttonbar div containing the action buttons */
 #buttonbar {
     margin-top: 30px;
-    width: 100%;
+    width: 600px;
     margin-bottom: 15px;
     text-align: center
 }
 
-.btn {
+#buttonbar .btn {
     font-family: Trebuchet MS, sans-serif;
-    padding: 3px;
-    padding-right: 15px;
-    padding-left: 15px;
-    margin-right: 7px;
-    margin-left: 7px;
+    margin-left: 5px;
+    margin-right: 5px;
+    padding: 0 .25em;
+    width: auto;
+    overflow: visible
 }
 
 /* used for password complexity meter */
@@ -201,9 +186,7 @@ div.progress-container > div {
     width: 100%;
     height: 70px;
     margin: 0;
-    background-image: url('header-gradient.gif');
-    z-index: 5;
-    position: relative;
+    background-image: url('header-gradient.gif')
 }
 
 #header-page {
@@ -301,3 +284,45 @@ div.progress-container > div {
     margin-top: 0;
     clear: both;
 }
+
+/*
+ * Flags for language selector
+ */
+
+.flagLang_cs {
+    background-image: url(flags/languages/cs.png);
+}
+.flagLang_de {
+    background-image: url(flags/languages/de.png);
+}
+.flagLang_en {
+    background-image: url(flags/languages/en.png);
+}
+.flagLang_es {
+    background-image: url(flags/languages/es.png);
+}
+.flagLang_fr {
+    background-image: url(flags/languages/fr.png);
+}
+.flagLang_it {
+    background-image: url(flags/languages/it.png);
+}
+.flagLang_iw {
+    background-image: url(flags/languages/iw.png);
+}
+.flagLang_nl {
+    background-image: url(flags/languages/nl.png);
+}
+.flagLang_pl {
+    background-image: url(flags/languages/pl.png);
+}
+.flagLang_pt {
+    background-image: url(flags/languages/pt.png);
+}
+.flagLang_sk {
+    background-image: url(flags/languages/sk.png);
+}
+.flagLang_tr {
+    background-image: url(flags/languages/tr.png);
+}
+

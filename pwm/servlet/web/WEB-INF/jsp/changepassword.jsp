@@ -1,3 +1,4 @@
+<%@ page import="password.pwm.config.Configuration" %>
 <%@ page import="password.pwm.config.PasswordStatus" %>
 <%@ page import="password.pwm.config.PwmSetting" %>
 <%--
@@ -63,48 +64,45 @@
         <br/>
         <%@ include file="fragment/message.jsp" %>
         <form action="<pwm:url url='ChangePassword'/>" method="post" enctype="application/x-www-form-urlencoded"
-              onkeyup="validatePasswords(null);" onkeypress="checkForCapsLock(event);"
+              onkeyup="validatePasswords();" onkeypress="checkForCapsLock(event);"
               onsubmit="handleChangePasswordSubmit(); handleFormSubmit('password_button',this);return false"
-              onreset="handleFormClear();validatePasswords(null);setInputFocus();return false;" name="changePasswordForm"
+              onreset="handleFormClear();validatePasswords();setInputFocus();return false;" name="changePasswordForm"
               id="changePasswordForm">
             <table style="border:0">
                 <% if (PwmSession.getPwmSession(session).getChangePasswordBean().isCurrentPasswordRequired()) { %>
                 <tr>
-                    <td style="border:0; width:75%">
+                    <td style="border:0;" width="5%">
                         <h2><label for="currentPassword"><pwm:Display key="Field_CurrentPassword"/></label></h2>
-                        <input type="password" name="currentPassword" id="currentPassword" class="changepasswordfield"/>
+                        <input type="password" name="currentPassword" id="currentPassword" class="inputfield"/>
                     </td>
-                    <td style="border:0; width:15%">
+                    <td style="border:0;" width="95%">
                         &nbsp;
                     </td>
-                    <td style="border:0; width:10%">&nbsp;</td>
                 </tr>
                 <% } %>
                 <tr>
-                    <td style="border:0; width:75%">
+                    <td style="border:0;" width="5%">
                         <h2><label for="password1"><pwm:Display key="Field_NewPassword"/></label></h2>
-                        <input type="password" name="password1" id="password1" class="changepasswordfield"/>
+                        <input type="password" name="password1" id="password1" class="inputfield"/>
                     </td>
-                    <td style="border:1px; width:15%">
+                    <td style="border:0;" width="95%">
                         <% if (ContextManager.getPwmApplication(session).getConfig() != null && ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(PwmSetting.PASSWORD_SHOW_STRENGTH_METER)) { %>
                         <div id="strengthBox" style="visibility:hidden;">
-                            <div id="strengthLabel" style="padding-top:40px;">
-                                <pwm:Display key="Display_StrengthMeter"/>
-                            </div>
+                            <div id="strengthLabel" style="padding-top:40px;"><pwm:Display
+                                    key="Display_StrengthMeter"/></div>
                             <div class="progress-container" style="margin-bottom:10px">
                                 <div id="strengthBar" style="width: 0">&nbsp;</div>
                             </div>
                         </div>
                         <% } %>
                     </td>
-                    <td style="border:0; width:10%">&nbsp;</td>
                 </tr>
                 <tr>
-                    <td style="border:1px; width:75%">
+                    <td style="border:0;">
                         <h2><label for="password2"><pwm:Display key="Field_ConfirmPassword"/></label></h2>
-                        <input type="password" name="password2" id="password2" class="changepasswordfield"/>
+                        <input type="password" name="password2" id="password2" class="inputfield"/>
                     </td>
-                    <td style="border:0; width:15%">
+                    <td style="border:0;">
                         <%-- confirmation mark [not shown initially, enabled by javascript; see also changepassword.js:markConfirmationMark() --%>
                         <div style="padding-top:45px;">
                             <img style="visibility:hidden;" id="confirmCheckMark" alt="checkMark" height="15" width="15"
@@ -113,7 +111,6 @@
                                  src="<%=request.getContextPath()%>/resources/<pwm:url url='redX.png'/>">
                         </div>
                     </td>
-                    <td style="border:0; width:10%">&nbsp;</td>
                 </tr>
             </table>
 
@@ -121,19 +118,19 @@
                 <input type="hidden" name="processAction" value="change"/>
                 <input type="submit" name="change" class="btn"
                        id="password_button"
-                       value="<pwm:Display key="Button_ChangePassword"/>"/>
+                       value="    <pwm:Display key="Button_ChangePassword"/>    "/>
                 <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_RESET_BUTTON)) { %>
                 <input type="reset" name="reset" class="btn"
-                       value="<pwm:Display key="Button_Reset"/>"/>
+                       value="    <pwm:Display key="Button_Reset"/>    "/>
                 <% } %>
                 <input type="hidden" name="hideButton" class="btn"
-                       value="<pwm:Display key="Button_Show"/>"
+                       value="    <pwm:Display key="Button_Show"/>    "
                        onclick="toggleMaskPasswords()" id="hide_button"/>
                 <% if (!passwordStatus.isExpired() && !passwordStatus.isPreExpired() && !passwordStatus.isViolatesPolicy() && !PwmSession.getPwmSession(session).getUserInfoBean().isAuthFromUnknownPw()) { %>
                 <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_CANCEL_BUTTON)) { %>
                 <button style="visibility:hidden;" name="button" class="btn" id="button_cancel"
                         onclick="window.location='<%=request.getContextPath()%>/public/<pwm:url url='CommandServlet'/>?processAction=continue';return false">
-                    <pwm:Display key="Button_Cancel"/>
+                    &nbsp;&nbsp;&nbsp;<pwm:Display key="Button_Cancel"/>&nbsp;&nbsp;&nbsp;
                 </button>
                 <script type="text/javascript">getObject('button_cancel').style.visibility = 'visible';</script>
                 <% } %>
@@ -142,16 +139,6 @@
             </div>
         </form>
     </div>
-    <script type="text/javascript">
-        PWM_STRINGS['passwordGuideText'] = '<%=PwmMacroMachine.expandMacros(ContextManager.getPwmApplication(session).getConfig().readSettingAsLocalizedString(PwmSetting.DISPLAY_PASSWORD_GUIDE_TEXT,PwmSession.getPwmSession(session).getSessionStateBean().getLocale()),ContextManager.getPwmApplication(session),PwmSession.getPwmSession(session).getUserInfoBean())%>';
-        PWM_STRINGS['Tooltip_PasswordStrength'] = "<pwm:Display key="Tooltip_PasswordStrength"/>";
-        PWM_STRINGS['Display_PasswordGeneration'] = "<pwm:Display key="Display_PasswordGeneration"/>";
-        PWM_STRINGS['Strength_Low'] = "<pwm:Display key="Display_PasswordStrengthLow"/>";
-        PWM_STRINGS['Strength_Medium'] = "<pwm:Display key="Display_PasswordStrengthMedium"/>";
-        PWM_STRINGS['Strength_High'] = "<pwm:Display key="Display_PasswordStrengthHigh"/>";
-        PWM_STRINGS['Title_RandomPasswords'] = "<pwm:Display key="Title_RandomPasswords"/>";
-        PWM_STRINGS['Title_PasswordGuide'] = "<pwm:Display key="Title_PasswordGuide"/>";
-    </script>
     <audio id="randomgen-player" src="<%=request.getContextPath()%>/resources/<pwm:url url='fill.mp3'/>"></audio>
 </div>
 <%@ include file="fragment/footer.jsp" %>

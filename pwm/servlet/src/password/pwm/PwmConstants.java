@@ -44,17 +44,11 @@ public abstract class PwmConstants {
     public static final String BUILD_NUMBER =   readBuildInfoBundle("build.number");
     public static final String BUILD_TYPE =     readBuildInfoBundle("build.type");
     public static final String PWM_VERSION =    readBuildInfoBundle("pwm.version");
+    public static final String PWM_WEBSITE =    readBuildInfoBundle("pwm.website");
 
     public static final String SERVLET_VERSION = "v" + PWM_VERSION + " b" + BUILD_NUMBER + " (" + BUILD_TYPE + ")";
 
     public static final String CONFIG_FILE_CONTEXT_PARAM = "pwmConfigPath";
-
-    public static final String PWM_URL_HOME = readPwmConstantsBundle("url.pwm-home");
-    public static final String PWM_URL_CLOUD = readPwmConstantsBundle("url.pwm-cloud");
-
-    public static final long VERSION_CHECK_FREQUENCEY_MS = Long.parseLong(readPwmConstantsBundle("versionCheckFrequencyMs"));
-    public static final long VERSION_CHECK_FAIL_RETRY_MS = Long.parseLong(readPwmConstantsBundle("versionCheckFailRetryMs"));
-    public static final long STATISTICS_PUBLISH_FREQUENCY_MS = Long.parseLong(readPwmConstantsBundle("statisticsPublishFrequencyMs"));
 
     public static final int MAX_EMAIL_QUEUE_SIZE = 1000;
     public static final int MAX_SMS_QUEUE_SIZE = 100;
@@ -63,30 +57,20 @@ public abstract class PwmConstants {
     public static final Locale DEFAULT_LOCALE = new Locale(readPwmConstantsBundle("locale.defaultLocale"));
     public static final List<Locale> KNOWN_LOCALES;
 
-    public static final DateFormat DEFAULT_DATETIME_FORMAT = new SimpleDateFormat(readPwmConstantsBundle("locale.defaultDateTimeFormat"));
-    public static final DateFormat DEFAULT_DATE_FORMAT = new SimpleDateFormat(readPwmConstantsBundle("locale.defaultDateFormat"));
-    public static final DateFormat DEFAULT_TIME_FORMAT = new SimpleDateFormat(readPwmConstantsBundle("locale.defaultTimeFormat"));
-
+    public static final DateFormat PWM_STANDARD_DATE_FORMAT = new SimpleDateFormat(readPwmConstantsBundle("locale.defaultDateFormat"));
 
     public static final int DEFAULT_WORDLIST_LOADFACTOR = Integer.parseInt(readPwmConstantsBundle("wordlist.loadFactor"));
     public static final int HTTP_PARAMETER_READ_LENGTH = 1024 * 10;
 
-    public static final long TOKEN_REMOVAL_DELAY_MS = Long.parseLong(readPwmConstantsBundle("token.removalDelayMS"));
-    static final int TOKEN_PURGE_BATCH_SIZE = Integer.parseInt(readPwmConstantsBundle("token.purgeBatchSize"));
-    static final int TOKEN_MAX_UNIQUE_CREATE_ATTEMPTS = Integer.parseInt(readPwmConstantsBundle("token.maxUniqueCreateAttempts"));
+    public static final String HTTP_HEADER_BASIC_AUTH = "Authorization";
+    public static final String HTTP_BASIC_AUTH_PREFIX = "Basic ";
+    public static final String HTTP_HEADER_X_FORWARDED_FOR = "X-Forwarded-For";
 
-    public static final String HTTP_HEADER_BASIC_AUTH = readPwmConstantsBundle("httpHeaderAuthorization");
-    public static final String HTTP_BASIC_AUTH_PREFIX = readPwmConstantsBundle("httpHeaderAuthorizationBasic");
-    public static final String HTTP_HEADER_X_FORWARDED_FOR = readPwmConstantsBundle("httpHeaderXForwardedFor");
-
-    public static final String DEFAULT_BAD_PASSWORD_ATTEMPT = readPwmConstantsBundle("defaultBadPasswordAttempt");
 
     public static final String CONTEXT_ATTR_CONTEXT_MANAGER = "ContextManager";
     public static final String SESSION_ATTR_PWM_SESSION = "PwmSession";
 
     public static final String DEFAULT_BUILD_CHECKSUM_FILENAME = "BuildChecksum.properties";
-
-    public static final String LOG_REMOVED_VALUE_REPLACEMENT = readPwmConstantsBundle("log.removedValue");
 
     public static final String URL_JSP_LOGIN = "WEB-INF/jsp/login.jsp";
     public static final String URL_JSP_LOGOUT = "WEB-INF/jsp/logout.jsp";
@@ -123,6 +107,9 @@ public abstract class PwmConstants {
     public static final String URL_JSP_CONFIG_MANAGER_MODE_CONFIGURATION = "WEB-INF/jsp/configmanager-mode-configuration.jsp";
     public static final String URL_JSP_CONFIG_MANAGER_MODE_RUNNING = "WEB-INF/jsp/configmanager-mode-running.jsp";
     public static final String URL_JSP_HELPDESK = "WEB-INF/jsp/helpdesk.jsp";
+
+
+    public static final String URL_JSP_USER_INFORMATION = "private/admin/userinformation.jsp";
 
     public static final String URL_SERVLET_LOGIN = "Login";
     public static final String URL_SERVLET_LOGOUT = "Logout";
@@ -181,7 +168,7 @@ public abstract class PwmConstants {
     public static final int PASSWORD_UPDATE_INITIAL_DELAY = 1000; //milliseconds
 
     static {
-        DEFAULT_DATETIME_FORMAT.setTimeZone(TimeZone.getTimeZone("Zulu"));
+        PWM_STANDARD_DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("Zulu"));
         KNOWN_LOCALES = calculateKnownLocales();
     }
 
