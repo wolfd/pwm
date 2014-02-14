@@ -9,6 +9,15 @@ http://code.google.com/p/pwm
 [ ~ partial implementation   ]
 [----------------------------]
 
+v1.7.1
+---
+* Updated Hungarian language (issue #469) thanks to torlasz
++ Added Greek language (issue #527) thanks to smaistros
+- Updated ldapChai library for NetIQ eDirectory 8.8.8
+- SMS queue issue due to incorrect setting type (issue #523, #529) thanks to nils.rekow
+* Updated seedlist.zip (word list), removed offensive words
+* Minor theme changes
+- eDirectory schema LDIF updated (issue #472), thanks to tomgreene
 
 v1.7
 ---
