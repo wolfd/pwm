@@ -66,6 +66,10 @@ function validatePasswords(userDN)
     pwmFormValidator(validationProps);
 }
 
+function toggleMaskPasswords() {
+        getObject("password1").type = 'text';
+        getObject("password1-eye-icon").class = 'icon-eye icon-eye-close';
+}
 
 function updateDisplay(resultInfo) {
     if (resultInfo == null) {

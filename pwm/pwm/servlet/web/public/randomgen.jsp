@@ -27,8 +27,7 @@
 <html dir="<pwm:LocaleOrientation/>">
 <%@ include file="/WEB-INF/jsp/fragment/header.jsp" %>
 <body class="nihilo" onload="pwmPageLoadHandler();">
-<script type="text/javascript" defer="defer"
-        src="<%=request.getContextPath()%><pwm:url url='/public/resources/js/changepassword.js'/>"></script>
+<script type="text/javascript" src="<%=request.getContextPath()%><pwm:url url='/public/resources/js/changepassword.js'/>"></script>
 <div id="wrapper">
     <jsp:include page="/WEB-INF/jsp/fragment/header-body.jsp">
         <jsp:param name="pwm.PageName" value="Random Passwords"/>
