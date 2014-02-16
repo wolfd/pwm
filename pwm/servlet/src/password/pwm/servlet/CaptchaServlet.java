@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +38,6 @@ import password.pwm.error.PwmUnrecoverableException;
 import password.pwm.util.Helper;
 import password.pwm.util.PwmLogger;
 import password.pwm.util.ServletHelper;
-import password.pwm.util.TimeDuration;
 import password.pwm.util.stats.Statistic;
 
 import javax.servlet.ServletException;
@@ -67,7 +66,7 @@ public class CaptchaServlet extends TopServlet {
 
         //check intruder detection, if it is tripped, send user to error page
         try {
-            pwmApplication.getIntruderManager().convenience().checkAddressAndSession(pwmSession);
+            pwmApplication.getIntruderManager().check(null,null,pwmSession);
         } catch (PwmUnrecoverableException e) {
             ServletHelper.forwardToErrorPage(req, resp, false);
             return;
@@ -101,7 +100,6 @@ public class CaptchaServlet extends TopServlet {
 
         Validator.validatePwmFormID(req);
 
-        final long startTime = System.currentTimeMillis();
         final boolean verified;
         try {
             verified = verifyReCaptcha(req, pwmSession);
@@ -116,8 +114,8 @@ public class CaptchaServlet extends TopServlet {
             pwmSession.getSessionStateBean().setPassedCaptcha(true);
             pwmApplication.getStatisticsManager().incrementValue(Statistic.CAPTCHA_SUCCESSES);
 
-            LOGGER.debug(pwmSession, "captcha passcode verified (" + TimeDuration.fromCurrent(startTime).asCompactString() + ")");
-            pwmApplication.getIntruderManager().convenience().clearAddressAndSession(pwmSession);
+            LOGGER.debug(pwmSession, "captcha passcode verified");
+            pwmApplication.getIntruderManager().clear(null,null,pwmSession);
             writeCaptchaSkipCookie(pwmSession, pwmApplication, resp);
             forwardToOriginalLocation(req, resp);
         } else { //failed captcha
@@ -126,7 +124,7 @@ public class CaptchaServlet extends TopServlet {
             pwmApplication.getStatisticsManager().incrementValue(Statistic.CAPTCHA_FAILURES);
 
             LOGGER.debug(pwmSession, "incorrect captcha passcode");
-            pwmApplication.getIntruderManager().convenience().markAddressAndSession(pwmSession);
+            pwmApplication.getIntruderManager().mark(null,null,pwmSession);
             forwardToJSP(req, resp);
         }
     }

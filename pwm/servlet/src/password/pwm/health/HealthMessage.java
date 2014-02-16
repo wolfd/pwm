@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,47 +22,13 @@
 
 package password.pwm.health;
 
-import password.pwm.i18n.Health;
-import password.pwm.i18n.LocaleHelper;
-
-import java.util.Locale;
-
 public enum HealthMessage {
-    LDAP_No_Connection                      (HealthStatus.WARN,     HealthTopic.LDAP),
-    Email_SendFailure                       (HealthStatus.WARN,     HealthTopic.Email),
-    MissingResource                         (HealthStatus.DEBUG,    HealthTopic.Integrity),
-    BrokenMethod                            (HealthStatus.DEBUG,    HealthTopic.Integrity),
-    Config_UsingLocalDBResponseStorage      (HealthStatus.CAUTION,  HealthTopic.Configuration),
-
+    LDAP_No_Connection
     ;
 
-    private final HealthStatus status;
-    private final HealthTopic topic;
-
-    HealthMessage(
-            HealthStatus status,
-            HealthTopic topic
-    )
-    {
-        this.status = status;
-        this.topic = topic;
-    }
-
-    public HealthStatus getStatus()
-    {
-        return status;
-    }
-
-    public HealthTopic getTopic()
-    {
-        return topic;
-    }
 
     public String getKey() {
         return HealthMessage.class.getSimpleName() + "_" + this.toString();
     }
 
-    public String getDescription(final Locale locale, final password.pwm.config.Configuration config, final String[] fields) {
-        return LocaleHelper.getLocalizedMessage(locale, this.getKey(), config, Health.class, fields);
     }
-}

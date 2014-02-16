@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,17 +22,17 @@
 
 package password.pwm.bean.servlet;
 
+import com.novell.ldapchai.ChaiUser;
 import password.pwm.bean.PwmSessionBean;
-import password.pwm.bean.UserIdentity;
 
 public class ActivateUserBean implements PwmSessionBean {
     private boolean tokenIssued;
     private boolean tokenPassed;
     private boolean agreementPassed;
     private boolean formValidated;
-    private String tokenDisplayText;
+    private String tokenSendAddress;
 
-    private UserIdentity userIdentity;
+    private ChaiUser theUser;
 
     public boolean isTokenIssued() {
         return tokenIssued;
@@ -66,19 +66,19 @@ public class ActivateUserBean implements PwmSessionBean {
         this.tokenPassed = tokenPassed;
     }
 
-    public UserIdentity getUserIdentity() {
-        return userIdentity;
+    public ChaiUser getTheUser() {
+        return theUser;
     }
 
-    public void setUserIdentity(UserIdentity userIdentity) {
-        this.userIdentity = userIdentity;
+    public void setTheUser(ChaiUser theUser) {
+        this.theUser = theUser;
     }
 
-    public String getTokenDisplayText() {
-        return tokenDisplayText;
+    public String getTokenSendAddress() {
+        return tokenSendAddress;
     }
 
-    public void setTokenDisplayText(final String tokenSendAddress) {
-        this.tokenDisplayText = tokenSendAddress;
+    public void setTokenSendAddress(final String tokenSendAddress) {
+        this.tokenSendAddress = tokenSendAddress;
     }
 }

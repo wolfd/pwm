@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,17 +36,15 @@ import com.novell.ldapchai.provider.ChaiProvider;
 import password.pwm.*;
 import password.pwm.bean.ResponseInfoBean;
 import password.pwm.bean.SessionStateBean;
-import password.pwm.bean.UserInfoBean;
 import password.pwm.bean.servlet.SetupResponsesBean;
-import password.pwm.config.ChallengeProfile;
+import password.pwm.bean.UserInfoBean;
 import password.pwm.config.PwmSetting;
 import password.pwm.error.*;
 import password.pwm.event.AuditEvent;
 import password.pwm.i18n.Message;
-import password.pwm.ldap.UserStatusReader;
-import password.pwm.util.Helper;
 import password.pwm.util.PwmLogger;
 import password.pwm.util.ServletHelper;
+import password.pwm.util.operations.UserStatusHelper;
 import password.pwm.util.stats.Statistic;
 
 import javax.servlet.ServletException;
@@ -103,7 +101,7 @@ public class SetupResponsesServlet extends TopServlet {
 
         // check if the locale has changed since first seen.
         if (pwmSession.getSessionStateBean().getLocale() != setupResponsesBean.getUserLocale()) {
-            pwmSession.clearSessionBean(SetupResponsesBean.class);
+            pwmSession.clearUserBean(SetupResponsesBean.class);
             setupResponsesBean = (SetupResponsesBean)pwmSession.getSessionBean(SetupResponsesBean.class);
             setupResponsesBean.setUserLocale(pwmSession.getSessionStateBean().getLocale());
         }
@@ -112,7 +110,7 @@ public class SetupResponsesServlet extends TopServlet {
         // check to see if the user has any challenges assigned
         if (setupResponsesBean.getResponseData().getChallengeSet() == null || setupResponsesBean.getResponseData().getChallengeSet().getChallenges().isEmpty()) {
             ssBean.setSessionError(new ErrorInformation(PwmError.ERROR_NO_CHALLENGES));
-            LOGGER.debug(pwmSession, "no challenge sets configured for user " + uiBean.getUserIdentity());
+            LOGGER.debug(pwmSession, "no challenge sets configured for user " + uiBean.getUserDN());
             ServletHelper.forwardToErrorPage(req, resp, this.getServletContext());
             return;
         }
@@ -133,10 +131,7 @@ public class SetupResponsesServlet extends TopServlet {
             } else if ("confirmResponses".equalsIgnoreCase(actionParam)) {
                 setupResponsesBean.setConfirmed(true);
             } else if ("changeResponses".equalsIgnoreCase(actionParam)) {
-                pwmSession.clearSessionBean(SetupResponsesBean.class);
-                setupResponsesBean = (SetupResponsesBean)pwmSession.getSessionBean(SetupResponsesBean.class);
-                this.initializeBean(pwmSession, pwmApplication, setupResponsesBean);
-                setupResponsesBean.setUserLocale(pwmSession.getSessionStateBean().getLocale());
+                pwmSession.clearUserBean(SetupResponsesBean.class);
             }
         }
 
@@ -178,14 +173,13 @@ public class SetupResponsesServlet extends TopServlet {
 
         try { // everything good, so lets save responses.
             final ResponseInfoBean responses = generateResponseInfoBean(
-                    pwmApplication,
                     pwmSession,
                     setupResponsesBean.getResponseData().getChallengeSet(),
                     setupResponsesBean.getResponseData().getResponseMap(),
                     setupResponsesBean.getHelpdeskResponseData().getResponseMap()
             );
             saveResponses(pwmSession, pwmApplication, responses);
-            pwmSession.clearSessionBean(SetupResponsesBean.class);
+            pwmSession.clearUserBean(SetupResponsesBean.class);
             ServletHelper.forwardToSuccessPage(req, resp);
         } catch (PwmOperationalException e) {
             LOGGER.error(pwmSession, e.getErrorInformation().toDebugStr());
@@ -221,14 +215,14 @@ public class SetupResponsesServlet extends TopServlet {
             final Map<Challenge, String> responseMap = readResponsesFromJsonRequest(req, pwmApplication, setupData);
             final int minRandomRequiredSetup = setupData.getMinRandomSetup();
             pwmApplication.getCrService().validateResponses(setupData.getChallengeSet(), responseMap, minRandomRequiredSetup);
-            generateResponseInfoBean(pwmApplication, pwmSession, setupData.getChallengeSet(), responseMap, Collections.<Challenge,String>emptyMap());
+            generateResponseInfoBean(pwmSession, setupData.getChallengeSet(), responseMap, Collections.<Challenge,String>emptyMap());
         } catch (PwmDataValidationException e) {
             success = false;
             userMessage = e.getErrorInformation().toUserStr(pwmSession, pwmApplication);
         }
 
         final AjaxValidationBean ajaxValidationBean = new AjaxValidationBean(userMessage,success);
-        final String output = Helper.getGson().toJson(ajaxValidationBean);
+        final String output = new Gson().toJson(ajaxValidationBean);
 
         resp.setContentType("text/plain;charset=utf-8");
         resp.getWriter().print(output);
@@ -279,16 +273,15 @@ public class SetupResponsesServlet extends TopServlet {
     private void saveResponses(final PwmSession pwmSession, final PwmApplication pwmApplication, final ResponseInfoBean responseInfoBean)
             throws PwmUnrecoverableException, ChaiUnavailableException, PwmOperationalException, ChaiValidationException
     {
-        final ChaiUser theUser = pwmSession.getSessionManager().getActor(pwmApplication);
+        final ChaiUser theUser = pwmSession.getSessionManager().getActor();
         final String userGUID = pwmSession.getUserInfoBean().getUserGuid();
         pwmApplication.getCrService().writeResponses(theUser, userGUID, responseInfoBean);
         final UserInfoBean uiBean = pwmSession.getUserInfoBean();
-        final UserStatusReader userStatusReader = new UserStatusReader(pwmApplication);
-        userStatusReader.populateActorUserInfoBean(pwmSession, uiBean.getUserIdentity(), uiBean.getUserCurrentPassword());
+        UserStatusHelper.populateActorUserInfoBean(pwmSession, pwmApplication, uiBean.getUserDN(), uiBean.getUserCurrentPassword());
         pwmApplication.getStatisticsManager().incrementValue(Statistic.SETUP_RESPONSES);
         pwmSession.getUserInfoBean().setRequiresResponseConfig(false);
         pwmSession.getSessionStateBean().setSessionSuccess(Message.SUCCESS_SETUP_RESPONSES, null);
-        pwmApplication.getAuditManager().submit(AuditEvent.SET_RESPONSES, pwmSession.getUserInfoBean(), pwmSession);
+        pwmApplication.getAuditManager().submitAuditRecord(AuditEvent.SET_RESPONSES, pwmSession.getUserInfoBean(), pwmSession);
     }
 
     private static Map<Challenge, String> readResponsesFromHttpRequest(
@@ -319,7 +312,7 @@ public class SetupResponsesServlet extends TopServlet {
 
         final String bodyString = ServletHelper.readRequestBody(req);
 
-        final Gson gson = Helper.getGson();
+        final Gson gson = new Gson();
         final Map<String, String> srcMap = gson.fromJson(bodyString, new TypeToken<Map<String, String>>() {
         }.getType());
 
@@ -391,14 +384,13 @@ public class SetupResponsesServlet extends TopServlet {
 
 
     private static ResponseInfoBean generateResponseInfoBean(
-            final PwmApplication pwmApplication,
             final PwmSession pwmSession,
             final ChallengeSet challengeSet,
             final Map<Challenge, String> readResponses,
             final Map<Challenge, String> helpdeskResponses
     )
             throws ChaiUnavailableException, PwmDataValidationException, PwmUnrecoverableException {
-        final ChaiProvider provider = pwmSession.getSessionManager().getChaiProvider(pwmApplication);
+        final ChaiProvider provider = pwmSession.getSessionManager().getChaiProvider();
 
         try {
             final ResponseInfoBean responseInfoBean = new ResponseInfoBean(
@@ -406,8 +398,7 @@ public class SetupResponsesServlet extends TopServlet {
                     helpdeskResponses,
                     challengeSet.getLocale(),
                     challengeSet.getMinRandomRequired(),
-                    challengeSet.getIdentifier(),
-                    null
+                    challengeSet.getIdentifier()
             );
 
             final ChaiResponseSet responseSet = ChaiCrFactory.newChaiResponseSet(
@@ -487,19 +478,18 @@ public class SetupResponsesServlet extends TopServlet {
 
     private void initializeBean(final PwmSession pwmSession, final PwmApplication pwmApplication, final SetupResponsesBean setupResponsesBean)
     {
-        final ChallengeProfile challengeProfile = pwmSession.getUserInfoBean().getChallengeProfile();
         if (setupResponsesBean.getResponseData() == null) { //setup user challenge data
-            final ChallengeSet userChallengeSet = challengeProfile.getChallengeSet();
-            final int minRandomSetup = (int)challengeProfile.readSettingAsLong(PwmSetting.CHALLENGE_MIN_RANDOM_SETUP);
+            final ChallengeSet userChallengeSet = pwmSession.getUserInfoBean().getChallengeSet();
+            final int minRandomSetup = (int)pwmApplication.getConfig().readSettingAsLong(PwmSetting.CHALLENGE_MIN_RANDOM_SETUP);
             final SetupResponsesBean.SetupData userSetupData = populateSetupData(userChallengeSet,minRandomSetup);
             setupResponsesBean.setResponseData(userSetupData);
         }
         if (setupResponsesBean.getHelpdeskResponseData() == null) { //setup helpdesk challenge data
-            final ChallengeSet helpdeskChallengeSet = challengeProfile.getHelpdeskChallengeSet();
+            final ChallengeSet helpdeskChallengeSet = pwmApplication.getConfig().getHelpdeskChallengeSet(pwmSession.getSessionStateBean().getLocale());
             if (helpdeskChallengeSet == null) {
                 setupResponsesBean.setHelpdeskResponseData(new SetupResponsesBean.SetupData());
             } else {
-                final int minRandomHelpdeskSetup = (int)challengeProfile.readSettingAsLong(PwmSetting.CHALLENGE_HELPDESK_MIN_RANDOM_SETUP);
+                final int minRandomHelpdeskSetup = (int)pwmApplication.getConfig().readSettingAsLong(PwmSetting.CHALLENGE_HELPDESK_MIN_RANDOM_SETUP);
                 final SetupResponsesBean.SetupData helpdeskSetupData = populateSetupData(helpdeskChallengeSet,minRandomHelpdeskSetup);
                 setupResponsesBean.setHelpdeskResponseData(helpdeskSetupData);
             }

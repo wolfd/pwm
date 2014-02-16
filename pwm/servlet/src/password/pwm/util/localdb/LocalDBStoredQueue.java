@@ -44,7 +44,7 @@ public class
     private final static String KEY_HEAD_POSITION = "_HEAD_POSITION";
     private final static String KEY_TAIL_POSITION = "_TAIL_POSITION";
     private final static String KEY_VERSION = "_KEY_VERSION";
-    private final static String VALUE_VERSION = "7a";
+    private final static String VALUE_VERSION = "7";
 
     private final InternalQueue internalQueue;
 
@@ -57,10 +57,7 @@ public class
         internalQueue = new InternalQueue(localDB, DB);
     }
 
-    public static synchronized LocalDBStoredQueue createLocalDBStoredQueue(
-            final LocalDB pwmDB,
-            final LocalDB.DB DB
-    )
+    public static synchronized LocalDBStoredQueue createPwmDBStoredQueue(final LocalDB pwmDB, final LocalDB.DB DB)
             throws LocalDBException {
         return new LocalDBStoredQueue(pwmDB, DB);
     }

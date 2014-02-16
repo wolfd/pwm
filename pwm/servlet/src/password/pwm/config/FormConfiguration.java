@@ -229,7 +229,7 @@ public class FormConfiguration implements Serializable {
         final StringBuilder sb = new StringBuilder();
 
         sb.append("FormItem: ");
-        sb.append(Helper.getGson().toJson(this));
+        sb.append(new Gson().toJson(this));
 
         return sb.toString();
     }

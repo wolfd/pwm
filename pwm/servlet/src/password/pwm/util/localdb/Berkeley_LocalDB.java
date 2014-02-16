@@ -58,7 +58,7 @@ public class Berkeley_LocalDB implements LocalDBProvider {
     private final Map<DB, Database> cachedDatabases = new ConcurrentHashMap<DB, Database>();
 
     // cache of dbIterators
-    private final Set<LocalDB.LocalDBIterator<String>> dbIterators = Collections.newSetFromMap(new ConcurrentHashMap<LocalDB.LocalDBIterator<String>,Boolean>());
+    private final Set<LocalDB.PwmDBIterator<String>> dbIterators = Collections.newSetFromMap(new ConcurrentHashMap<LocalDB.PwmDBIterator<String>,Boolean>());
 
     private LocalDB.Status status = LocalDB.Status.NEW;
 
@@ -175,7 +175,7 @@ public class Berkeley_LocalDB implements LocalDBProvider {
             return cachedMaps.get(db).containsKey(key);
         } catch (RuntimeExceptionWrapper e) {
             LOGGER.error("error during contains check: " + e.toString());
-            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE,e.toString()));
+            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE,e.toString()));
         }
     }
 
@@ -186,7 +186,7 @@ public class Berkeley_LocalDB implements LocalDBProvider {
             return cachedMaps.get(db).get(key);
         } catch (RuntimeExceptionWrapper e) {
             LOGGER.error("error during contains check: " + e.toString());
-            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE,e.toString()));
+            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE,e.toString()));
         }
     }
 
@@ -205,13 +205,13 @@ public class Berkeley_LocalDB implements LocalDBProvider {
                 LOGGER.trace("database '" + db.toString() + "' open");
             }
         } catch (DatabaseException e) {
-            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE,e.toString()));
+            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE,e.toString()));
         }
 
         status = LocalDB.Status.OPEN;
     }
 
-    public LocalDB.LocalDBIterator<String> iterator(final DB db)
+    public LocalDB.PwmDBIterator<String> iterator(final DB db)
             throws LocalDBException
     {
         preCheck(false);
@@ -219,11 +219,11 @@ public class Berkeley_LocalDB implements LocalDBProvider {
             if (dbIterators.size() > ITERATOR_LIMIT) {
                 throw new LocalDBException(new ErrorInformation(PwmError.ERROR_UNKNOWN,"over " + ITERATOR_LIMIT + " iterators are outstanding, maximum limit exceeded"));
             }
-            final LocalDB.LocalDBIterator<String> iterator = new DbIterator<String>(db);
+            final LocalDB.PwmDBIterator<String> iterator = new DbIterator<String>(db);
             dbIterators.add(iterator);
             return iterator;
         } catch (Exception e) {
-            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE,e.toString()));
+            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE,e.toString()));
         }
     }
 
@@ -235,7 +235,7 @@ public class Berkeley_LocalDB implements LocalDBProvider {
             cachedMaps.get(db).putAll(keyValueMap);
         } catch (RuntimeExceptionWrapper e) {
             LOGGER.error("error during multiple-put: " + e.toString());
-            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE,e.toString()));
+            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE,e.toString()));
         }
     }
 
@@ -248,7 +248,7 @@ public class Berkeley_LocalDB implements LocalDBProvider {
             return null != transactionDB.put(key, value);
         } catch (RuntimeExceptionWrapper e) {
             LOGGER.error("error during put: " + e.toString());
-            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE,e.toString()));
+            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE,e.toString()));
         }
     }
 
@@ -259,7 +259,7 @@ public class Berkeley_LocalDB implements LocalDBProvider {
             return cachedMaps.get(db).keySet().remove(key);
         } catch (RuntimeExceptionWrapper e) {
             LOGGER.error("error during remove: " + e.toString());
-            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE,e.toString()));
+            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE,e.toString()));
         }
     }
 
@@ -271,7 +271,7 @@ public class Berkeley_LocalDB implements LocalDBProvider {
             cachedMaps.get(db).keySet().removeAll(keys);
         } catch (RuntimeExceptionWrapper e) {
             LOGGER.error("error during removeAll: " + e.toString());
-            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE,e.toString()));
+            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE,e.toString()));
         }
     }
 
@@ -284,7 +284,7 @@ public class Berkeley_LocalDB implements LocalDBProvider {
             return dbMap.size();
         } catch (RuntimeExceptionWrapper e) {
             LOGGER.error("error during size: " + e.toString());
-            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE,e.toString()));
+            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE,e.toString()));
         }
     }
 
@@ -302,18 +302,18 @@ public class Berkeley_LocalDB implements LocalDBProvider {
             cachedMaps.put(db, openStoredMap(database));
         } catch (DatabaseException e) {
             LOGGER.error("error during truncate: " + e.toString());
-            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE,e.toString()));
+            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE,e.toString()));
         }
     }
 
 // -------------------------- INNER CLASSES --------------------------
 
-    private class DbIterator<K> implements LocalDB.LocalDBIterator<String> {
+    private class DbIterator<K> implements LocalDB.PwmDBIterator<String> {
 
         private Iterator<String> innerIter;
 
         private DbIterator(final DB db) throws DatabaseException {
-            this.innerIter = cachedMaps.get(db).keySet().<Iterator>iterator();
+            this.innerIter = cachedMaps.get(db).keySet().iterator();
         }
 
         public boolean hasNext() {
@@ -343,7 +343,7 @@ public class Berkeley_LocalDB implements LocalDBProvider {
 
     private void preCheck(final boolean write) throws LocalDBException {
         if (status != LocalDB.Status.OPEN) {
-            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE,"LocalDB is not open, cannot begin a new transaction"));
+            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE,"LocalDB is not open, cannot begin a new transaction"));
         }
 
         if (write && readOnly) {

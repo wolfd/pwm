@@ -23,11 +23,10 @@
 package password.pwm.util.localdb;
 
 import password.pwm.error.ErrorInformation;
-import password.pwm.error.PwmDataStoreException;
 import password.pwm.error.PwmError;
 import password.pwm.error.PwmOperationalException;
 
-public class LocalDBException extends PwmDataStoreException {
+public class LocalDBException extends PwmOperationalException {
 // --------------------------- CONSTRUCTORS ---------------------------
 
 

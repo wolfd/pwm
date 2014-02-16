@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,21 +22,20 @@
 
 package password.pwm.config;
 
+import com.google.gson.Gson;
 import com.novell.ldapchai.ChaiFactory;
 import com.novell.ldapchai.ChaiUser;
+import com.novell.ldapchai.cr.ChaiChallenge;
+import com.novell.ldapchai.cr.ChaiChallengeSet;
+import com.novell.ldapchai.cr.Challenge;
+import com.novell.ldapchai.cr.ChallengeSet;
 import com.novell.ldapchai.exception.ChaiUnavailableException;
+import com.novell.ldapchai.exception.ChaiValidationException;
 import com.novell.ldapchai.util.StringHelper;
-import password.pwm.AppProperty;
 import password.pwm.PwmApplication;
 import password.pwm.PwmConstants;
 import password.pwm.PwmPasswordPolicy;
 import password.pwm.bean.EmailItemBean;
-import password.pwm.bean.UserIdentity;
-import password.pwm.config.option.DataStorageMethod;
-import password.pwm.config.option.MessageSendMethod;
-import password.pwm.config.option.RecoveryAction;
-import password.pwm.config.option.TokenStorageMethod;
-import password.pwm.config.value.*;
 import password.pwm.error.ErrorInformation;
 import password.pwm.error.PwmError;
 import password.pwm.error.PwmOperationalException;
@@ -48,7 +47,6 @@ import password.pwm.util.operations.PasswordUtility;
 
 import javax.crypto.SecretKey;
 import java.io.Serializable;
-import java.lang.reflect.InvocationTargetException;
 import java.security.cert.X509Certificate;
 import java.util.*;
 
@@ -62,10 +60,18 @@ public class Configuration implements Serializable {
 
     private final StoredConfiguration storedConfiguration;
 
+    private Map<Locale,PwmPasswordPolicy> cachedPasswordPolicy = new HashMap<Locale,PwmPasswordPolicy>();
+    private Map<Locale,PwmPasswordPolicy> newUserPasswordPolicy = new HashMap<Locale,PwmPasswordPolicy>();
+    private Map<Locale,String> localeFlagMap = null;
     private long newUserPasswordPolicyCacheTime = System.currentTimeMillis();
-    private DataCache dataCache = new DataCache();
 
-    // --------------------------- CONSTRUCTORS ---------------------------
+    public enum STORAGE_METHOD { DB, LDAP, LOCALDB, NMAS, NMASUAWS }
+
+    public enum RECOVERY_ACTION { RESETPW, SENDNEWPW }
+
+    public enum TokenStorageMethod {STORE_LOCALDB, STORE_DB, STORE_CRYPTO, STORE_LDAP}
+
+// --------------------------- CONSTRUCTORS ---------------------------
 
     public Configuration(final StoredConfiguration storedConfiguration) {
         this.storedConfiguration = storedConfiguration;
@@ -81,7 +87,7 @@ public class Configuration implements Serializable {
     }
 
     public String toString(final PwmSetting pwmSetting) {
-        return Helper.getGson().toJson(this.storedConfiguration.readSetting(pwmSetting).toNativeObject());
+        return new Gson().toJson(this.storedConfiguration.readSetting(pwmSetting).toNativeObject());
     }
 
 // -------------------------- OTHER METHODS --------------------------
@@ -91,29 +97,8 @@ public class Configuration implements Serializable {
             throw new IllegalArgumentException("may not read FORM value for setting: " + setting.toString());
         }
 
-        final StoredValue value = readStoredValue(setting);
+        final StoredValue value = storedConfiguration.readSetting(setting);
         return (List<FormConfiguration>)value.toNativeObject();
-    }
-
-    public Map<String,LdapProfile> getLdapProfiles() {
-        if (dataCache.ldapProfiles != null) {
-            return dataCache.ldapProfiles;
-        }
-
-        final List<String> profiles = storedConfiguration.profilesForSetting(PwmSetting.LDAP_PROFILE_LIST);
-        final LinkedHashMap<String,LdapProfile> returnList = new LinkedHashMap<String, LdapProfile>();
-        for (String profileID : profiles) {
-            if ("".equals(profileID)) {
-                profileID = PwmConstants.DEFAULT_LDAP_PROFILE;
-            }
-            final LdapProfile ldapProfile = LdapProfile.makeFromStoredConfiguration(this.storedConfiguration, profileID);
-            if (ldapProfile.readSettingAsBoolean(PwmSetting.LDAP_PROFILE_ENABLED)) {
-                returnList.put(profileID, ldapProfile);
-            }
-        }
-
-        dataCache.ldapProfiles = Collections.unmodifiableMap(returnList);
-        return dataCache.ldapProfiles;
     }
 
     public EmailItemBean readSettingAsEmail(final PwmSetting setting, final Locale locale) {
@@ -121,7 +106,7 @@ public class Configuration implements Serializable {
             throw new IllegalArgumentException("may not read EMAIL value for setting: " + setting.toString());
         }
 
-        final Map<String, EmailItemBean> storedValues = (Map<String, EmailItemBean>)readStoredValue(setting).toNativeObject();
+        final Map<String, EmailItemBean> storedValues = (Map<String, EmailItemBean>)storedConfiguration.readSetting(setting).toNativeObject();
         final Map<Locale, EmailItemBean> availableLocaleMap = new LinkedHashMap<Locale, EmailItemBean>();
         for (final String localeStr : storedValues.keySet()) {
             availableLocaleMap.put(Helper.parseLocaleString(localeStr), storedValues.get(localeStr));
@@ -131,35 +116,8 @@ public class Configuration implements Serializable {
         return availableLocaleMap.get(matchedLocale);
     }
 
-    public <E extends Enum<E>> E readSettingAsEnum(PwmSetting pwmSetting,  Class<E> enumClass) {
-        final String strValue = (String)readStoredValue(pwmSetting).toNativeObject();
-        try {
-            return (E)enumClass.getMethod("valueOf", String.class).invoke(null, strValue);
-        } catch (InvocationTargetException e1) {
-            if (e1.getCause() instanceof IllegalArgumentException) {
-                LOGGER.error("illegal setting value for setting '" + pwmSetting.getKey() + "', option '" + strValue + "' is not recognized, will use default");
-            }
-        } catch (Exception e1) {
-            LOGGER.error("unexpected error", e1);
-        }
-
-        // couldn't read enum, try to read default.
-        try {
-            final String defaultValue = (String)(pwmSetting.getDefaultValue(this.getTemplate()).toNativeObject());
-            return (E)enumClass.getMethod("valueOf", String.class).invoke(null, defaultValue);
-        } catch (InvocationTargetException e1) {
-            if (e1.getCause() instanceof IllegalArgumentException) {
-                LOGGER.error("illegal DEFAULT setting value for setting '" + pwmSetting.getKey() + "', option '" + strValue + "' is not recognized, will use return null");
-            }
-        } catch (Exception e1) {
-            LOGGER.error("unexpected error",e1);
-        }
-
-        return null;
-    }
-
-    public MessageSendMethod readSettingAsTokenSendMethod(final PwmSetting setting) {
-        return MessageSendMethod.valueOf(readSettingAsString(setting));
+    public PwmSetting.MessageSendMethod readSettingAsTokenSendMethod(final PwmSetting setting) {
+        return PwmSetting.MessageSendMethod.valueOf(readSettingAsString(setting));
     }
 
 
@@ -168,7 +126,7 @@ public class Configuration implements Serializable {
             throw new IllegalArgumentException("may not read ACTION value for setting: " + setting.toString());
         }
 
-        final StoredValue value = readStoredValue(setting);
+        final StoredValue value = storedConfiguration.readSetting(setting);
         return (List<ActionConfiguration>)value.toNativeObject();
     }
 
@@ -176,89 +134,38 @@ public class Configuration implements Serializable {
         if (PwmSettingSyntax.LOCALIZED_STRING_ARRAY != setting.getSyntax()) {
             throw new IllegalArgumentException("may not read LOCALIZED_STRING_ARRAY value for setting: " + setting.toString());
         }
+        final Map<String, List<String>> storedValues = (Map<String, List<String>>)storedConfiguration.readSetting(setting).toNativeObject();
+        final Map<Locale, List<String>> availableLocaleMap = new LinkedHashMap<Locale, List<String>>();
+        for (final String localeStr : storedValues.keySet()) {
+            availableLocaleMap.put(Helper.parseLocaleString(localeStr), storedValues.get(localeStr));
+        }
+        final Locale matchedLocale = Helper.localeResolver(locale, availableLocaleMap.keySet());
 
-        final StoredValue value = readStoredValue(setting);
-        return JavaTypeConverter.valueToLocalizedStringArray(value, locale);
+        return availableLocaleMap.get(matchedLocale);
     }
 
     public String readSettingAsString(final PwmSetting setting) {
-        return JavaTypeConverter.valueToString(readStoredValue(setting));
-    }
+        switch (setting.getSyntax()) {
+            case STRING:
+            case TEXT_AREA:
+            case SELECT:
+            case NUMERIC:
+            case BOOLEAN:
+            case PASSWORD:
+                StoredValue value = storedConfiguration.readSetting(setting);
+                if (value == null) return null;
+                Object nativeObject = value.toNativeObject();
+                if (nativeObject == null) return null;
+                return nativeObject.toString();
 
-    static abstract class JavaTypeConverter {
-        static String valueToString(final StoredValue value) {
-            if (value == null) return null;
-            if ((!(value instanceof StringValue)) && (!(value instanceof BooleanValue))) {
-                throw new IllegalArgumentException("setting value is not readable as string");
-            }
-            final Object nativeObject = value.toNativeObject();
-            if (nativeObject == null) return null;
-            return nativeObject.toString();
-        }
-
-        static List<String> valueToStringArray(final StoredValue value) {
-            if (!(value instanceof StringArrayValue)) {
-                throw new IllegalArgumentException("setting value is not readable as string array");
-            }
-
-            final List<String> results = new ArrayList<String>((List<String>)value.toNativeObject());
-            for (final Iterator iter = results.iterator(); iter.hasNext();) {
-                final Object loopString = iter.next();
-                if (loopString == null || loopString.toString().length() < 1) {
-                    iter.remove();
-                }
-            }
-            return results;
-        }
-
-        static boolean valueToBoolean(final StoredValue value) {
-            if (!(value instanceof BooleanValue)) {
-                throw new IllegalArgumentException("may not read BOOLEAN value for setting");
-            }
-
-            return (Boolean)value.toNativeObject();
-        }
-
-        static String valueToLocalizedString(final StoredValue value, final Locale locale) {
-            if (!(value instanceof LocalizedStringValue)) {
-                throw new IllegalArgumentException("may not read LOCALIZED_STRING or LOCALIZED_TEXT_AREA values for setting");
-            }
-
-            final Map<String, String> availableValues = (Map<String, String>)value.toNativeObject();
-            final Map<Locale, String> availableLocaleMap = new LinkedHashMap<Locale, String>();
-            for (final String localeStr : availableValues.keySet()) {
-                availableLocaleMap.put(Helper.parseLocaleString(localeStr), availableValues.get(localeStr));
-            }
-            final Locale matchedLocale = Helper.localeResolver(locale, availableLocaleMap.keySet());
-
-            return availableLocaleMap.get(matchedLocale);
-        }
-
-        static List<String> valueToLocalizedStringArray(final StoredValue value, final Locale locale) {
-            if (!(value instanceof LocalizedStringArrayValue)) {
-                throw new IllegalArgumentException("may not read LOCALIZED_STRING_ARRAY value");
-            }
-            final Map<String, List<String>> storedValues = (Map<String, List<String>>)value.toNativeObject();
-            final Map<Locale, List<String>> availableLocaleMap = new LinkedHashMap<Locale, List<String>>();
-            for (final String localeStr : storedValues.keySet()) {
-                availableLocaleMap.put(Helper.parseLocaleString(localeStr), storedValues.get(localeStr));
-            }
-            final Locale matchedLocale = Helper.localeResolver(locale, availableLocaleMap.keySet());
-
-            return availableLocaleMap.get(matchedLocale);
+            default:
+                throw new IllegalArgumentException("may not read setting as string: " + setting.toString());
         }
     }
 
     public Map<Locale,String> readLocalizedBundle(final String className, final String keyName) {
-        final String key = className + "-" + keyName;
-        if (dataCache.customText.containsKey(key)) {
-            return dataCache.customText.get(key);
-        }
-
-
         final Map<String,String> storedValue = storedConfiguration.readLocaleBundleMap(className,keyName);
         if (storedValue == null || storedValue.isEmpty()) {
-            dataCache.customText.put(key,null);
             return null;
         }
 
@@ -267,11 +174,10 @@ public class Configuration implements Serializable {
             localizedMap.put(new Locale(localeKey),storedValue.get(localeKey));
         }
 
-        dataCache.customText.put(key, localizedMap);
         return localizedMap;
     }
 
-    public PwmLogLevel getEventLogLocalDBLevel() {
+    public PwmLogLevel getEventLogLocalLevel() {
         final String value = readSettingAsString(PwmSetting.EVENTS_LOCALDB_LOG_LEVEL);
         for (final PwmLogLevel logLevel : PwmLogLevel.values()) {
             if (logLevel.toString().equalsIgnoreCase(value)) {
@@ -282,26 +188,107 @@ public class Configuration implements Serializable {
         return PwmLogLevel.TRACE;
     }
 
-    public List<String> getChallengeProfiles() {
-        return storedConfiguration.profilesForSetting(PwmSetting.CHALLENGE_PROFILE_LIST);
+    public ChallengeSet getGlobalChallengeSet(final Locale locale) {
+        return readChallengeSet(
+                locale,
+                PwmSetting.CHALLENGE_REQUIRED_CHALLENGES,
+                PwmSetting.CHALLENGE_RANDOM_CHALLENGES,
+                (int) readSettingAsLong(PwmSetting.CHALLENGE_MIN_RANDOM_REQUIRED)
+        );
     }
 
-    public ChallengeProfile getChallengeProfile(final String profile, final Locale locale) {
-        if (!"".equals(profile) && !getChallengeProfiles().contains(profile)) {
-            throw new IllegalArgumentException("unknown challenge profileID specified: " + profile);
+    public ChallengeSet getHelpdeskChallengeSet(final Locale locale) {
+        return readChallengeSet(
+                locale,
+                PwmSetting.CHALLENGE_HELPDESK_REQUIRED_CHALLENGES,
+                PwmSetting.CHALLENGE_HELPDESK_RANDOM_CHALLENGES,
+                1
+        );
+    }
+
+    private ChallengeSet readChallengeSet(
+            final Locale locale,
+            final PwmSetting requiredChallenges,
+            final PwmSetting randomChallenges,
+            int minimumRands
+    )
+    {
+        final List<String> requiredQuestions = readSettingAsLocalizedStringArray(requiredChallenges, locale);
+        final List<String> randomQuestions = readSettingAsLocalizedStringArray(randomChallenges, locale);
+
+        final List<Challenge> challenges = new ArrayList<Challenge>();
+
+        if (requiredQuestions != null) {
+            for (final String question : requiredQuestions) {
+                final Challenge challenge = parseConfigStringToChallenge(question, true);
+                if (challenge != null) {
+                    challenges.add(challenge);
+                }
+            }
         }
 
-        if (!dataCache.challengeProfile.containsKey(profile)) {
-            dataCache.challengeProfile.put(profile,new HashMap<Locale,ChallengeProfile>());
+        if (randomQuestions != null) {
+            for (final String question : randomQuestions) {
+                final Challenge challenge = parseConfigStringToChallenge(question, false);
+                if (challenge != null) {
+                    challenges.add(challenge);
+                }
+            }
+
+            if (minimumRands > randomQuestions.size()) {
+                minimumRands = randomQuestions.size();
+            }
+        } else {
+            minimumRands = 0;
         }
 
-        if (dataCache.challengeProfile.get(profile).containsKey(locale)) {
-            return dataCache.challengeProfile.get(profile).get(locale);
+
+
+        try {
+            return new ChaiChallengeSet(challenges, minimumRands, locale, "pwm-defined " + PwmConstants.SERVLET_VERSION);
+        } catch (ChaiValidationException e) {
+            LOGGER.warn("invalid challenge set configuration: " + e.getMessage());
+        }
+        return null;
+    }
+
+
+
+
+    private Challenge parseConfigStringToChallenge(String inputString, final boolean required) {
+        if (inputString == null || inputString.length() < 1) {
+            return null;
         }
 
-        final ChallengeProfile challengeProfile = new ChallengeProfile(profile,locale,storedConfiguration);
-        dataCache.challengeProfile.get(profile).put(locale,challengeProfile);
-        return challengeProfile;
+        int minLength = 2;
+        int maxLength = 255;
+
+        final String[] s1 = inputString.split("::");
+        if (s1.length > 0) {
+            inputString = s1[0].trim();
+        }
+        if (s1.length > 1) {
+            try {
+                minLength = Integer.parseInt(s1[1]);
+            } catch (Exception e) {
+                LOGGER.debug("unexpected error parsing config input '" + inputString + "' " + e.getMessage());
+            }
+        }
+        if (s1.length > 2) {
+            try {
+                maxLength = Integer.parseInt(s1[2]);
+            } catch (Exception e) {
+                LOGGER.debug("unexpected error parsing config input '" + inputString + "' " + e.getMessage());
+            }
+        }
+
+        boolean adminDefined = true;
+        if (inputString != null && inputString.equalsIgnoreCase("%user%")) {
+            inputString = null;
+            adminDefined = false;
+        }
+
+        return new ChaiChallenge(required, inputString, minLength, maxLength, adminDefined);
     }
 
     public long readSettingAsLong(final PwmSetting setting) {
@@ -309,83 +296,94 @@ public class Configuration implements Serializable {
             throw new IllegalArgumentException("may not read NUMERIC value for setting: " + setting.toString());
         }
 
-        return (Long)readStoredValue(setting).toNativeObject();
+        return (Long)storedConfiguration.readSetting(setting).toNativeObject();
     }
 
-    public PwmPasswordPolicy getPasswordPolicy(final String profile, final Locale locale)
+    public PwmPasswordPolicy getGlobalPasswordPolicy(final Locale locale)
     {
-        if (dataCache.cachedPasswordPolicy.containsKey(profile) && dataCache.cachedPasswordPolicy.get(profile).containsKey(
-                locale)) {
-            return dataCache.cachedPasswordPolicy.get(profile).get(locale);
-        }
+        PwmPasswordPolicy policy = cachedPasswordPolicy.get(locale);
 
-        final PwmPasswordPolicy policy = initPasswordPolicy(profile,locale);
-        if (!dataCache.cachedPasswordPolicy.containsKey(profile)) {
-            dataCache.cachedPasswordPolicy.put(profile,new HashMap<Locale,PwmPasswordPolicy>());
+        if (policy == null) {
+            final Map<String, String> passwordPolicySettings = new HashMap<String, String>();
+            for (final PwmPasswordRule rule : PwmPasswordRule.values()) {
+                if (rule.getPwmSetting() != null) {
+                    final String value;
+                    final PwmSetting pwmSetting = rule.getPwmSetting();
+                    switch (rule) {
+                        case DisallowedAttributes:
+                        case DisallowedValues:
+                            value = StringHelper.stringCollectionToString(readSettingAsStringArray(pwmSetting), "\n");
+                            break;
+                        case RegExMatch:
+                        case RegExNoMatch:
+                            value = StringHelper.stringCollectionToString(readSettingAsStringArray(pwmSetting), ";;;");
+                            break;
+                        case ChangeMessage:
+                            value = readSettingAsLocalizedString(pwmSetting, locale);
+                            break;
+                        default:
+                            value = String.valueOf(storedConfiguration.readSetting(pwmSetting).toNativeObject());
+                    }
+                    passwordPolicySettings.put(rule.getKey(), value);
+                }
+            }
+
+            if (!"read".equals(readSettingAsString(PwmSetting.PASSWORD_POLICY_CASE_SENSITIVITY))) {
+                passwordPolicySettings.put(PwmPasswordRule.CaseSensitive.getKey(),readSettingAsString(PwmSetting.PASSWORD_POLICY_CASE_SENSITIVITY));
+            }
+
+            policy = PwmPasswordPolicy.createPwmPasswordPolicy(passwordPolicySettings);
+            cachedPasswordPolicy.put(locale,policy);
         }
-        dataCache.cachedPasswordPolicy.get(profile).put(locale,policy);
         return policy;
     }
 
-    public List<String> getPasswordProfiles() {
-        return storedConfiguration.profilesForSetting(PwmSetting.PASSWORD_PROFILE_LIST);
-    }
-
-    protected PwmPasswordPolicy initPasswordPolicy(final String profile, final Locale locale)
-    {
-        final Map<String, String> passwordPolicySettings = new LinkedHashMap<String, String>();
-        for (final PwmPasswordRule rule : PwmPasswordRule.values()) {
-            if (rule.getPwmSetting() != null) {
-                final String value;
-                final PwmSetting pwmSetting = rule.getPwmSetting();
-                switch (rule) {
-                    case DisallowedAttributes:
-                    case DisallowedValues:
-                        value = StringHelper.stringCollectionToString(
-                                JavaTypeConverter.valueToStringArray(storedConfiguration.readSetting(pwmSetting,profile)), "\n");
-                        break;
-                    case RegExMatch:
-                    case RegExNoMatch:
-                        value = StringHelper.stringCollectionToString(
-                                JavaTypeConverter.valueToStringArray(storedConfiguration.readSetting(pwmSetting,
-                                        profile)), ";;;");
-                        break;
-                    case ChangeMessage:
-                        value = JavaTypeConverter.valueToLocalizedString(
-                                storedConfiguration.readSetting(pwmSetting, profile), locale);
-                        break;
-                    default:
-                        value = String.valueOf(
-                                storedConfiguration.readSetting(pwmSetting, profile).toNativeObject());
-                }
-                passwordPolicySettings.put(rule.getKey(), value);
-            }
-        }
-
-        // set case sensitivity
-        final String caseSensitivitySetting = JavaTypeConverter.valueToString(storedConfiguration.readSetting(
-                PwmSetting.PASSWORD_POLICY_CASE_SENSITIVITY));
-        if (!"read".equals(caseSensitivitySetting)) {
-            passwordPolicySettings.put(PwmPasswordRule.CaseSensitive.getKey(),caseSensitivitySetting);
-        }
-
-        // set pwm-specific values
-        final PwmPasswordPolicy passwordPolicy = PwmPasswordPolicy.createPwmPasswordPolicy(passwordPolicySettings);
-        passwordPolicy.setProfile(profile);
-        if (!PwmConstants.DEFAULT_PASSWORD_PROFILE.equalsIgnoreCase(profile)) {
-            final String queryMatch = JavaTypeConverter.valueToString(storedConfiguration.readSetting(PwmSetting.PASSWORD_POLICY_QUERY_MATCH,profile));
-            passwordPolicy.setQueryMatch(queryMatch);
-        }
-        passwordPolicy.setRuleText(JavaTypeConverter.valueToLocalizedString(storedConfiguration.readSetting(PwmSetting.PASSWORD_POLICY_RULE_TEXT,profile),locale));
-        return passwordPolicy;
-    }
 
     public List<String> readSettingAsStringArray(final PwmSetting setting) {
-        return JavaTypeConverter.valueToStringArray(readStoredValue(setting));
+        if (PwmSettingSyntax.STRING_ARRAY != setting.getSyntax() && PwmSettingSyntax.FORM != setting.getSyntax()) {
+            throw new IllegalArgumentException("may not read STRING_ARRAY value for setting: " + setting.toString());
+        }
+
+        final StoredValue value = storedConfiguration.readSetting(setting);
+        final List<String> results = new ArrayList<String>((List<String>)value.toNativeObject());
+        for (final Iterator iter = results.iterator(); iter.hasNext();) {
+            final Object loopString = iter.next();
+            if (loopString == null || loopString.toString().length() < 1) {
+                iter.remove();
+            }
+        }
+        return results;
+    }
+
+    public Map<String,String> readSettingAsStringMap(final PwmSetting setting) {
+        List<String> configs = readSettingAsStringArray(setting);
+        //LinkedHashMap so that the order of the settings are maintained
+        Map<String, String> results = new LinkedHashMap<String, String>();
+        for (String config : configs) {
+            String[] tokens = config.split(":");
+            results.put(tokens[0], tokens.length > 1 ? tokens[1] : tokens[0]);
+        }
+        return results;
     }
 
     public String readSettingAsLocalizedString(final PwmSetting setting, final Locale locale) {
-        return JavaTypeConverter.valueToLocalizedString(readStoredValue(setting), locale);
+        if (PwmSettingSyntax.LOCALIZED_STRING != setting.getSyntax() && PwmSettingSyntax.LOCALIZED_TEXT_AREA != setting.getSyntax()) {
+            throw new IllegalArgumentException("may not read LOCALIZED_STRING or LOCALIZED_TEXT_AREA values for setting: " + setting.toString());
+        }
+
+        final Map<String, String> availableValues = (Map<String, String>)storedConfiguration.readSetting(setting).toNativeObject();
+        final Map<Locale, String> availableLocaleMap = new LinkedHashMap<Locale, String>();
+        for (final String localeStr : availableValues.keySet()) {
+            availableLocaleMap.put(Helper.parseLocaleString(localeStr), availableValues.get(localeStr));
+        }
+        final Locale matchedLocale = Helper.localeResolver(locale, availableLocaleMap.keySet());
+
+        return availableLocaleMap.get(matchedLocale);
+    }
+
+    public Map<String, String> getLoginContexts() {
+        final List<String> values = readSettingAsStringArray(PwmSetting.LDAP_LOGIN_CONTEXTS);
+        return Configuration.convertStringListToNameValuePair(values, ":::");
     }
 
     public static Map<String, String> convertStringListToNameValuePair(final Collection<String> input, final String separator) {
@@ -408,6 +406,10 @@ public class Configuration implements Serializable {
         return returnMap;
     }
 
+    public Date getModifyTime() {
+        return storedConfiguration.getModifyTime();
+    }
+
     public boolean isDefaultValue(final PwmSetting pwmSetting) {
         return storedConfiguration.isDefaultValue(pwmSetting);
     }
@@ -417,13 +419,13 @@ public class Configuration implements Serializable {
         switch (setting.getSyntax()) {
             case LOCALIZED_TEXT_AREA:
             case LOCALIZED_STRING:
-                for (final String localeStr : ((Map<String, String>)readStoredValue(setting).toNativeObject()).keySet()) {
+                for (final String localeStr : ((Map<String, String>)storedConfiguration.readSetting(setting).toNativeObject()).keySet()) {
                     returnCollection.add(Helper.parseLocaleString(localeStr));
                 }
                 break;
 
             case LOCALIZED_STRING_ARRAY:
-                for (final String localeStr : ((Map<String, List<String>>)readStoredValue(setting).toNativeObject()).keySet()) {
+                for (final String localeStr : ((Map<String, List<String>>)storedConfiguration.readSetting(setting).toNativeObject()).keySet()) {
                     returnCollection.add(Helper.parseLocaleString(localeStr));
                 }
                 break;
@@ -432,22 +434,24 @@ public class Configuration implements Serializable {
         return returnCollection;
     }
 
-    public String readProperty(final StoredConfiguration.ConfigProperty key) {
-        return storedConfiguration.readConfigProperty(key);
+    public String readProperty(final String key) {
+        return storedConfiguration.readProperty(key);
     }
 
     public boolean readSettingAsBoolean(final PwmSetting setting) {
-        return JavaTypeConverter.valueToBoolean(readStoredValue(setting));
+        if (PwmSettingSyntax.BOOLEAN != setting.getSyntax()) {
+            throw new IllegalArgumentException("may not read BOOLEAN value for setting: " + setting.toString());
+        }
+
+        return (Boolean)storedConfiguration.readSetting(setting).toNativeObject();
     }
 
     public X509Certificate[] readSettingAsCertificate(final PwmSetting setting) {
         if (PwmSettingSyntax.X509CERT != setting.getSyntax()) {
             throw new IllegalArgumentException("may not read X509CERT value for setting: " + setting.toString());
         }
-        if (readStoredValue(setting) == null) {
-            return new X509Certificate[0];
-        }
-        return (X509Certificate[])readStoredValue(setting).toNativeObject();
+
+        return (X509Certificate[])storedConfiguration.readSetting(setting).toNativeObject();
     }
 
     public String toDebugString() {
@@ -455,7 +459,7 @@ public class Configuration implements Serializable {
     }
 
     public String getNotes() {
-        return storedConfiguration.readConfigProperty(StoredConfiguration.ConfigProperty.PROPERTY_KEY_NOTES);
+        return storedConfiguration.readProperty(StoredConfiguration.PROPERTY_KEY_NOTES);
     }
 
     public SecretKey getSecurityKey() throws PwmOperationalException {
@@ -482,21 +486,12 @@ public class Configuration implements Serializable {
         }
     }
 
-    public List<DataStorageMethod> getResponseStorageLocations(final PwmSetting setting) {
-
-        return getGenericStorageLocations(setting);
-    }
-
-    public List<DataStorageMethod> getOtpSecretStorageLocations(final PwmSetting setting) {
-        return getGenericStorageLocations(setting);
-    }
-
-    private List<DataStorageMethod> getGenericStorageLocations(final PwmSetting setting) {
+    public List<STORAGE_METHOD> getResponseStorageLocations(final PwmSetting setting) {
         final String input = readSettingAsString(setting);
-        final List<DataStorageMethod> storageMethods = new ArrayList<DataStorageMethod>();
+        final List<STORAGE_METHOD> storageMethods = new ArrayList<STORAGE_METHOD>();
         for (final String rawValue : input.split("-")) {
             try {
-                storageMethods.add(DataStorageMethod.valueOf(rawValue));
+                storageMethods.add(STORAGE_METHOD.valueOf(rawValue));
             } catch (IllegalArgumentException e) {
                 LOGGER.error("unknown STORAGE_METHOD found: " + rawValue);
             }
@@ -509,55 +504,48 @@ public class Configuration implements Serializable {
 
         {
             if ((System.currentTimeMillis() - newUserPasswordPolicyCacheTime) > PwmConstants.NEWUSER_PASSWORD_POLICY_CACHE_MS) {
-                dataCache.newUserPasswordPolicy.clear();
+                newUserPasswordPolicy.clear();
             }
 
-            final PwmPasswordPolicy cachedPolicy = dataCache.newUserPasswordPolicy.get(userLocale);
+            final PwmPasswordPolicy cachedPolicy = newUserPasswordPolicy.get(userLocale);
             if (cachedPolicy != null) {
                 return cachedPolicy;
             }
 
-            final LdapProfile defaultLdapProfile = getLdapProfiles().get(PwmConstants.DEFAULT_LDAP_PROFILE);
             final String configuredNewUserPasswordDN = readSettingAsString(PwmSetting.NEWUSER_PASSWORD_POLICY_USER);
             if (configuredNewUserPasswordDN == null || configuredNewUserPasswordDN.length() < 1) {
-                final PwmPasswordPolicy thePolicy = getPasswordPolicy(PwmConstants.DEFAULT_PASSWORD_PROFILE, userLocale);
-                dataCache.newUserPasswordPolicy.put(userLocale,thePolicy);
+                final PwmPasswordPolicy thePolicy = getGlobalPasswordPolicy(userLocale);
+                newUserPasswordPolicy.put(userLocale,thePolicy);
                 return thePolicy;
             } else {
 
                 final String lookupDN;
                 if (configuredNewUserPasswordDN.equalsIgnoreCase("TESTUSER") ) {
-                    lookupDN = defaultLdapProfile.readSettingAsString(PwmSetting.LDAP_TEST_USER_DN);
+                    lookupDN = readSettingAsString(PwmSetting.LDAP_TEST_USER_DN);
                 } else {
                     lookupDN = configuredNewUserPasswordDN;
                 }
 
-                final PwmPasswordPolicy thePolicy;
-                if (lookupDN == null || lookupDN.isEmpty()) {
-                    thePolicy = getPasswordPolicy(PwmConstants.DEFAULT_LDAP_PROFILE,userLocale);
-                } else {
-                    final ChaiUser chaiUser = ChaiFactory.createChaiUser(lookupDN, pwmApplication.getProxyChaiProvider(PwmConstants.DEFAULT_LDAP_PROFILE));
-                    final UserIdentity userIdentity = new UserIdentity(lookupDN,PwmConstants.DEFAULT_LDAP_PROFILE);
-                    thePolicy = PasswordUtility.readPasswordPolicyForUser(pwmApplication, null, userIdentity, chaiUser, userLocale);
-                }
-                dataCache.newUserPasswordPolicy.put(userLocale,thePolicy);
+                final ChaiUser chaiUser = ChaiFactory.createChaiUser(lookupDN, pwmApplication.getProxyChaiProvider());
+                final PwmPasswordPolicy thePolicy = PasswordUtility.readPasswordPolicyForUser(pwmApplication, null, chaiUser, userLocale);
+                newUserPasswordPolicy.put(userLocale,thePolicy);
                 return thePolicy;
             }
         }
     }
 
     public List<Locale> getKnownLocales() {
-        if (dataCache.localeFlagMap == null) {
-            dataCache.localeFlagMap = figureLocaleFlagMap();
+        if (localeFlagMap == null) {
+            localeFlagMap = figureLocaleFlagMap();
         }
-        return Collections.unmodifiableList(new ArrayList<Locale>(dataCache.localeFlagMap.keySet()));
+        return Collections.unmodifiableList(new ArrayList<Locale>(localeFlagMap.keySet()));
     }
 
     public Map<Locale,String> getKnownLocaleFlagMap() {
-        if (dataCache.localeFlagMap == null) {
-            dataCache.localeFlagMap = figureLocaleFlagMap();
+        if (localeFlagMap == null) {
+            localeFlagMap = figureLocaleFlagMap();
         }
-        return dataCache.localeFlagMap;
+        return localeFlagMap;
     }
 
     private Map<Locale,String> figureLocaleFlagMap() {
@@ -567,7 +555,7 @@ public class Configuration implements Serializable {
         final Map<String,String> inputMap = convertStringListToNameValuePair(inputList,"::");
 
         // Sort the map by display name
-        final Map<String,String> sortedMap = new TreeMap<String,String>();
+        Map<String,String> sortedMap = new TreeMap<String,String>();
         for (final String localeString : inputMap.keySet()) {
             final Locale theLocale = Helper.parseLocaleString(localeString);
             if (theLocale != null) {
@@ -597,13 +585,13 @@ public class Configuration implements Serializable {
         return Collections.unmodifiableMap(localeFlagMap);
     }
 
-    public RecoveryAction getRecoveryAction() {
+    public RECOVERY_ACTION getRecoveryAction() {
         final String stringValue = readSettingAsString(PwmSetting.FORGOTTEN_PASSWORD_ACTION);
         try {
-            return RecoveryAction.valueOf(stringValue);
+            return RECOVERY_ACTION.valueOf(stringValue);
         } catch (IllegalArgumentException e) {
             LOGGER.error("unknown recovery action value: " + stringValue);
-            return RecoveryAction.RESETPW;
+            return RECOVERY_ACTION.RESETPW;
         }
     }
 
@@ -622,120 +610,18 @@ public class Configuration implements Serializable {
         return storedConfiguration.getTemplate();
     }
 
-    public boolean hasDbConfigured() {
-        if (readSettingAsString(PwmSetting.DATABASE_CLASS) == null || readSettingAsString(PwmSetting.DATABASE_CLASS).length() < 1) {
-            return false;
+    public boolean shouldHaveDbConfigured() {
+        for (final PwmSetting loopSetting : new PwmSetting[] {PwmSetting.FORGOTTEN_PASSWORD_READ_PREFERENCE, PwmSetting.FORGOTTEN_PASSWORD_WRITE_PREFERENCE}) {
+            if (getResponseStorageLocations(loopSetting).contains(Configuration.STORAGE_METHOD.DB)) {
+                return true;
+            }
         }
-        if (readSettingAsString(PwmSetting.DATABASE_URL) == null || readSettingAsString(PwmSetting.DATABASE_URL).length() < 1) {
-            return false;
-        }
-        if (readSettingAsString(PwmSetting.DATABASE_USERNAME) == null || readSettingAsString(PwmSetting.DATABASE_USERNAME).length() < 1) {
-            return false;
-        }
-        if (readSettingAsString(PwmSetting.DATABASE_PASSWORD) == null || readSettingAsString(PwmSetting.DATABASE_PASSWORD).length() < 1) {
-            return false;
-        }
-
-        return true;
+        return false;
     }
 
-    public String getUsernameAttribute(final String profileID) {
-        final LdapProfile ldapProfile = getLdapProfiles().get(profileID);
-        final String configUsernameAttr = ldapProfile.readSettingAsString(PwmSetting.LDAP_USERNAME_ATTRIBUTE);
+    public String getUsernameAttribute() {
+        final String configUsernameAttr = readSettingAsString(PwmSetting.LDAP_USERNAME_ATTRIBUTE);
         final String ldapNamingAttribute = readSettingAsString(PwmSetting.LDAP_NAMING_ATTRIBUTE);
         return configUsernameAttr != null && configUsernameAttr.length() > 0 ? configUsernameAttr : ldapNamingAttribute;
-    }
-
-    public String readAppProperty(AppProperty property) {
-        final String configValue = storedConfiguration.readAppProperty(property);
-        if (configValue != null) {
-            return configValue;
-        }
-
-        return property.getDefaultValue();
-    }
-
-    private Convenience helper = new Convenience();
-
-    public Convenience helper() {
-        return helper;
-    }
-
-    public class Convenience {
-        public List<DataStorageMethod> getCrReadPreference() {
-            final List<DataStorageMethod> readPreferences = getResponseStorageLocations(PwmSetting.FORGOTTEN_PASSWORD_READ_PREFERENCE);
-            if (readPreferences.size() == 1 && readPreferences.get(0) == DataStorageMethod.AUTO) {
-                readPreferences.clear();
-                if (hasDbConfigured()) {
-                    readPreferences.add(DataStorageMethod.DB);
-                } else {
-                    readPreferences.add(DataStorageMethod.LDAP);
-                }
-            }
-
-            final String wsURL = readSettingAsString(PwmSetting.EDIRECTORY_PWD_MGT_WEBSERVICE_URL);
-            if (wsURL != null && wsURL.length() > 0) {
-                readPreferences.add(DataStorageMethod.NMASUAWS);
-            }
-
-
-            if (readSettingAsBoolean(PwmSetting.EDIRECTORY_USE_NMAS_RESPONSES)) {
-                readPreferences.add(DataStorageMethod.NMAS);
-            }
-
-            return readPreferences;
-        }
-
-        public List<DataStorageMethod> getCrWritePreference() {
-            final List<DataStorageMethod> writeMethods = getResponseStorageLocations(PwmSetting.FORGOTTEN_PASSWORD_WRITE_PREFERENCE);
-            if (writeMethods.size() == 1 && writeMethods.get(0) == DataStorageMethod.AUTO) {
-                writeMethods.clear();
-                if (hasDbConfigured()) {
-                    writeMethods.add(DataStorageMethod.DB);
-                } else {
-                    writeMethods.add(DataStorageMethod.LDAP);
-                }
-            }
-            if (readSettingAsBoolean(PwmSetting.EDIRECTORY_STORE_NMAS_RESPONSES)) {
-                writeMethods.add(DataStorageMethod.NMAS);
-            }
-            return writeMethods;
-        }
-
-        public boolean shouldHaveDbConfigured() {
-            final PwmSetting[] settingsToCheck = new PwmSetting[] {
-                    PwmSetting.FORGOTTEN_PASSWORD_READ_PREFERENCE,
-                    PwmSetting.FORGOTTEN_PASSWORD_WRITE_PREFERENCE,
-                    PwmSetting.INTRUDER_STORAGE_METHOD,
-                    PwmSetting.EVENTS_USER_STORAGE_METHOD
-            };
-
-            for (final PwmSetting loopSetting : settingsToCheck) {
-                if (getResponseStorageLocations(loopSetting).contains(DataStorageMethod.DB)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-    }
-
-    private StoredValue readStoredValue(final PwmSetting setting) {
-        if (dataCache.settings.containsKey(setting)) {
-            return dataCache.settings.get(setting);
-        }
-
-        final StoredValue readValue = storedConfiguration.readSetting(setting);
-        dataCache.settings.put(setting, readValue);
-        return readValue;
-    }
-
-    private static class DataCache implements Serializable {
-        private final Map<String,Map<Locale,PwmPasswordPolicy>> cachedPasswordPolicy = new HashMap<String,Map<Locale,PwmPasswordPolicy>>();
-        private final Map<String,Map<Locale,ChallengeProfile>> challengeProfile = new HashMap<String,Map<Locale,ChallengeProfile>>();
-        private final Map<Locale,PwmPasswordPolicy> newUserPasswordPolicy = new HashMap<Locale,PwmPasswordPolicy>();
-        private Map<Locale,String> localeFlagMap = null;
-        private Map<String,LdapProfile> ldapProfiles;
-        private final Map<PwmSetting, StoredValue> settings = new EnumMap<PwmSetting, StoredValue>(PwmSetting.class);
-        private final Map<String,Map<Locale,String>> customText = new HashMap<String, Map<Locale, String>>();
     }
 }

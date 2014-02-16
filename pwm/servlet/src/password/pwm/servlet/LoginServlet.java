@@ -25,7 +25,6 @@ package password.pwm.servlet;
 import com.novell.ldapchai.exception.ChaiUnavailableException;
 import password.pwm.*;
 import password.pwm.bean.SessionStateBean;
-import password.pwm.bean.UserIdentity;
 import password.pwm.bean.UserInfoBean;
 import password.pwm.error.ErrorInformation;
 import password.pwm.error.PwmError;
@@ -33,7 +32,7 @@ import password.pwm.error.PwmOperationalException;
 import password.pwm.error.PwmUnrecoverableException;
 import password.pwm.util.PwmLogger;
 import password.pwm.util.ServletHelper;
-import password.pwm.ldap.UserAuthenticator;
+import password.pwm.util.operations.UserAuthenticator;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -71,8 +70,7 @@ public class
             Validator.validatePwmFormID(req);
             final String username = Validator.readStringFromRequest(req, "username");
             final String password = Validator.readStringFromRequest(req, "password");
-            final String context = Validator.readStringFromRequest(req, PwmConstants.PARAM_CONTEXT, null);
-            final String ldapProfile = Validator.readStringFromRequest(req, PwmConstants.PARAM_LDAP_PROFILE, null);
+            final String context = Validator.readStringFromRequest(req, "context");
 
             if (!passwordOnly && (username.length() < 1)) {
                 ssBean.setSessionError(new ErrorInformation(PwmError.ERROR_MISSING_PARAMETER));
@@ -88,14 +86,14 @@ public class
 
             try {
                 if (passwordOnly) {
-                    final UserIdentity userIdentity = pwmSession.getUserInfoBean().getUserIdentity();
-                    UserAuthenticator.authenticateUser(userIdentity, password, pwmSession,pwmApplication, req.isSecure());
+                    final String userDN = pwmSession.getUserInfoBean().getUserDN();
+                    UserAuthenticator.authenticateUser(userDN, password, null, pwmSession,pwmApplication, req.isSecure());
                 } else {
-                    UserAuthenticator.authenticateUser(username, password, context, ldapProfile, pwmSession, pwmApplication, req.isSecure());
+                    UserAuthenticator.authenticateUser(username, password, context, pwmSession, pwmApplication, req.isSecure());
                 }
 
                 // recycle the session to prevent session fixation attack.
-                ServletHelper.recycleSessions(pwmApplication, pwmSession, req, resp);
+                ServletHelper.recycleSessions(pwmSession, req);
 
                 // see if there is a an original request url
                 final String originalURL = ssBean.getOriginalRequestURL();

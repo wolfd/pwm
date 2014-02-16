@@ -23,7 +23,7 @@
 package password.pwm.bean.servlet;
 
 import password.pwm.bean.PwmSessionBean;
-import password.pwm.ldap.UserSearchEngine;
+import password.pwm.util.operations.UserSearchEngine;
 
 public class PeopleSearchBean implements PwmSessionBean {
     private String searchString;

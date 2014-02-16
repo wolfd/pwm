@@ -122,9 +122,10 @@ public class ShortcutServlet extends TopServlet {
         } else {
             for (final ShortcutItem item : configuredItems) {
                 final boolean queryMatch = Permission.testQueryMatch(
-                        pwmApplication,
-                        pwmSession, pwmSession.getUserInfoBean().getUserIdentity(),
-                        item.getLdapQuery()
+                        pwmSession.getSessionManager().getActor(),
+                        item.getLdapQuery(),
+                        null,
+                        pwmSession
                 );
 
                 if (queryMatch) {

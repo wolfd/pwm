@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -54,13 +54,11 @@ public enum Statistic {
     CAPTCHA_FAILURES(Type.INCREMENTOR, "CaptchaFailures"),
     LDAP_UNAVAILABLE_COUNT(Type.INCREMENTOR, "LdapUnavailableCount"),
     SETUP_RESPONSES(Type.INCREMENTOR, "SetupResponses"),
-    SETUP_OTP_SECRET(Type.INCREMENTOR, "SetupOtpSecret"),
     UPDATE_ATTRIBUTES(Type.INCREMENTOR, "UpdateAttributes"),
     SHORTCUTS_SELECTED(Type.INCREMENTOR, "ShortcutsSelected"),
     GENERATED_PASSWORDS(Type.INCREMENTOR, "GeneratedPasswords"),
     RECOVERY_TOKENS_SENT(Type.INCREMENTOR, "RecoveryTokensSent"),
     RECOVERY_TOKENS_PASSED(Type.INCREMENTOR, "RecoveryTokensPassed"),
-    RECOVERY_OTP_PASSED(Type.INCREMENTOR, "RecoveryOneTimePasswordsPassed"),
     PEOPLESEARCH_SEARCHES(Type.INCREMENTOR, "PeopleSearchSearches"),
     HELPDESK_PASSWORD_SET(Type.INCREMENTOR, "HelpdeskPasswordSet"),
     HELPDESK_USER_LOOKUP(Type.INCREMENTOR, "HelpdeskUserLookup"),
@@ -119,7 +117,7 @@ public enum Statistic {
             final ResourceBundle bundle = ResourceBundle.getBundle(Statistic.class.getName(), locale);
             return bundle.getString(key);
         } catch (Exception e) {
-            return "RESOURCE MISSING: key=" + key;
+            return "--RESOURCE MISSING--";
         }
     }
 

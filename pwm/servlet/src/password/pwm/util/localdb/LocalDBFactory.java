@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,15 +22,12 @@
 
 package password.pwm.util.localdb;
 
-import password.pwm.AppProperty;
 import password.pwm.PwmApplication;
-import password.pwm.config.Configuration;
 import password.pwm.util.Helper;
 import password.pwm.util.PwmLogger;
 import password.pwm.util.TimeDuration;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -45,39 +42,21 @@ public class LocalDBFactory {
 
     public static synchronized LocalDB getInstance(
             final File dbDirectory,
+            final String className,
+            final Map<String, String> initParameters,
             final boolean readonly,
-            final PwmApplication pwmApplication,
-            Configuration config
+            final PwmApplication pwmApplication
     )
-            throws Exception
-    {
-        if (config == null && pwmApplication != null) {
-            config = pwmApplication.getConfig();
-        }
+            throws Exception {
 
         final long startTime = System.currentTimeMillis();
-
-        final String className;
-        final Map<String, String> initParameters;
-        if (config == null) {
-            className = AppProperty.LOCALDB_IMPLEMENTATION.getDefaultValue();
-            final String initStrings = AppProperty.LOCALDB_INIT_STRING.getDefaultValue();
-            initParameters = Configuration.convertStringListToNameValuePair(Arrays.asList(initStrings.split(";;;")), "=");
-        } else {
-            className = config.readAppProperty(AppProperty.LOCALDB_IMPLEMENTATION);
-            final String initStrings = config.readAppProperty(AppProperty.LOCALDB_INIT_STRING);
-            initParameters = Configuration.convertStringListToNameValuePair(Arrays.asList(initStrings.split(";;;")), "=");
-        }
-
         final LocalDBProvider dbProvider = createInstance(className);
         LOGGER.debug("initializing " + className + " localDBProvider instance");
 
-        LocalDB db = new LocalDBAdaptor(dbProvider, pwmApplication);
+        final LocalDB db = new LocalDBAdaptor(dbProvider, pwmApplication);
 
         initInstance(dbProvider, dbDirectory, initParameters, className, readonly);
         final TimeDuration openTime = new TimeDuration(System.currentTimeMillis() - startTime);
-
-        db = wrapWithCompressor(db,config);
 
         LOGGER.trace("clearing TEMP db");
         if (!readonly) {
@@ -109,7 +88,7 @@ public class LocalDBFactory {
             localDB = (LocalDBProvider) impl;
         } catch (Exception e) {
             LOGGER.warn("error creating new LocalDB instance: " + e.getClass().getName() + ":" + e.getMessage());
-            throw new Exception("error creating new LocalDB instance: " + e.getMessage(), e);
+            throw new Exception("Messages instantiating new LocalDB instance: " + e.getMessage(), e);
         }
 
         return localDB;
@@ -128,21 +107,5 @@ public class LocalDBFactory {
         }
 
         LOGGER.trace("db init completed for " + theClass);
-    }
-
-    private static LocalDB wrapWithCompressor(final LocalDB localDB, final Configuration config) {
-        if (config == null) {
-            return LocalDBCompressor.createLocalDBCompressor(localDB, 1024, false);
-        }
-
-        final boolean enableCompression = Boolean.parseBoolean(config.readAppProperty(AppProperty.LOCALDB_COMPRESSION_ENABLED));
-        final boolean enableDecompression = Boolean.parseBoolean(config.readAppProperty(AppProperty.LOCALDB_DECOMPRESSION_ENABLED));
-        final int compressionMinSize = Integer.parseInt(config.readAppProperty(AppProperty.LOCALDB_COMPRESSION_MINSIZE));
-
-        if (enableCompression || enableDecompression) {
-            return LocalDBCompressor.createLocalDBCompressor(localDB, compressionMinSize, enableCompression);
-        }
-
-        return localDB;
     }
 }

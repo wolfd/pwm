@@ -6,7 +6,7 @@
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -32,11 +32,10 @@
 <%@ taglib uri="pwm" prefix="pwm" %>
 <html dir="<pwm:LocaleOrientation/>">
 <%@ include file="fragment/header.jsp" %>
-<body class="nihilo">
+<body class="nihilo" onload="pwmPageLoadHandler();">
 <link href="<%=request.getContextPath()%><pwm:url url='/public/resources/configStyle.css'/>" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="<%=request.getContextPath()%><pwm:url url="/public/resources/js/configguide.js"/>"></script>
 <script type="text/javascript" src="<%=request.getContextPath()%><pwm:url url="/public/resources/js/configeditor.js"/>"></script>
-<script type="text/javascript" src="<%=request.getContextPath()%><pwm:url url="/public/resources/js/admin.js"/>"></script>
 <div id="wrapper">
     <div id="header">
         <div id="header-company-logo"></div>
@@ -122,10 +121,10 @@
                                                     style: 'width:100px',
                                                     onChange: function() {
                                                         console.log('onchange trigger!');
-                                                        PWM_MAIN.getObject('widget_<%=ConfigGuideServlet.PARAM_LDAP_PORT%>').value = this.checked ? '636' : '389';
+                                                        getObject('widget_<%=ConfigGuideServlet.PARAM_LDAP_PORT%>').value = this.checked ? '636' : '389';
                                                         handleFormActivity();
                                                         if (!this.checked) {
-                                                            PWM_MAIN.showConfirmDialog(null,'<pwm:Display key="Confirm_SSLDisable" bundle="Config"/>', null, function(){
+                                                            showConfirmDialog(null,'<pwm:Display key="Confirm_SSLDisable" bundle="Config"/>', null, function(){
                                                                 registry.byId('widget_<%=ConfigGuideServlet.PARAM_LDAP_SECURE%>').set('checked','true');
                                                             });
                                                         }
@@ -198,7 +197,7 @@
             </div>
         </form>
         <br/>
-        <div id="healthBody" style="border:0; margin:0; padding:0; cursor: pointer" onclick="loadHealth();">
+        <div id="healthBody" style="border:0; margin:0; padding:0" onclick="loadHealth();">
             <div style="text-align: center">
                 <a class="menubutton" style="max-width: 100px; margin-left: auto; margin-right: auto">Check Settings</a>
             </div>
@@ -221,18 +220,18 @@
 <script type="text/javascript">
     function handleFormActivity() {
         require(["dijit/registry"],function(registry){
-            PWM_MAIN.getObject('<%=ConfigGuideServlet.PARAM_LDAP_HOST%>').value = registry.byId('widget_<%=ConfigGuideServlet.PARAM_LDAP_HOST%>').get('value');
-            PWM_MAIN.getObject('<%=ConfigGuideServlet.PARAM_LDAP_PORT%>').value = registry.byId('widget_<%=ConfigGuideServlet.PARAM_LDAP_PORT%>').get('value');
-            PWM_MAIN.getObject('<%=ConfigGuideServlet.PARAM_LDAP_SECURE%>').value = registry.byId('widget_<%=ConfigGuideServlet.PARAM_LDAP_SECURE%>').checked;
-            PWM_MAIN.getObject('<%=ConfigGuideServlet.PARAM_LDAP_ADMIN_DN%>').value = registry.byId('widget_<%=ConfigGuideServlet.PARAM_LDAP_ADMIN_DN%>').get('value');
-            PWM_MAIN.getObject('<%=ConfigGuideServlet.PARAM_LDAP_ADMIN_PW%>').value = registry.byId('widget_<%=ConfigGuideServlet.PARAM_LDAP_ADMIN_PW%>').get('value');
+            getObject('<%=ConfigGuideServlet.PARAM_LDAP_HOST%>').value = registry.byId('widget_<%=ConfigGuideServlet.PARAM_LDAP_HOST%>').get('value');
+            getObject('<%=ConfigGuideServlet.PARAM_LDAP_PORT%>').value = registry.byId('widget_<%=ConfigGuideServlet.PARAM_LDAP_PORT%>').get('value');
+            getObject('<%=ConfigGuideServlet.PARAM_LDAP_SECURE%>').value = registry.byId('widget_<%=ConfigGuideServlet.PARAM_LDAP_SECURE%>').checked;
+            getObject('<%=ConfigGuideServlet.PARAM_LDAP_ADMIN_DN%>').value = registry.byId('widget_<%=ConfigGuideServlet.PARAM_LDAP_ADMIN_DN%>').get('value');
+            getObject('<%=ConfigGuideServlet.PARAM_LDAP_ADMIN_PW%>').value = registry.byId('widget_<%=ConfigGuideServlet.PARAM_LDAP_ADMIN_PW%>').get('value');
             updateForm();
             clearHealthDiv();
         });
     }
 
     function clearHealthDiv() {
-        var healthBodyObj = PWM_MAIN.getObject('healthBody');
+        var healthBodyObj = getObject('healthBody');
         var newHtml = '<div style="text-align: center">';
         newHtml += '<a class="menubutton" style="max-width: 100px; margin-left: auto; margin-right: auto">Check Settings</a>';
         newHtml += '</div>';
@@ -240,6 +239,7 @@
     }
 
     PWM_GLOBAL['startupFunctions'].push(function(){
+        getObject('localeSelectionMenu').style.display = 'none';
         require(["dojo/parser","dijit/TitlePane","dijit/form/Form","dijit/form/ValidationTextBox","dijit/form/NumberSpinner","dijit/form/CheckBox"],function(dojoParser){
             clearHealthDiv();
         });
@@ -248,9 +248,9 @@
 
     function checkIfNextEnabled() {
         if (PWM_GLOBAL['pwm-health'] === 'GOOD') {
-            PWM_MAIN.getObject('button_next').disabled = false;
+            getObject('button_next').disabled = false;
         } else {
-            PWM_MAIN.getObject('button_next').disabled = true;
+            getObject('button_next').disabled = true;
         }
     }
 
@@ -260,14 +260,13 @@
         options['showRefresh'] = false;
         options['refreshTime'] = -1;
         options['finishFunction'] = function(){
-            PWM_MAIN.closeWaitDialog();
+            closeWaitDialog();
             checkIfNextEnabled();
         };
-        PWM_MAIN.showWaitDialog();
-        PWM_ADMIN.showAppHealth('healthBody', options);
+        showWaitDialog();
+        showPwmHealth('healthBody', options);
     }
 </script>
-<% request.setAttribute(PwmConstants.REQUEST_ATTR_SHOW_LOCALE,"false"); %>
 <%@ include file="fragment/footer.jsp" %>
 </body>
 </html>

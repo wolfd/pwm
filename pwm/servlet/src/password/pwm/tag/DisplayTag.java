@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,9 +31,9 @@ import password.pwm.config.Configuration;
 import password.pwm.error.PwmUnrecoverableException;
 import password.pwm.i18n.Display;
 import password.pwm.i18n.LocaleHelper;
-import password.pwm.ldap.UserDataReader;
+import password.pwm.util.MacroMachine;
 import password.pwm.util.PwmLogger;
-import password.pwm.util.macro.MacroMachine;
+import password.pwm.util.operations.UserDataReader;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.jsp.JspTagException;
@@ -51,7 +51,6 @@ public class DisplayTag extends PwmAbstractTag {
     private String key;
     private String value1;
     private String value2;
-    private String value3;
     private boolean displayIfMissing;
     private String bundle;
 
@@ -79,16 +78,6 @@ public class DisplayTag extends PwmAbstractTag {
 
     public void setValue2(final String value1) {
         this.value2 = value1;
-    }
-
-    public String getValue3()
-    {
-        return value3;
-    }
-
-    public void setValue3(String value3)
-    {
-        this.value3 = value3;
     }
 
     public boolean isDisplayIfMissing() {
@@ -121,7 +110,7 @@ public class DisplayTag extends PwmAbstractTag {
             final PwmSession pwmSession = PwmSession.getPwmSession(req);
             final UserDataReader userDataReader;
             if (pwmSession.getSessionStateBean().isAuthenticated()) {
-                userDataReader = pwmSession.getSessionManager().getUserDataReader(pwmApplication);
+                userDataReader = pwmSession.getSessionManager().getUserDataReader();
             } else {
                 userDataReader = null;
             }
@@ -129,17 +118,16 @@ public class DisplayTag extends PwmAbstractTag {
 
             final Class bundle = readBundle();
             final String displayMessage = figureDisplayMessage(locale, pwmApplication.getConfig(), bundle);
-            final MacroMachine macroMachine = new MacroMachine(pwmApplication, uiBean, userDataReader);
-            final String expandedMessage = macroMachine.expandMacros(displayMessage);
+            final String expandedMessage = MacroMachine.expandMacros(displayMessage, pwmApplication, uiBean, userDataReader);
 
             pageContext.getOut().write(expandedMessage);
         } catch (PwmUnrecoverableException e) { {
-            LOGGER.debug("error while executing jsp display tag: " + e.getMessage());
+            LOGGER.debug("error while executing jsp display tag: " + e.getMessage(), e);
             return EVAL_PAGE;
         }
         } catch (Exception e) {
-            LOGGER.debug("error while executing jsp display tag: " + e.getMessage(),e);
-            throw new JspTagException(e.getMessage(),e);
+            LOGGER.debug("error while executing jsp display tag: " + e.getMessage(), e);
+            throw new JspTagException(e.getMessage());
         }
         return EVAL_PAGE;
     }
@@ -165,7 +153,7 @@ public class DisplayTag extends PwmAbstractTag {
             locale = PwmConstants.DEFAULT_LOCALE;
         }
         try {
-            return LocaleHelper.getLocalizedMessage(locale, key, config, bundleClass, new String[]{value1, value2, value3});
+            return LocaleHelper.getLocalizedMessage(locale, key, config, bundleClass, new String[]{value1, value2});
         } catch (MissingResourceException e) {
             if (!displayIfMissing) {
                 LOGGER.info("error while executing jsp display tag: " + e.getMessage());

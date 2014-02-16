@@ -24,14 +24,10 @@ package password.pwm.ws.server;
 
 import com.google.gson.GsonBuilder;
 import password.pwm.PwmApplication;
-import password.pwm.PwmConstants;
 import password.pwm.PwmSession;
 import password.pwm.config.Configuration;
 import password.pwm.error.ErrorInformation;
-import password.pwm.util.Helper;
-import password.pwm.util.PwmRandom;
 
-import javax.ws.rs.core.Response;
 import java.io.Serializable;
 import java.util.Locale;
 
@@ -98,7 +94,7 @@ public class RestResultBean implements Serializable {
         this.errorDetail = errorDetail;
     }
 
-    public static RestResultBean fromError(
+    public static RestResultBean fromErrorInformation(
             final ErrorInformation errorInformation,
             final Locale locale,
             final Configuration config
@@ -111,32 +107,19 @@ public class RestResultBean implements Serializable {
         return restResultBean;
     }
 
-    public static RestResultBean fromError(
+    public static RestResultBean fromErrorInformation(
             final ErrorInformation errorInformation,
-            final RestRequestBean restRequestBean
+            final PwmApplication pwmApplication,
+            final PwmSession pwmSession
     ) {
-        final Configuration config = restRequestBean.getPwmApplication().getConfig();
-        final Locale locale = restRequestBean.getPwmSession().getSessionStateBean().getLocale();
-        return fromError(errorInformation, locale, config);
-    }
-
-    public static RestResultBean fromError(
-            final ErrorInformation errorInformation
-    ) {
-        return fromError(errorInformation, null, null);
+        final Configuration config = pwmApplication.getConfig();
+        final Locale locale = pwmSession.getSessionStateBean().getLocale();
+        return fromErrorInformation(errorInformation, locale, config);
     }
 
     public String toJson() {
-        final GsonBuilder gsonBuilder = new GsonBuilder().disableHtmlEscaping();
-        return Helper.getGson(gsonBuilder).toJson(this);
-    }
-
-    public Response asJsonResponse() {
-        final Response.ResponseBuilder responseBuilder = Response.ok();
-        final String body = this.toJson();
-        final String bodyLength = String.valueOf(body.length());
-        //responseBuilder.header("Content-Length", bodyLength);
-        responseBuilder.entity(body);
-        return responseBuilder.build();
+        GsonBuilder gsonBuilder = new GsonBuilder();
+        gsonBuilder.disableHtmlEscaping();
+        return gsonBuilder.create().toJson(this);
     }
 }

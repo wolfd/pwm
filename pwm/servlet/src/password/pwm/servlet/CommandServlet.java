@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,12 +25,10 @@ package password.pwm.servlet;
 import com.novell.ldapchai.exception.ChaiOperationException;
 import com.novell.ldapchai.exception.ChaiUnavailableException;
 import password.pwm.*;
-import password.pwm.bean.PasswordStatus;
 import password.pwm.bean.SessionStateBean;
-import password.pwm.bean.UserIdentity;
 import password.pwm.bean.UserInfoBean;
-import password.pwm.config.Configuration;
 import password.pwm.config.FormConfiguration;
+import password.pwm.config.PasswordStatus;
 import password.pwm.config.PwmSetting;
 import password.pwm.error.ErrorInformation;
 import password.pwm.error.PwmDataValidationException;
@@ -39,8 +37,7 @@ import password.pwm.error.PwmUnrecoverableException;
 import password.pwm.util.Helper;
 import password.pwm.util.PwmLogger;
 import password.pwm.util.ServletHelper;
-import password.pwm.util.report.ReportService;
-import password.pwm.ws.server.RestResultBean;
+import password.pwm.util.UserReport;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
@@ -71,11 +68,8 @@ public class CommandServlet extends TopServlet {
             final HttpServletRequest req,
             final HttpServletResponse resp
     )
-            throws ServletException, IOException, ChaiUnavailableException, PwmUnrecoverableException
-    {
-        final PwmApplication pwmApplication  = ContextManager.getPwmApplication(req);
+            throws ServletException, IOException, ChaiUnavailableException, PwmUnrecoverableException {
         final PwmSession pwmSession = PwmSession.getPwmSession(req);
-
         final String action = Validator.readStringFromRequest(req, PwmConstants.PARAM_ACTION_REQUEST);
         LOGGER.trace(pwmSession, "received request for action " + action);
 
@@ -98,9 +92,7 @@ public class CommandServlet extends TopServlet {
         } else if (action.equalsIgnoreCase("pageLeaveNotice")) {
             processPageLeaveNotice(req, resp);
         } else if (action.equalsIgnoreCase("viewLog")) {
-            processViewLog(req, resp, pwmApplication, pwmSession);
-        } else if (action.equalsIgnoreCase("clearIntruderTable")) {
-            processClearIntruderTable(req,resp,pwmApplication,pwmSession);
+            processViewLog(req, resp);
         } else {
             LOGGER.debug(pwmSession, "unknown command sent to CommandServlet: " + action);
             ServletHelper.forwardToErrorPage(req, resp, this.getServletContext());
@@ -241,7 +233,7 @@ public class CommandServlet extends TopServlet {
             throws ChaiUnavailableException, PwmUnrecoverableException
     {
 
-        final UserIdentity userIdentity = uiBean.getUserIdentity();
+        final String userDN = uiBean.getUserDN();
 
         if (pwmSession == null) {
             return false;
@@ -252,18 +244,18 @@ public class CommandServlet extends TopServlet {
         }
 
         if (!Permission.checkPermission(Permission.PROFILE_UPDATE, pwmSession, pwmApplication)) {
-            LOGGER.info(pwmSession, "checkProfiles: " + userIdentity.toString() + " is not eligible for checkProfile due to query match");
+            LOGGER.info(pwmSession, "checkProfiles: " + userDN + " is not eligible for checkProfile due to query match");
             return false;
         }
 
         final String checkProfileQueryMatch = pwmApplication.getConfig().readSettingAsString(PwmSetting.UPDATE_PROFILE_CHECK_QUERY_MATCH);
 
         if (checkProfileQueryMatch != null && checkProfileQueryMatch.length() > 0) {
-            if (Helper.testUserMatchQueryString(pwmApplication.getProxiedChaiUser(userIdentity), checkProfileQueryMatch)) {
-                LOGGER.info(pwmSession, "checkProfiles: " + userIdentity.toString() + " matches 'checkProfiles query match', update profile will be required by user");
+            if (Helper.testUserMatchQueryString(pwmApplication.getProxyChaiProvider(), userDN, checkProfileQueryMatch)) {
+                LOGGER.info(pwmSession, "checkProfiles: " + userDN + " matches 'checkProfiles query match', update profile will be required by user");
                 return true;
             } else {
-                LOGGER.info(pwmSession, "checkProfiles: " + userIdentity.toString() + " does not match 'checkProfiles query match', update profile not required by user");
+                LOGGER.info(pwmSession, "checkProfiles: " + userDN + " does not match 'checkProfiles query match', update profile not required by user");
                 return false;
             }
         } else {
@@ -274,7 +266,7 @@ public class CommandServlet extends TopServlet {
             final Map<FormConfiguration,String> formValues = new HashMap<FormConfiguration, String>();
             for (final FormConfiguration formItem : updateFormFields) {
                 try {
-                    formValues.put(formItem, pwmSession.getSessionManager().getUserDataReader(pwmApplication).readStringAttribute(formItem.getName()));
+                    formValues.put(formItem, pwmSession.getSessionManager().getUserDataReader().readStringAttribute(formItem.getName()));
                 } catch (ChaiOperationException e) {
                     LOGGER.error(pwmSession,"error reading attribute while executing checkProfile, attribute=" + formItem.getName() + ", error: " + e.getMessage());
                 }
@@ -282,10 +274,10 @@ public class CommandServlet extends TopServlet {
 
             try {
                 Validator.validateParmValuesMeetRequirements(formValues, pwmSession.getSessionStateBean().getLocale());
-                LOGGER.debug(pwmSession, "checkProfile: " + userIdentity + " has value for attributes, update profile will not be required");
+                LOGGER.debug(pwmSession, "checkProfile: " + userDN + " has value for attributes, update profile will not be required");
                 return false;
             } catch (PwmDataValidationException e) {
-                LOGGER.debug(pwmSession, "checkProfile: " + userIdentity + " does not have good attributes (" + e.getMessage() + "), update profile will br required");
+                LOGGER.debug(pwmSession, "checkProfile: " + userDN + " does not have good attributes (" + e.getMessage() + "), update profile will br required");
                 return true;
             }
         }
@@ -324,11 +316,10 @@ public class CommandServlet extends TopServlet {
         final SessionStateBean ssBean = pwmSession.getSessionStateBean();
         final UserInfoBean uiBean = pwmSession.getUserInfoBean();
         final PwmApplication pwmApplication = ContextManager.getPwmApplication(req);
-        final Configuration config = pwmApplication.getConfig();
 
         if (ssBean.isAuthenticated()) {
             //check if user has expired password, and expirecheck during auth is turned on.
-            if (uiBean.isRequiresNewPassword() || (config.readSettingAsBoolean(PwmSetting.EXPIRE_CHECK_DURING_AUTH) && checkIfPasswordExpired(pwmSession))) {
+            if (uiBean.isRequiresNewPassword() || (pwmApplication.getConfig().readSettingAsBoolean(PwmSetting.EXPIRE_CHECK_DURING_AUTH) && checkIfPasswordExpired(pwmSession))) {
                 if (uiBean.isRequiresNewPassword()) {
                     LOGGER.trace(pwmSession, "user password has been marked as requiring a change");
                 } else {
@@ -349,24 +340,15 @@ public class CommandServlet extends TopServlet {
             }
 
             //check if we force response configuration, and user requires it.
-            if (uiBean.isRequiresResponseConfig() && (config.readSettingAsBoolean(PwmSetting.CHALLENGE_FORCE_SETUP))) {
+            if (uiBean.isRequiresResponseConfig() && (pwmApplication.getConfig().readSettingAsBoolean(PwmSetting.CHALLENGE_FORCE_SETUP))) {
                 LOGGER.info(pwmSession, "user response set needs to be configured, redirecting to setupresponses page");
                 final String setupResponsesURL = req.getContextPath() + "/private/" + PwmConstants.URL_SERVLET_SETUP_RESPONSES;
 
                 resp.sendRedirect(SessionFilter.rewriteRedirectURL(setupResponsesURL, req, resp));
                 return;
             }
-            
-            // check if we force OTP setup, and user requires it.
-            if (uiBean.isRequiresOtpConfig() && config.readSettingAsBoolean(PwmSetting.OTP_ENABLED) && config.readSettingAsBoolean(PwmSetting.OTP_FORCE_SETUP)) {
-                LOGGER.info(pwmSession, "user needs to setup OTP configuration, redirecting to OTP setup page");
-                final String otpSetupURL = req.getContextPath() + "/private/" + PwmConstants.URL_SERVLET_SETUP_OTP_SECRET;
 
-                resp.sendRedirect(SessionFilter.rewriteRedirectURL(otpSetupURL, req, resp));
-                return;
-            }
-
-            if (uiBean.isRequiresUpdateProfile() && (config.readSettingAsBoolean(PwmSetting.UPDATE_PROFILE_FORCE_SETUP))) {
+            if (uiBean.isRequiresUpdateProfile() && (pwmApplication.getConfig().readSettingAsBoolean(PwmSetting.UPDATE_PROFILE_FORCE_SETUP))) {
                 LOGGER.info(pwmSession, "user profile needs to be updated, redirecting to update profile page");
                 final String updateProfileURL = req.getContextPath() + "/private/" + PwmConstants.URL_SERVLET_UPDATE_PROFILE;
 
@@ -375,7 +357,7 @@ public class CommandServlet extends TopServlet {
             }
 
             // log the user out if our finish action is currently set to log out.
-            final boolean forceLogoutOnChange = config.readSettingAsBoolean(PwmSetting.LOGOUT_AFTER_PASSWORD_CHANGE);
+            final boolean forceLogoutOnChange = pwmApplication.getConfig().readSettingAsBoolean(PwmSetting.LOGOUT_AFTER_PASSWORD_CHANGE);
             if (forceLogoutOnChange && pwmSession.getSessionStateBean().isPasswordModified()) {
                 LOGGER.trace(pwmSession, "logging out user; password has been modified");
                 resp.sendRedirect(SessionFilter.rewriteRedirectURL(PwmConstants.URL_SERVLET_LOGOUT, req, resp));
@@ -411,12 +393,12 @@ public class CommandServlet extends TopServlet {
             return;
         }
 
-        resp.setHeader("content-disposition", "attachment;filename=UserReportService.csv");
+        resp.setHeader("content-disposition", "attachment;filename=UserReport.csv");
         resp.setContentType("text/csv;charset=utf-8");
 
         final OutputStream outputStream = new BufferedOutputStream(resp.getOutputStream());
 
-        final ReportService userReport = pwmApplication.getUserReportService();
+        final UserReport userReport = new UserReport(pwmApplication);
 
         try {
             userReport.outputToCsv(outputStream, true, 50 * 1000);
@@ -445,24 +427,14 @@ public class CommandServlet extends TopServlet {
         }
     }
 
-    private void processViewLog(
-            final HttpServletRequest req,
-            final HttpServletResponse resp,
-            final PwmApplication pwmApplication,
-            final PwmSession pwmSession
-    )
-            throws PwmUnrecoverableException, IOException, ServletException
-    {
+    private void processViewLog(final HttpServletRequest req, final HttpServletResponse resp)
+            throws PwmUnrecoverableException, IOException, ServletException {
+        final PwmApplication pwmApplication = ContextManager.getPwmApplication(req);
 
         final PwmApplication.MODE configMode = pwmApplication.getApplicationMode();
-        if (configMode != PwmApplication.MODE.CONFIGURATION) {
-            try {
-                if (!Permission.checkPermission(Permission.PWMADMIN, pwmSession, pwmApplication)) {
-                    throw new PwmUnrecoverableException(new ErrorInformation(PwmError.ERROR_SERVICE_NOT_AVAILABLE,"admin permission required"));
-                }
-            } catch (ChaiUnavailableException e) {
-                throw new PwmUnrecoverableException(new ErrorInformation(PwmError.ERROR_UNKNOWN,"error while checking permission for log activity"));
-            }
+
+        if (configMode == PwmApplication.MODE.RUNNING) {
+            throw new PwmUnrecoverableException(new ErrorInformation(PwmError.ERROR_AUTHENTICATION_REQUIRED,"cannot view log in RUNNING mode"));
         }
 
         final ServletContext servletContext = req.getSession().getServletContext();
@@ -491,7 +463,7 @@ public class CommandServlet extends TopServlet {
         final OutputStream outputStream = new BufferedOutputStream(resp.getOutputStream());
 
         try {
-            pwmApplication.getAuditManager().outpuVaultToCsv(new OutputStreamWriter(outputStream), true);
+            pwmApplication.getAuditManager().outputLocalDBToCsv(new OutputStreamWriter(outputStream), true);
         } catch (Exception e) {
             final ErrorInformation errorInformation = new ErrorInformation(PwmError.ERROR_UNKNOWN,e.getMessage());
             final SessionStateBean ssBean = PwmSession.getPwmSession(req).getSessionStateBean();
@@ -502,31 +474,5 @@ public class CommandServlet extends TopServlet {
         outputStream.flush();
         outputStream.close();
     }
-
-    private void processClearIntruderTable(
-            final HttpServletRequest req,
-            final HttpServletResponse resp,
-            final PwmApplication pwmApplication,
-            final PwmSession pwmSession
-    )
-            throws ChaiUnavailableException, PwmUnrecoverableException, IOException, ServletException
-    {
-        Validator.validatePwmFormID(req);
-        if (!preCheckUser(req, resp)) {
-            return;
-        }
-
-        if (!Permission.checkPermission(Permission.PWMADMIN, pwmSession, pwmApplication)) {
-            LOGGER.info(pwmSession, "unable to execute clear intruder records");
-            return;
-        }
-
-        pwmApplication.getIntruderManager().clear();
-
-        RestResultBean restResultBean = new RestResultBean();
-        ServletHelper.outputJsonResult(resp,restResultBean);
-        return;
-    }
-
 }
 

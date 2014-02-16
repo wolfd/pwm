@@ -84,18 +84,18 @@ public class LocalDBAdaptor implements LocalDB {
         innerDB.init(dbDirectory, initParameters, readOnly);
     }
 
-    public LocalDBIterator<String> iterator(final DB db) throws LocalDBException {
+    public PwmDBIterator<String> iterator(final DB db) throws LocalDBException {
         ParameterValidator.validateDBValue(db);
-        final LocalDBIterator<String> innerIterator = innerDB.iterator(db);
+        final PwmDBIterator<String> innerIterator = innerDB.iterator(db);
         return new SizeIterator<String>(db, innerIterator);
     }
 
-    private class SizeIterator<K> implements LocalDBIterator<String> {
-        private final LocalDBIterator<String> innerIterator;
+    private class SizeIterator<T> implements PwmDBIterator {
+        private final PwmDBIterator<T> innerIterator;
         private final DB db;
-        private String key;
+        private T key;
 
-        SizeIterator(final DB db, final LocalDBIterator<String> innerIterator) {
+        SizeIterator(final DB db, final PwmDBIterator<T> innerIterator) {
             this.innerIterator = innerIterator;
             this.db = db;
         }
@@ -104,7 +104,7 @@ public class LocalDBAdaptor implements LocalDB {
             return innerIterator.hasNext();
         }
 
-        public String next() {
+        public T next() {
             key = innerIterator.next();
             return key;
         }

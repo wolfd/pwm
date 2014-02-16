@@ -24,7 +24,6 @@ package password.pwm.util;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import password.pwm.PwmConstants;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -60,7 +59,7 @@ public class PwmLogEvent implements Serializable, Comparable {
 
     public static PwmLogEvent fromEncodedString(final String encodedString)
             throws ClassNotFoundException, IOException {
-        final Gson gson = Helper.getGson();
+        final Gson gson = new Gson();
         final Map<String, String> srcMap = gson.fromJson(encodedString, new TypeToken<Map<String, String>>() {
         }.getType());
 
@@ -195,13 +194,13 @@ public class PwmLogEvent implements Serializable, Comparable {
             tempMap.put(KEY_DATE, String.valueOf(date.getTime()));
         }
 
-        final Gson gson = Helper.getGson();
+        final Gson gson = new Gson();
         return gson.toJson(tempMap);
     }
 
     public String toLogString(final boolean htmlSafe) {
         final StringBuilder sb = new StringBuilder();
-        sb.append(PwmConstants.DEFAULT_DATETIME_FORMAT.format(this.date));
+        sb.append(this.date);
         sb.append(", ");
         sb.append(this.level.toString().length() == 4 ? this.level + " " : this.level);
         sb.append(", ");

@@ -3,7 +3,7 @@
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@
 <%@ taglib uri="pwm" prefix="pwm" %>
 <html dir="<pwm:LocaleOrientation/>">
 <%@ include file="fragment/header.jsp" %>
-<body class="nihilo">
+<body onload="pwmPageLoadHandler();" class="nihilo">
 <% final Map<String, ShortcutItem> shortcutItems = PwmSession.getPwmSession(session).getSessionStateBean().getVisibleShortcutItems(); %>
 <div id="wrapper">
     <jsp:include page="fragment/header-body.jsp">
@@ -45,7 +45,7 @@
             <% for (final ShortcutItem item : shortcutItems.values()) { %>
             <tr style="border:0">
                 <td style="border:0; text-align: right; width:10%">
-                    <a onclick="PWM_MAIN.showWaitDialog()" class="menubutton" href="<%=request.getContextPath()%>/private/<pwm:url url='Shortcuts'/>?processAction=selectShortcut&link=<%= item.getLabel() %>">
+                    <a onclick="showWaitDialog()" class="menubutton" href="<%=request.getContextPath()%>/private/<pwm:url url='Shortcuts'/>?processAction=selectShortcut&link=<%= item.getLabel() %>">
                         <%= item.getLabel() %>
                     </a>
                 </td>

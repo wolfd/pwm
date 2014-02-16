@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,17 +22,15 @@
 
 package password.pwm.config.value;
 
+import com.google.gson.Gson;
 import org.jdom2.Element;
 import password.pwm.PwmConstants;
 import password.pwm.error.ErrorInformation;
 import password.pwm.error.PwmError;
 import password.pwm.error.PwmOperationalException;
-import password.pwm.error.PwmUnrecoverableException;
 import password.pwm.util.Helper;
 
 import javax.crypto.SecretKey;
-import java.io.UnsupportedEncodingException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
 import java.util.List;
 
@@ -45,7 +43,7 @@ public class PasswordValue extends StringValue {
     }
 
     static PasswordValue fromJson(final String value) {
-        return new PasswordValue(Helper.getGson().fromJson(value, String.class));
+        return new PasswordValue(new Gson().fromJson(value, String.class));
     }
 
     static PasswordValue fromXmlValue(final Element settingElement, final String key) throws PwmOperationalException {
@@ -76,7 +74,8 @@ public class PasswordValue extends StringValue {
         }
         final Element valueElement = new Element(valueElementName);
         try {
-            final String encodedValue = encryptValue(key,value);
+            final SecretKey secretKey = Helper.SimpleTextCrypto.makeKey(key);
+            final String encodedValue = Helper.SimpleTextCrypto.encryptValue(value, secretKey);
             valueElement.addContent(encodedValue);
         } catch (Exception e) {
             valueElement.addContent("");
@@ -90,13 +89,6 @@ public class PasswordValue extends StringValue {
     }
 
     public String toDebugString() {
-        return "**not shown**";
-    }
-
-    public static String encryptValue(final String key, final String value)
-            throws PwmUnrecoverableException, UnsupportedEncodingException, NoSuchAlgorithmException
-    {
-        final SecretKey secretKey = Helper.SimpleTextCrypto.makeKey(key);
-        return Helper.SimpleTextCrypto.encryptValue(value, secretKey);
+        return "**removed**";
     }
 }

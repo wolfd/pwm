@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,11 +22,11 @@
 
 package password.pwm.bean;
 
+import com.novell.ldapchai.cr.ChallengeSet;
 import password.pwm.Permission;
 import password.pwm.PwmPasswordPolicy;
-import password.pwm.config.ChallengeProfile;
+import password.pwm.config.PasswordStatus;
 import password.pwm.util.PostChangePasswordAction;
-import password.pwm.util.PwmLogger;
 
 import java.util.*;
 
@@ -40,43 +40,38 @@ import java.util.*;
  * then there should not be a {@link UserInfoBean} in the HTTP session.
  *
  * @author Jason D. Rivard
- * @see password.pwm.ldap.UserStatusHelper#populateUserInfoBean(password.pwm.PwmSession, UserInfoBean, password.pwm.PwmApplication, java.util.Locale, String, String, com.novell.ldapchai.provider.ChaiProvider)
+ * @see password.pwm.util.operations.UserStatusHelper#populateUserInfoBean(password.pwm.PwmSession, UserInfoBean, password.pwm.PwmApplication, java.util.Locale, String, String, com.novell.ldapchai.provider.ChaiProvider)
  */
 public class UserInfoBean implements PwmSessionBean {
 // ------------------------------ FIELDS ------------------------------
 
-    private UserIdentity userIdentity;
+    private String userDN;
     private String userCurrentPassword;
-    private String username;
+    private String userID;
     private String userEmailAddress;
     private String userSmsNumber;
     private String userGuid;
 
-    private static final PwmLogger LOGGER = PwmLogger.getLogger(UserInfoBean.class);
 
     /**
      * A listing of all readable attributes on the ldap user object
      */
     private Map<String,String> cachedPasswordRuleAttributes = Collections.emptyMap();
 
-    private Map<String,String> cachedAttributeValues = Collections.emptyMap();
-
     private PasswordStatus passwordState = new PasswordStatus();
 
     private PwmPasswordPolicy passwordPolicy = PwmPasswordPolicy.defaultPolicy();
-    private ChallengeProfile challengeProfile = null;
+    private ChallengeSet challengeSet = null;
     private ResponseInfoBean responseInfoBean = null;
 
     private Date passwordExpirationTime;
     private Date passwordLastModifiedTime;
-    private Date localAuthTime;
-    private Date lastLdapLoginTime;
+    private Date authTime;
 
     private Map<Permission, Permission.PERMISSION_STATUS> permissions = new HashMap<Permission, Permission.PERMISSION_STATUS>();
 
     private boolean requiresNewPassword;
     private boolean requiresResponseConfig;
-    private boolean requiresOtpConfig;
     private boolean requiresUpdateProfile;
     
     private AuthenticationType authenticationType = AuthenticationType.UNAUTHENTICATED;
@@ -101,38 +96,20 @@ public class UserInfoBean implements PwmSessionBean {
         cachedPasswordRuleAttributes = userAttributes;
     }
 
-    public Map<String, String> getCachedAttributeValues()
-    {
-        return cachedAttributeValues;
+    public Date getAuthTime() {
+        return authTime;
     }
 
-    public void setCachedAttributeValues(Map<String, String> cachedAttributeValues)
-    {
-        this.cachedAttributeValues = cachedAttributeValues;
+    public void setAuthTime(final Date authTime) {
+        this.authTime = authTime;
     }
 
-    public Date getLocalAuthTime() {
-        return localAuthTime;
+    public ChallengeSet getChallengeSet() {
+        return challengeSet;
     }
 
-    public void setLocalAuthTime(final Date localAuthTime) {
-        this.localAuthTime = localAuthTime;
-    }
-
-    public Date getLastLdapLoginTime() {
-        return lastLdapLoginTime;
-    }
-
-    public void setLastLdapLoginTime(Date lastLdapLoginTime) {
-        this.lastLdapLoginTime = lastLdapLoginTime;
-    }
-
-    public ChallengeProfile getChallengeProfile() {
-        return challengeProfile;
-    }
-
-    public void setChallengeSet(final ChallengeProfile challengeSet) {
-        this.challengeProfile = challengeSet;
+    public void setChallengeSet(final ChallengeSet challengeSet) {
+        this.challengeSet = challengeSet;
     }
 
     public PwmPasswordPolicy getPasswordPolicy() {
@@ -151,12 +128,12 @@ public class UserInfoBean implements PwmSessionBean {
         this.userCurrentPassword = userCurrentPassword;
     }
 
-    public UserIdentity getUserIdentity() {
-        return userIdentity;
+    public String getUserDN() {
+        return userDN;
     }
 
-    public void setUserIdentity(UserIdentity userIdentity) {
-        this.userIdentity = userIdentity;
+    public void setUserDN(final String userDN) {
+        this.userDN = userDN;
     }
 
     public Date getPasswordExpirationTime() {
@@ -175,12 +152,12 @@ public class UserInfoBean implements PwmSessionBean {
         this.permissions = permissions;
     }
 
-    public String getUsername() {
-        return username;
+    public String getUserID() {
+        return userID;
     }
 
-    public void setUsername(final String username) {
-        this.username = username;
+    public void setUserID(final String userID) {
+        this.userID = userID;
     }
 
     public PasswordStatus getPasswordState() {
@@ -206,15 +183,6 @@ public class UserInfoBean implements PwmSessionBean {
     public void setRequiresResponseConfig(final boolean requiresResponseConfig) {
         this.requiresResponseConfig = requiresResponseConfig;
     }
-
-    public boolean isRequiresOtpConfig() {
-        return requiresOtpConfig;
-    }
-
-    public void setRequiresOtpConfig(final boolean requiresOtpConfig) {
-        this.requiresOtpConfig = requiresOtpConfig;
-    }
-
 
     public boolean isRequiresUpdateProfile() {
         return requiresUpdateProfile;

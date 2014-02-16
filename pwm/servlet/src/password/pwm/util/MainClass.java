@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@ package password.pwm.util;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
+import com.novell.ldapchai.ChaiFactory;
 import com.novell.ldapchai.ChaiUser;
 import com.novell.ldapchai.cr.ChallengeSet;
 import com.novell.ldapchai.cr.ResponseSet;
@@ -32,36 +33,27 @@ import org.apache.log4j.*;
 import password.pwm.PwmApplication;
 import password.pwm.PwmConstants;
 import password.pwm.PwmPasswordPolicy;
+import password.pwm.TokenManager;
 import password.pwm.bean.ResponseInfoBean;
-import password.pwm.bean.UserIdentity;
-import password.pwm.config.ChallengeProfile;
 import password.pwm.config.Configuration;
 import password.pwm.config.ConfigurationReader;
 import password.pwm.config.PwmSetting;
-import password.pwm.config.value.PasswordValue;
 import password.pwm.error.PwmOperationalException;
 import password.pwm.event.AuditManager;
-import password.pwm.ldap.LdapOperationsHelper;
-import password.pwm.ldap.UserSearchEngine;
-import password.pwm.token.TokenPayload;
-import password.pwm.token.TokenService;
+import password.pwm.util.operations.UserSearchEngine;
 import password.pwm.util.localdb.*;
-import password.pwm.util.report.ReportService;
 import password.pwm.util.stats.StatisticsManager;
 import password.pwm.ws.server.rest.RestChallengesServer;
 
 import java.io.*;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Scanner;
+import java.util.*;
 
 public class MainClass {
 
     public static void main(final String[] args)
             throws Exception {
         initLog4j();
-        out(PwmConstants.PWM_APP_NAME + " " + PwmConstants.SERVLET_VERSION + " Command Line Utility");
+        out(PwmConstants.PWM_APP_NAME + " Command Line - v" + PwmConstants.PWM_VERSION + " b" + PwmConstants.BUILD_NUMBER);
         if (args == null || args.length < 1) {
             out("");
             out(" [command] option option");
@@ -70,14 +62,12 @@ public class MainClass {
             out("  | ExportResponses [location]    Export all saved responses");
             out("  | ImportResponses [location]    Import responses from files");
             out("  | ClearLocalResponses           Clear all responses from the LocalDB");
-            out("  | UserReportService      [outputFile]  Dump a user report to the output file (csv format)");
+            out("  | UserReport      [outputFile]  Dump a user report to the output file (csv format)");
             out("  | ExportLocalDB   [outputFile]  Export the entire LocalDB contents to a backup file");
             out("  | ImportLocalDB   [inputFile]   Import the entire LocalDB contents from a backup file");
             out("  | TokenInfo       [tokenKey]    Get information about a PWM issued token");
             out("  | ExportStats     [outputFile]  Dump all statistics in the LocalDB to a csv file");
             out("  | ExportAudit     [outputFile]  Dump all audit records in the LocalDB to a csv file");
-            out("  | IntegrityReport [outputFile]  Dump code integrity report (useful only for developers)");
-            out("  | EncryptPassword [password] [outputFile] Encrypt a password for use in current configuration file");
             out("");
         } else {
             if ("LocalDbInfo".equalsIgnoreCase(args[0])) {
@@ -90,7 +80,7 @@ public class MainClass {
                 handleImportResponses(args);
             } else if ("ClearLocalResponses".equalsIgnoreCase(args[0])) {
                 handleClearLocalResponses();
-            } else if ("UserReportService".equalsIgnoreCase(args[0])) {
+            } else if ("UserReport".equalsIgnoreCase(args[0])) {
                 handleUserReport(args);
             } else if ("ExportLocalDB".equalsIgnoreCase(args[0])) {
                 handleExportLocalDB(args);
@@ -102,10 +92,6 @@ public class MainClass {
                 handleExportStats(args);
             } else if ("ExportAudit".equalsIgnoreCase(args[0])) {
                 handleExportAudit(args);
-            } else if ("IntegrityReport".equalsIgnoreCase(args[0])) {
-                handleIntegrityReport(args);
-            } else if ("EncryptPassword".equalsIgnoreCase(args[0])) {
-                handleEncryptConfigPassword(args);
             } else {
                 out("unknown command '" + args[0] + "'");
             }
@@ -113,11 +99,6 @@ public class MainClass {
     }
 
     static void handleUserReport(final String[] args) throws Exception {
-        if (args.length < 2) {
-            out("output filename required");
-            System.exit(-1);
-        }
-
         if (args.length < 2) {
             out("output filename required");
             System.exit(-1);
@@ -137,7 +118,7 @@ public class MainClass {
         final File workingFolder = new File(".").getCanonicalFile();
         final PwmApplication pwmApplication = loadPwmApplication(config, workingFolder, true);
 
-        final ReportService userReport = pwmApplication.getUserReportService();
+        final UserReport userReport = new UserReport(pwmApplication);
         userReport.outputToCsv(outputFileStream,true,50*1000);
 
         try { outputFileStream.close(); } catch (Exception e) { /* nothing */ }
@@ -158,8 +139,7 @@ public class MainClass {
     static void handleExportLogs(final String[] args) throws Exception {
         final Configuration config = loadConfiguration();
         final LocalDB pwmDB = loadPwmDB(config, true);
-        final LocalDBStoredQueue logQueue = LocalDBStoredQueue.createLocalDBStoredQueue(pwmDB,
-                LocalDB.DB.EVENTLOG_EVENTS);
+        final LocalDBStoredQueue logQueue = LocalDBStoredQueue.createPwmDBStoredQueue(pwmDB, LocalDB.DB.EVENTLOG_EVENTS);
 
         if (args.length < 2) {
             out("must specify file to write log data to");
@@ -216,30 +196,30 @@ public class MainClass {
         final long startTime = System.currentTimeMillis();
         final UserSearchEngine userSearchEngine = new UserSearchEngine(pwmApplication);
         final UserSearchEngine.SearchConfiguration searchConfiguration = new UserSearchEngine.SearchConfiguration();
+        searchConfiguration.setChaiProvider(pwmApplication.getProxyChaiProvider());
         searchConfiguration.setEnableValueEscaping(false);
         searchConfiguration.setUsername("*");
 
-        final Gson gson = Helper.getGson(new GsonBuilder().disableHtmlEscaping());
+        final Gson gson = new GsonBuilder().disableHtmlEscaping().create();
         final String systemRecordDelimiter = System.getProperty("line.separator");
         final Writer writer = new BufferedWriter(new PrintWriter(outputFile,"UTF-8"));
-        final Map<UserIdentity,Map<String,String>> results = userSearchEngine.performMultiUserSearch(null,searchConfiguration, Integer.MAX_VALUE, Collections.<String>emptyList());
+        final Map<ChaiUser,Map<String,String>> results = userSearchEngine.performMultiUserSearch(null,searchConfiguration, Integer.MAX_VALUE, Collections.<String>emptyList());
         out("searching " + results.size() + " users for stored responses to write to " + outputFile.getAbsolutePath() + "....");
         int counter = 0;
-        for (final UserIdentity identity : results.keySet()) {
-            final ChaiUser user = pwmApplication.getProxiedChaiUser(identity);
-            final ResponseSet responseSet = pwmApplication.getCrService().readUserResponseSet(null, identity, user);
+        for (final ChaiUser user : results.keySet()) {
+            final ResponseSet responseSet = pwmApplication.getCrService().readUserResponseSet(null, user);
             if (responseSet != null) {
                 counter++;
-                out("found responses for '" + user + "', writing to output.");
+                out("found responses for '" + user.getEntryDN() + "', writing to output.");
                 final RestChallengesServer.JsonChallengesData outputData = new RestChallengesServer.JsonChallengesData();
                 outputData.challenges = responseSet.asChallengeBeans(true);
                 outputData.helpdeskChallenges = responseSet.asHelpdeskChallengeBeans(true);
                 outputData.minimumRandoms = responseSet.getChallengeSet().minimumResponses();
-                outputData.username = identity.toDeliminatedKey();
+                outputData.username = user.getEntryDN();
                 writer.write(gson.toJson(outputData));
                 writer.write(systemRecordDelimiter);
             } else {
-                out("skipping '" + user.toString() + "', no stored responses.");
+                out("skipping '" + user.getEntryDN() + "', no stored responses.");
             }
         }
         writer.close();
@@ -269,7 +249,7 @@ public class MainClass {
 
         int counter = 0;
         String line;
-        final Gson gson = Helper.getGson();
+        final Gson gson = new Gson();
         final long startTime = System.currentTimeMillis();
         while ((line = reader.readLine()) != null) {
             counter++;
@@ -281,15 +261,12 @@ public class MainClass {
                 return;
             }
 
-            final UserIdentity userIdentity = UserIdentity.fromDelimitedKey(inputData.username);
-            final ChaiUser user = pwmApplication.getProxiedChaiUser(userIdentity);
+            final ChaiUser user = ChaiFactory.createChaiUser(inputData.username,pwmApplication.getProxyChaiProvider());
             if (user.isValid()) {
                 out("writing responses to user '" + user.getEntryDN() + "'");
                 try {
-                    final ChallengeProfile challengeProfile = pwmApplication.getCrService().readUserChallengeProfile(
-                            userIdentity, user, PwmPasswordPolicy.defaultPolicy(), PwmConstants.DEFAULT_LOCALE);
-                    final ChallengeSet challengeSet = challengeProfile.getChallengeSet();
-                    final String userGuid = LdapOperationsHelper.readLdapGuidValue(pwmApplication, userIdentity);
+                    final ChallengeSet challengeSet = pwmApplication.getCrService().readUserChallengeSet(user, PwmPasswordPolicy.defaultPolicy(), PwmConstants.DEFAULT_LOCALE);
+                    final String userGuid = Helper.readLdapGuidValue(pwmApplication, user.getEntryDN());
                     final ResponseInfoBean responseInfoBean = inputData.toResponseInfoBean(PwmConstants.DEFAULT_LOCALE,challengeSet.getIdentifier());
                     pwmApplication.getCrService().writeResponses(user, userGuid, responseInfoBean );
                 } catch (Exception e) {
@@ -343,7 +320,11 @@ public class MainClass {
         final File databaseDirectory;
         final String pwmDBLocationSetting = config.readSettingAsString(PwmSetting.PWMDB_LOCATION);
         databaseDirectory = Helper.figureFilepath(pwmDBLocationSetting, new File("."));
-        return LocalDBFactory.getInstance(databaseDirectory, readonly, null, config);
+
+        final String classname = config.readSettingAsString(PwmSetting.PWMDB_IMPLEMENTATION);
+        final List<String> initStrings = config.readSettingAsStringArray(PwmSetting.PWMDB_INIT_STRING);
+        final Map<String, String> initParamers = Configuration.convertStringListToNameValuePair(initStrings, "=");
+        return LocalDBFactory.getInstance(databaseDirectory, classname, initParamers, readonly, null);
     }
 
     static Configuration loadConfiguration() throws Exception {
@@ -382,14 +363,9 @@ public class MainClass {
         }
 
         final File outputFile = new File(args[1]);
-        if (outputFile.exists()) {
-            out("outputFile for exportLocalDB cannot already exist");
-            return;
-        }
-
         final LocalDBUtility pwmDBUtility = new LocalDBUtility(pwmDB);
         try {
-            pwmDBUtility.exportLocalDB(new FileOutputStream(outputFile), System.out, true);
+            pwmDBUtility.exportLocalDB(outputFile, System.out);
         } catch (PwmOperationalException e) {
             out("error during export: " + e.getMessage());
         }
@@ -441,11 +417,11 @@ public class MainClass {
         final File workingFolder = new File(".").getCanonicalFile();
         final PwmApplication pwmApplication = loadPwmApplication(config, workingFolder, true);
 
-        final TokenService tokenService = pwmApplication.getTokenService();
-        TokenPayload tokenPayload = null;
+        final TokenManager tokenManager = pwmApplication.getTokenManager();
+        TokenManager.TokenPayload tokenPayload = null;
         Exception lookupError = null;
         try {
-            tokenPayload = tokenService.retrieveTokenData(tokenKey);
+            tokenPayload = tokenManager.retrieveTokenData(tokenKey);
         } catch (Exception e) {
             lookupError = e;
         }
@@ -465,10 +441,10 @@ public class MainClass {
             return;
         } else {
             output.append("  name: ").append(tokenPayload.getName());
-            output.append("  user: ").append(tokenPayload.getUserIdentity());
-            output.append("issued: ").append(PwmConstants.DEFAULT_DATETIME_FORMAT.format(tokenPayload.getDate()));
-            for (final String key : tokenPayload.getData().keySet()) {
-                final String value = tokenPayload.getData().get(key);
+            output.append("userDN: ").append(tokenPayload.getUserDN());
+            output.append("issued: ").append(PwmConstants.DEFAULT_DATETIME_FORMAT.format(tokenPayload.getIssueDate()));
+            for (final String key : tokenPayload.getPayloadData().keySet()) {
+                final String value = tokenPayload.getPayloadData().get(key);
                 output.append("  payload key: ").append(key).append(", value:").append(value);
             }
         }
@@ -522,55 +498,8 @@ public class MainClass {
         final long startTime = System.currentTimeMillis();
         out("beginning output to " + outputFile.getAbsolutePath());
         final FileWriter fileWriter = new FileWriter(outputFile,true);
-        final int counter = auditManager.outpuVaultToCsv(fileWriter, false);
+        final int counter = auditManager.outputLocalDBToCsv(fileWriter,false);
         fileWriter.close();
         out("completed writing " + counter + " rows of audit output in " + TimeDuration.fromCurrent(startTime).asLongString());
     }
-
-    static void handleIntegrityReport(final String[] args) throws Exception {
-        if (args.length < 2) {
-            out("must specify file to write audit data to");
-            return;
-        }
-
-        final File outputFile = new File(args[1]);
-        if (outputFile.exists()) {
-            out("outputFile '" + outputFile.getAbsolutePath() + "' already exists");
-            return;
-        }
-
-        final long startTime = System.currentTimeMillis();
-        out("beginning output to " + outputFile.getAbsolutePath());
-        final CodeIntegrityChecker codeIntegrityChecker = new CodeIntegrityChecker();
-        final FileWriter writer = new FileWriter(outputFile,true);
-        writer.write(codeIntegrityChecker.asPrettyJsonOutput());
-        writer.close();
-        out("completed operation in " + TimeDuration.fromCurrent(startTime).asLongString());
-    }
-
-    static void handleEncryptConfigPassword(final String[] args) throws Exception {
-        if (args.length < 2) {
-            out("must specify a password value");
-            System.exit(-1);
-        }
-
-        if (args.length < 3) {
-            out("must specify file to write password value to");
-            System.exit(-1);
-        }
-
-        final File outputFile = new File(args[2]);
-        if (outputFile.exists()) {
-            out("outputFile '" + outputFile.getAbsolutePath() + "' already exists");
-            System.exit(-1);
-        }
-
-        final String input = args[1];
-        final ConfigurationReader configurationReader = new ConfigurationReader(new File(PwmConstants.CONFIG_FILE_FILENAME));
-        final String key = configurationReader.getStoredConfiguration().getKey();
-        final String output = PasswordValue.encryptValue(key,input);
-        final FileWriter writer = new FileWriter(outputFile,true);
-        writer.write(output);
-        writer.close();
-   }
 }

@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,22 +25,18 @@ package password.pwm;
 import com.novell.ldapchai.exception.ChaiUnavailableException;
 import password.pwm.bean.SessionStateBean;
 import password.pwm.bean.UserInfoBean;
-import password.pwm.config.Configuration;
 import password.pwm.config.PwmSetting;
 import password.pwm.error.*;
 import password.pwm.i18n.Display;
-import password.pwm.ldap.UserAuthenticator;
-import password.pwm.servlet.OAuthConsumerServlet;
 import password.pwm.util.*;
+import password.pwm.util.operations.UserAuthenticator;
 import password.pwm.util.stats.Statistic;
 
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Authentication servlet filter.  This filter wraps all servlet requests and requests direct to *.jsp
@@ -74,29 +70,14 @@ public class AuthenticationFilter implements Filter {
         final HttpServletResponse resp = (HttpServletResponse) servletResponse;
 
         try {
-            final PwmApplication pwmApplication = ContextManager.getPwmApplication(req);
             final PwmSession pwmSession = PwmSession.getPwmSession(req);
             final SessionStateBean ssBean = pwmSession.getSessionStateBean();
 
-            if (pwmApplication.getApplicationMode() == PwmApplication.MODE.NEW) {
-                if (PwmServletURLHelper.isConfigGuideURL(req)) {
-                    chain.doFilter(req, resp);
-                    return;
-                }
-            }
-
-            if (pwmApplication.getApplicationMode() == PwmApplication.MODE.CONFIGURATION) {
-                if (PwmServletURLHelper.isConfigManagerURL(req)) {
-                    chain.doFilter(req, resp);
-                    return;
-                }
-            }
-
             //user is already authenticated
             if (ssBean.isAuthenticated()) {
-                this.processAuthenticatedSession(req, resp, pwmApplication, pwmSession, chain);
+                this.processAuthenticatedSession(req, resp, chain);
             } else {
-                this.processUnAuthenticatedSession(req, resp, pwmApplication, pwmSession, chain);
+                this.processUnAuthenticatedSession(req, resp, chain);
             }
         } catch (PwmUnrecoverableException e) {
             LOGGER.error(e.toString());
@@ -112,15 +93,14 @@ public class AuthenticationFilter implements Filter {
     private void processAuthenticatedSession(
             final HttpServletRequest req,
             final HttpServletResponse resp,
-            final PwmApplication pwmApplication,
-            final PwmSession pwmSession,
             final FilterChain chain
     )
             throws IOException, ServletException, PwmUnrecoverableException {
+        final PwmSession pwmSession = PwmSession.getPwmSession(req);
         SessionStateBean ssBean = pwmSession.getSessionStateBean();
 
         // get the basic auth info out of the header (if it exists);
-        final BasicAuthInfo basicAuthInfo = BasicAuthInfo.parseAuthHeader(pwmApplication, req);
+        final BasicAuthInfo basicAuthInfo = BasicAuthInfo.parseAuthHeader(req);
 
         final BasicAuthInfo originalBasicAuthInfo = ssBean.getOriginalBasicAuthInfo();
 
@@ -131,7 +111,7 @@ public class AuthenticationFilter implements Filter {
 
             // get the current user info for logging
             final UserInfoBean uiBean = pwmSession.getUserInfoBean();
-            LOGGER.info(pwmSession, "user info for " + uiBean.getUserIdentity() + " does not match current basic auth header, un-authenticating user.");
+            LOGGER.info(pwmSession, "user info for " + uiBean.getUserDN() + " does not match current basic auth header, un-authenticating user.");
 
             // log out their user
             pwmSession.unauthenticateUser();
@@ -140,7 +120,7 @@ public class AuthenticationFilter implements Filter {
             ssBean = pwmSession.getSessionStateBean();
 
             // send en error to user.
-            ssBean.setSessionError(new ErrorInformation(PwmError.ERROR_BAD_SESSION,"basic auth header user '" + basicAuthInfo.getUsername() + "' does not match currently logged in user '" + uiBean.getUserIdentity() + "', session will be logged out"));
+            ssBean.setSessionError(new ErrorInformation(PwmError.ERROR_BAD_SESSION,"basic auth header user '" + basicAuthInfo.getUsername() + "' does not match currently logged in user '" + uiBean.getUserDN() + "', session will be logged out"));
             ServletHelper.forwardToErrorPage(req, resp, req.getSession().getServletContext());
             return;
         }
@@ -153,6 +133,8 @@ public class AuthenticationFilter implements Filter {
             LOGGER.error("unexpected ldap error when checking for user redirects: " + e.getMessage());
         }
 
+
+
         // user session is authed, and session and auth header match, so forward request on.
         chain.doFilter(req, resp);
     }
@@ -160,12 +142,12 @@ public class AuthenticationFilter implements Filter {
     private void processUnAuthenticatedSession(
             final HttpServletRequest req,
             final HttpServletResponse resp,
-            final PwmApplication pwmApplication,
-            final PwmSession pwmSession,
             final FilterChain chain
     )
             throws IOException, ServletException, PwmUnrecoverableException
     {
+        final PwmSession pwmSession = PwmSession.getPwmSession(req);
+        final PwmApplication pwmApplication = ContextManager.getPwmApplication(req);
         final SessionStateBean ssBean = pwmSession.getSessionStateBean();
 
         // attempt external methods;
@@ -175,12 +157,13 @@ public class AuthenticationFilter implements Filter {
 
         //try to authenticate user with basic auth
         if (!pwmSession.getSessionStateBean().isAuthenticated()) {
-            final BasicAuthInfo authInfo = BasicAuthInfo.parseAuthHeader(pwmApplication, req);
+            final BasicAuthInfo authInfo = BasicAuthInfo.parseAuthHeader(req);
             if (authInfo != null) {
                 try {
                     authUserUsingBasicHeader(req, authInfo);
                 } catch (ChaiUnavailableException e) {
                     pwmApplication.getStatisticsManager().incrementValue(Statistic.LDAP_UNAVAILABLE_COUNT);
+                    pwmApplication.setLastLdapFailure(new ErrorInformation(PwmError.ERROR_DIRECTORY_UNAVAILABLE, e.getMessage()));
                     ssBean.setSessionError(PwmError.ERROR_DIRECTORY_UNAVAILABLE.toInfo());
                     ServletHelper.forwardToErrorPage(req, resp, req.getSession().getServletContext());
                     return;
@@ -206,13 +189,6 @@ public class AuthenticationFilter implements Filter {
             }
         }
 
-        // process OAuth
-        if (!pwmSession.getSessionStateBean().isAuthenticated()) {
-            if (processOAuthAuthenticationRequest(pwmApplication, pwmSession, req, resp)) {
-                return;
-            }
-        }
-
         //store the original requested url
         final String originalRequestedUrl = req.getRequestURI() + (req.getQueryString() != null ? ('?' + req.getQueryString()) : "");
         if (ssBean.getOriginalRequestURL() == null) {
@@ -221,7 +197,7 @@ public class AuthenticationFilter implements Filter {
 
         // handle if authenticated during filter process.
         if (pwmSession.getSessionStateBean().isAuthenticated()) {
-            ServletHelper.recycleSessions(pwmApplication, pwmSession, req, resp);
+            ServletHelper.recycleSessions(pwmSession,req);
             LOGGER.debug(pwmSession,"session authenticated during request, issuing redirect to originally requested url: " + originalRequestedUrl);
             resp.sendRedirect(SessionFilter.rewriteRedirectURL(originalRequestedUrl,req,resp));
             return;
@@ -265,8 +241,7 @@ public class AuthenticationFilter implements Filter {
 
         //user isn't already authed and has an auth header, so try to auth them.
         LOGGER.debug(pwmSession, "attempting to authenticate user using basic auth header (username=" + basicAuthInfo.getUsername() + ")");
-        UserAuthenticator.authenticateUser(basicAuthInfo.getUsername(), basicAuthInfo.getPassword(), null, null,
-                pwmSession, pwmApplication, req.isSecure());
+        UserAuthenticator.authenticateUser(basicAuthInfo.getUsername(), basicAuthInfo.getPassword(), null, pwmSession, pwmApplication, req.isSecure());
 
         pwmSession.getSessionStateBean().setOriginalBasicAuthInfo(basicAuthInfo);
     }
@@ -325,7 +300,7 @@ public class AuthenticationFilter implements Filter {
         return false;
     }
 
-    static boolean processAuthHeader(
+    final static boolean processAuthHeader(
             final PwmApplication pwmApplication,
             final PwmSession pwmSession,
             final HttpServletRequest req,
@@ -366,7 +341,7 @@ public class AuthenticationFilter implements Filter {
         }
     }
 
-    static boolean processCASAuthentication(
+    final static boolean processCASAuthentication(
             final PwmApplication pwmApplication,
             final PwmSession pwmSession,
             final HttpServletRequest req,
@@ -387,6 +362,7 @@ public class AuthenticationFilter implements Filter {
             }
         } catch (ChaiUnavailableException e) {
             pwmApplication.getStatisticsManager().incrementValue(Statistic.LDAP_UNAVAILABLE_COUNT);
+            pwmApplication.setLastLdapFailure(new ErrorInformation(PwmError.ERROR_DIRECTORY_UNAVAILABLE, e.getMessage()));
             pwmSession.getSessionStateBean().setSessionError(PwmError.ERROR_DIRECTORY_UNAVAILABLE.toInfo());
             ServletHelper.forwardToErrorPage(req, resp, req.getSession().getServletContext());
             return true;
@@ -395,49 +371,6 @@ public class AuthenticationFilter implements Filter {
             ServletHelper.forwardToErrorPage(req, resp, req.getSession().getServletContext());
             return true;
         }
-        return false;
-    }
-
-    static boolean processOAuthAuthenticationRequest(
-            final PwmApplication pwmApplication,
-            final PwmSession pwmSession,
-            final HttpServletRequest req,
-            final HttpServletResponse resp
-
-    )
-            throws IOException, ServletException
-
-    {
-        final OAuthConsumerServlet.Settings settings = OAuthConsumerServlet.Settings.fromConfiguration(pwmApplication.getConfig());
-        if (!settings.oAuthIsConfigured()) {
-            return false;
-        }
-
-        final Configuration config = pwmApplication.getConfig();
-        final String state = pwmSession.getSessionStateBean().getSessionVerificationKey();
-        final String redirectUri = OAuthConsumerServlet.figureOauthSelfEndPointUrl(req);
-        final String code = config.readAppProperty(AppProperty.OAUTH_ID_REQUEST_TYPE);
-
-        final Map<String,String> urlParams = new HashMap<String,String>();
-        urlParams.put(config.readAppProperty(AppProperty.HTTP_PARAM_OAUTH_CLIENT_ID),settings.getClientID());
-        urlParams.put(config.readAppProperty(AppProperty.HTTP_PARAM_OAUTH_RESPONSE_TYPE),code);
-        urlParams.put(config.readAppProperty(AppProperty.HTTP_PARAM_OAUTH_STATE),state);
-        urlParams.put(config.readAppProperty(AppProperty.HTTP_PARAM_OAUTH_REDIRECT_URI),redirectUri);
-
-        final String redirectUrl = ServletHelper.appendAndEncodeUrlParameters(settings.getLoginURL(), urlParams);
-
-        try{
-            resp.sendRedirect(SessionFilter.rewriteRedirectURL(redirectUrl, req, resp));
-            pwmSession.getSessionStateBean().setOauthInProgress(true);
-            LOGGER.debug(pwmSession,"redirecting user to oauth id server, url: " + redirectUrl);
-            return true;
-        } catch (PwmUnrecoverableException e) {
-            final String errorMsg = "unexpected error redirecting user to oauth page: " + e.toString();
-            ErrorInformation errorInformation = new ErrorInformation(PwmError.ERROR_UNKNOWN, errorMsg);
-            pwmSession.getSessionStateBean().setSessionError(errorInformation);
-            LOGGER.error(errorInformation.toDebugStr());
-        }
-
         return false;
     }
 
@@ -497,22 +430,6 @@ public class AuthenticationFilter implements Filter {
                         if (pwmSession.getUserInfoBean().isRequiresResponseConfig()) {
                             LOGGER.debug(pwmSession, "user is required to setup responses, redirecting to setup responses servlet");
                             resp.sendRedirect(req.getContextPath() + "/private/" + PwmConstants.URL_SERVLET_SETUP_RESPONSES);
-                            return true;
-                        }
-                    }
-                }
-            }
-        } else {
-            return false;
-        }
-
-        if (!PwmServletURLHelper.isSetupOtpSecretURL(req)) {
-            if (pwmApplication.getConfig().readSettingAsBoolean(PwmSetting.OTP_ENABLED)) {
-                if (pwmApplication.getConfig().readSettingAsBoolean(PwmSetting.OTP_FORCE_SETUP)) {
-                    if (Permission.checkPermission(Permission.SETUP_OTP_SECRET, pwmSession, pwmApplication)) {
-                        if (pwmSession.getUserInfoBean().isRequiresOtpConfig()) {
-                            LOGGER.debug(pwmSession, "user is required to setup OTP configuration, redirecting to OTP setup page");
-                            resp.sendRedirect(req.getContextPath() + "/private/" + PwmConstants.URL_SERVLET_SETUP_OTP_SECRET);
                             return true;
                         }
                     }

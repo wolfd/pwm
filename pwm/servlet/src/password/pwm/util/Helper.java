@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,11 +22,14 @@
 
 package password.pwm.util;
 
-import com.google.gson.*;
+import com.novell.ldapchai.ChaiConstant;
+import com.novell.ldapchai.ChaiFactory;
 import com.novell.ldapchai.ChaiUser;
+import com.novell.ldapchai.cr.Answer;
 import com.novell.ldapchai.exception.ChaiOperationException;
 import com.novell.ldapchai.exception.ChaiUnavailableException;
-import com.novell.ldapchai.provider.ChaiProvider;
+import com.novell.ldapchai.provider.*;
+import com.novell.ldapchai.util.SearchHelper;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -42,33 +45,26 @@ import password.pwm.bean.UserInfoBean;
 import password.pwm.config.Configuration;
 import password.pwm.config.FormConfiguration;
 import password.pwm.config.PwmSetting;
-import password.pwm.config.option.MessageSendMethod;
 import password.pwm.error.ErrorInformation;
 import password.pwm.error.PwmError;
 import password.pwm.error.PwmOperationalException;
 import password.pwm.error.PwmUnrecoverableException;
-import password.pwm.ldap.UserDataReader;
-import password.pwm.util.intruder.RecordType;
-import password.pwm.util.macro.MacroMachine;
+import password.pwm.servlet.ResourceFileServlet;
+import password.pwm.util.operations.UserDataReader;
 import password.pwm.util.stats.Statistic;
 
 import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
+import javax.net.ssl.X509TrustManager;
 import javax.servlet.http.HttpServletRequest;
 import java.io.*;
 import java.lang.reflect.Method;
-import java.lang.reflect.Type;
 import java.net.URI;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.security.cert.CertificateEncodingException;
-import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
-import java.text.DateFormat;
 import java.text.NumberFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -78,8 +74,7 @@ import java.util.regex.Pattern;
  *
  * @author Jason D. Rivard
  */
-public class
-        Helper {
+public class Helper {
 // ------------------------------ FIELDS ------------------------------
 
     private static final PwmLogger LOGGER = PwmLogger.getLogger(Helper.class);
@@ -89,6 +84,246 @@ public class
     private Helper() {
     }
 
+    public static ChaiProvider createChaiProvider(
+            final Configuration config,
+            final List<String> ldapURLs,
+            final String userDN,
+            final String userPassword,
+            final int idleTimeoutMs
+    )
+            throws ChaiUnavailableException {
+        final ChaiConfiguration chaiConfig = createChaiConfiguration(config, ldapURLs, userDN, userPassword, idleTimeoutMs);
+        LOGGER.trace("creating new chai provider using config of " + chaiConfig.toString());
+        return ChaiProviderFactory.createProvider(chaiConfig);
+    }
+
+    public static ChaiProvider createChaiProvider(
+            final Configuration config,
+            final String userDN,
+            final String userPassword,
+            final int idleTimeoutMs
+    )
+            throws ChaiUnavailableException
+    {
+        final List<String> ldapURLs = config.readSettingAsStringArray(PwmSetting.LDAP_SERVER_URLS);
+        final ChaiConfiguration chaiConfig = createChaiConfiguration(config, ldapURLs, userDN, userPassword, idleTimeoutMs);
+        LOGGER.trace("creating new chai provider using config of " + chaiConfig.toString());
+        return ChaiProviderFactory.createProvider(chaiConfig);
+    }
+
+    public static ChaiConfiguration createChaiConfiguration(
+            final Configuration config,
+            final List<String> ldapURLs,
+            final String userDN,
+            final String userPassword,
+            final int idleTimeoutMs
+    )
+    {
+
+        final ChaiConfiguration chaiConfig = new ChaiConfiguration(ldapURLs, userDN, userPassword);
+
+        chaiConfig.setSetting(ChaiSetting.PROMISCUOUS_SSL, Boolean.toString(config.readSettingAsBoolean(PwmSetting.LDAP_PROMISCUOUS_SSL)));
+        chaiConfig.setSetting(ChaiSetting.EDIRECTORY_ENABLE_NMAS, Boolean.toString(config.readSettingAsBoolean(PwmSetting.EDIRECTORY_ENABLE_NMAS)));
+
+        chaiConfig.setSetting(ChaiSetting.CR_CHAI_STORAGE_ATTRIBUTE, config.readSettingAsString(PwmSetting.CHALLENGE_USER_ATTRIBUTE));
+        chaiConfig.setSetting(ChaiSetting.CR_ALLOW_DUPLICATE_RESPONSES, Boolean.toString(config.readSettingAsBoolean(PwmSetting.CHALLENGE_ALLOW_DUPLICATE_RESPONSES)));
+        chaiConfig.setSetting(ChaiSetting.CR_CASE_INSENSITIVE, Boolean.toString(config.readSettingAsBoolean(PwmSetting.CHALLENGE_CASE_INSENSITIVE)));
+        chaiConfig.setSetting(ChaiSetting.CR_CHAI_SALT_COUNT, Integer.toString(PwmConstants.RESPONSES_HASH_LOOP_COUNT));
+
+        chaiConfig.setSetting(ChaiSetting.CR_DEFAULT_FORMAT_TYPE, Answer.FormatType.SHA1_SALT.toString());
+        final String storageMethodString = config.readSettingAsString(PwmSetting.CHALLENGE_STORAGE_HASHED);
+        try {
+            final Answer.FormatType formatType = Answer.FormatType.valueOf(storageMethodString);
+            chaiConfig.setSetting(ChaiSetting.CR_DEFAULT_FORMAT_TYPE, formatType.toString());
+        } catch (Exception e) {
+            LOGGER.error("unknown CR storage format type '" + storageMethodString + "' ");
+        }
+
+        final X509Certificate[] ldapServerCerts = config.readSettingAsCertificate(PwmSetting.LDAP_SERVER_CERTS);
+        if (ldapServerCerts != null && ldapServerCerts.length > 0) {
+            final X509TrustManager tm = new X509Utils.PwmTrustManager(ldapServerCerts);
+            chaiConfig.setTrustManager(new X509TrustManager[]{tm});
+        }
+
+        // if possible, set the ldap timeout.
+        if (idleTimeoutMs > 0) {
+            chaiConfig.setSetting(ChaiSetting.WATCHDOG_ENABLE, "true");
+            chaiConfig.setSetting(ChaiSetting.WATCHDOG_IDLE_TIMEOUT, Long.toString(idleTimeoutMs));
+            chaiConfig.setSetting(ChaiSetting.WATCHDOG_CHECK_FREQUENCY, Long.toString(60 * 1000));
+        } else {
+            chaiConfig.setSetting(ChaiSetting.WATCHDOG_ENABLE, "false");
+        }
+
+        // write out any configured values;
+        final List<String> rawValues = config.readSettingAsStringArray(PwmSetting.LDAP_CHAI_SETTINGS);
+        final Map<String, String> configuredSettings = Configuration.convertStringListToNameValuePair(rawValues, "=");
+        for (final String key : configuredSettings.keySet()) {
+            final ChaiSetting theSetting = ChaiSetting.forKey(key);
+            if (theSetting == null) {
+                LOGGER.error("ignoring unknown chai setting '" + key + "'");
+            } else {
+                chaiConfig.setSetting(theSetting, configuredSettings.get(key));
+            }
+        }
+
+        // set ldap referrals
+        chaiConfig.setSetting(ChaiSetting.LDAP_FOLLOW_REFERRALS,String.valueOf(config.readSettingAsBoolean(PwmSetting.LDAP_FOLLOW_REFERRALS)));
+
+        // enable wire trace;
+        if (config.readSettingAsBoolean(PwmSetting.LDAP_ENABLE_WIRE_TRACE)) {
+            chaiConfig.setSetting(ChaiSetting.WIRETRACE_ENABLE, "true");
+        }
+
+        return chaiConfig;
+    }
+
+    public static String readLdapUserIDValue(
+            final PwmApplication pwmApplication,
+            final ChaiUser theUser
+    )
+            throws ChaiUnavailableException, ChaiOperationException
+    {
+        final Configuration config = pwmApplication.getConfig();
+        final String uIDattr = config.getUsernameAttribute();
+        return theUser.readStringAttribute(uIDattr);
+    }
+
+
+    public static String readLdapGuidValue(
+            final PwmApplication pwmApplication,
+            final String userDN
+    )
+            throws ChaiUnavailableException, PwmUnrecoverableException {
+
+        final Configuration config = pwmApplication.getConfig();
+        final ChaiProvider proxyChaiProvider = pwmApplication.getProxyChaiProvider();
+        final String GUIDattributeName = config.readSettingAsString(PwmSetting.LDAP_GUID_ATTRIBUTE);
+        if ("DN".equalsIgnoreCase(GUIDattributeName)) {
+            return userDN;
+        }
+
+        final ChaiUser theUser = ChaiFactory.createChaiUser(userDN, proxyChaiProvider);
+        if ("VENDORGUID".equals(GUIDattributeName)) {
+            try {
+                final String guidValue = theUser.readGUID();
+                if (guidValue != null && guidValue.length() > 1) {
+                    LOGGER.trace("read VENDORGUID value for user " + userDN + ": " + guidValue);
+                } else {
+                    LOGGER.trace("unable to find a VENDORGUID value for user " + userDN);
+                }
+                return guidValue;
+            } catch (Exception e) {
+                LOGGER.warn("unexpected error while reading vendor GUID value for user " + userDN + ", error: " + e.getMessage());
+                return null;
+            }
+        }
+
+        try {
+            final String guidValue = theUser.readStringAttribute(GUIDattributeName);
+            if (guidValue != null && guidValue.length() > 0) {
+                return guidValue;
+            }
+
+            if (!config.readSettingAsBoolean(PwmSetting.LDAP_GUID_AUTO_ADD)) {
+                LOGGER.warn("user " + userDN + " does not have a valid GUID");
+                return null;
+            }
+        } catch (ChaiOperationException e) {
+            LOGGER.warn("unexpected error while reading attribute GUID value for user " + userDN + " from '" + GUIDattributeName + "', error: " + e.getMessage());
+            return null;
+        }
+
+        LOGGER.trace("assigning new GUID to user " + userDN);
+
+        final List<String> baseContexts = config.readSettingAsStringArray(PwmSetting.LDAP_CONTEXTLESS_ROOT);
+        int attempts = 0;
+        while (attempts < 10) {
+            // generate a guid
+            final String newGUID;
+            {
+                final StringBuilder sb = new StringBuilder();
+                sb.append(Long.toHexString(System.currentTimeMillis()).toUpperCase());
+                while (sb.length() < 12) {
+                    sb.insert(0, "0");
+                }
+                sb.insert(0, PwmRandom.getInstance().alphaNumericString(20).toUpperCase());
+                newGUID = sb.toString();
+            }
+
+
+            try {
+                // check if it is unique
+                final SearchHelper searchHelper = new SearchHelper(ChaiProvider.SEARCH_SCOPE.SUBTREE);
+                searchHelper.setFilter(GUIDattributeName, newGUID);
+                searchHelper.setMaxResults(1);
+                searchHelper.setAttributes(GUIDattributeName);
+                for (final String baseContext : baseContexts) {
+                    final Map<String, Map<String,String>> result = proxyChaiProvider.search(baseContext, searchHelper);
+                    if (result.isEmpty()) {
+                        try {
+                            // write it to the directory
+                            proxyChaiProvider.writeStringAttribute(userDN, GUIDattributeName, Collections.singleton(newGUID), false);
+                            LOGGER.info("added GUID value '" + newGUID + "' to user " + userDN);
+                            return newGUID;
+                        } catch (ChaiOperationException e) {
+                            LOGGER.warn("error writing GUID value to user attribute " + GUIDattributeName + " : " + e.getMessage() + ", cannot write GUID value to user " + userDN);
+                            return null;
+                        }
+                    }
+                }
+            } catch (ChaiOperationException e) {
+                LOGGER.warn("unexpected error while searching GUID attribute " + GUIDattributeName + " for uniqueness: " + e.getMessage() + ", cannot write GUID value to user " + userDN);
+            }
+            attempts++;
+        }
+        return null;
+    }
+
+    /**
+     * Append auxClasses    configured in the PWM configuration to the ldap user object.
+     *
+     * @param userDN     userDN userDN of the user to add to
+     * @param pwmSession Current pwmSession, used for logging
+     * @throws com.novell.ldapchai.exception.ChaiUnavailableException
+     *          if the ldap server is unavailable
+     */
+    public static void addConfiguredUserObjectClass(
+            final String userDN,
+            final PwmSession pwmSession,
+            final PwmApplication pwmApplication
+    )
+            throws ChaiUnavailableException, PwmUnrecoverableException {
+        final Set<String> newObjClasses = new HashSet<String>(pwmApplication.getConfig().readSettingAsStringArray(PwmSetting.AUTO_ADD_OBJECT_CLASSES));
+        if (newObjClasses.isEmpty()) {
+            return;
+        }
+        final ChaiUser theUser = ChaiFactory.createChaiUser(userDN, pwmApplication.getProxyChaiProvider());
+        addUserObjectClass(theUser, newObjClasses, pwmSession);
+    }
+
+    private static void addUserObjectClass(final ChaiUser theUser, final Set<String> newObjClasses, final PwmSession pwmSession)
+            throws ChaiUnavailableException {
+        String auxClass = null;
+        try {
+            final Set<String> existingObjClasses = theUser.readMultiStringAttribute(ChaiConstant.ATTR_LDAP_OBJECTCLASS);
+            newObjClasses.removeAll(existingObjClasses);
+
+            for (final String newObjClass : newObjClasses) {
+                auxClass = newObjClass;
+                theUser.addAttribute(ChaiConstant.ATTR_LDAP_OBJECTCLASS, auxClass);
+                LOGGER.info(pwmSession, "added objectclass '" + auxClass + "' to user " + theUser.getEntryDN());
+            }
+        } catch (ChaiOperationException e) {
+            final StringBuilder errorMsg = new StringBuilder();
+
+            errorMsg.append("error adding objectclass '").append(auxClass).append("' to user ");
+            errorMsg.append(theUser.getEntryDN());
+            errorMsg.append(": ");
+            errorMsg.append(e.toString());
+
+            LOGGER.error(pwmSession, errorMsg.toString());
+        }
+    }
 
     public static String md5sum(final String input)
             throws IOException {
@@ -183,6 +418,43 @@ public class
         return System.currentTimeMillis() - startTime;
     }
 
+    public static void invokeExternalChangeMethods(
+            final PwmSession pwmSession,
+            final PwmApplication pwmApplication,
+            final String userDN,
+            final String oldPassword,
+            final String newPassword) throws PwmUnrecoverableException {
+        final List<String> externalMethods = pwmApplication.getConfig().readSettingAsStringArray(PwmSetting.EXTERNAL_CHANGE_METHODS);
+
+        // process any configured external change password methods configured.
+        for (final String classNameString : externalMethods) {
+            if (classNameString != null && classNameString.length() > 0) {
+                try {
+                    // load up the class and get an instance.
+                    final Class<?> theClass = Class.forName(classNameString);
+                    final ExternalChangeMethod externalClass = (ExternalChangeMethod) theClass.newInstance();
+
+                    // invoke the passwordChange method;
+                    final boolean success = externalClass.passwordChange(pwmApplication, userDN, oldPassword, newPassword);
+
+                    if (success) {
+                        LOGGER.info(pwmSession, "externalPasswordMethod '" + classNameString + "' was successfull");
+                    } else {
+                        LOGGER.warn(pwmSession, "externalPasswordMethod '" + classNameString + "' was not successfull");
+                    }
+                } catch (ClassCastException e) {
+                    LOGGER.warn(pwmSession, "configured external class " + classNameString + " is not an instance of " + ExternalChangeMethod.class.getName());
+                } catch (ClassNotFoundException e) {
+                    LOGGER.warn(pwmSession, "unable to load configured external class: " + classNameString + " " + e.getMessage() + "; perhaps the class is not in the classpath?");
+                } catch (IllegalAccessException e) {
+                    LOGGER.warn(pwmSession, "unable to load configured external class: " + classNameString + " " + e.getMessage());
+                } catch (InstantiationException e) {
+                    LOGGER.warn(pwmSession, "unable to load configured external class: " + classNameString + " " + e.getMessage());
+                }
+            }
+        }
+    }
+
     public static List<Integer> invokeExternalJudgeMethods(
             final Configuration config,
             //final PwmSession pwmSession,
@@ -224,12 +496,13 @@ public class
     }
 
     public static boolean testUserMatchQueryString(
-            final ChaiUser theUser,
+            final ChaiProvider provider,
+            final String objectDN,
             final String queryString
     )
             throws ChaiUnavailableException, PwmUnrecoverableException {
-        if (theUser == null) {
-            return false;
+        if (objectDN == null || objectDN.length() < 1) {
+            return true;
         }
 
         if (queryString == null || queryString.length() < 1) {
@@ -237,8 +510,6 @@ public class
         }
 
         try {
-            final ChaiProvider provider = theUser.getChaiProvider();
-            final String objectDN = theUser.getEntryDN();
             final Map<String, Map<String,String>> results = provider.search(objectDN, queryString, Collections.<String>emptySet(), ChaiProvider.SEARCH_SCOPE.SUBTREE);
 
             if (results == null || results.size() != 1) {
@@ -355,11 +626,11 @@ public class
             throw newException;
         }
 
+        // krowten made me do this shit
         for (final String attrName : valueMap.keySet()) {
             String attrValue = valueMap.get(attrName) != null ? valueMap.get(attrName) : "";
             if (expandPwmMacros) {
-                final MacroMachine macroMachine = new MacroMachine(pwmApplication, userInfoBean, null);
-                attrValue = macroMachine.expandMacros(attrValue);
+                attrValue = MacroMachine.expandMacros(attrValue, pwmApplication, userInfoBean, null);
             }
             if (!attrValue.equals(currentValues.get(attrName))) {
                 if (attrValue.length() > 0) {
@@ -566,7 +837,7 @@ public class
                 httpClient.getCredentialsProvider().setCredentials (new AuthScope(host, port),passwordCredentials);
             }
         }
-        final String userAgent = PwmConstants.PWM_APP_NAME + " " + PwmConstants.SERVLET_VERSION;
+        final String userAgent = "PWM " + PwmConstants.SERVLET_VERSION;
         httpClient.getParams().setParameter(HttpProtocolParams.USER_AGENT, userAgent);
         return httpClient;
     }
@@ -658,40 +929,6 @@ public class
         return new Locale(language, country, variant);
     }
 
-    public static void rotateBackups(final File inputFile, final int maxRotate) {
-        if (maxRotate < 1) {
-            return;
-        }
-        for (int i = maxRotate; i >= 0; i--) {
-            final File thisFile = (i == 0) ? inputFile : new File(inputFile.getAbsolutePath() + "-" + i);
-            final File youngerFile = (i <= 1) ? inputFile : new File(inputFile.getAbsolutePath() + "-" + (i - 1));
-
-            if (i == maxRotate) {
-                if (thisFile.exists()) {
-                    LOGGER.debug("deleting old backup file: " + thisFile.getAbsolutePath());
-                    if (!thisFile.delete()) {
-                        LOGGER.error("unable to delete old backup file: " + thisFile.getAbsolutePath());
-                    }
-                }
-            } else if (i == 0 || youngerFile.exists()) {
-                final File destFile = new File(inputFile.getAbsolutePath() + "-" + (i + 1));
-                LOGGER.debug("backup file " + thisFile.getAbsolutePath() + " renamed to " + destFile.getAbsolutePath());
-                if (!thisFile.renameTo(destFile)) {
-                    LOGGER.debug("unable to rename file " + thisFile.getAbsolutePath() + " to " + destFile.getAbsolutePath());
-                }
-            }
-        }
-    }
-
-    public static Date nextZuluZeroTime() {
-        final Calendar nextZuluMidnight = GregorianCalendar.getInstance(TimeZone.getTimeZone("Zulu"));
-        nextZuluMidnight.set(Calendar.HOUR_OF_DAY,0);
-        nextZuluMidnight.set(Calendar.MINUTE,0);
-        nextZuluMidnight.set(Calendar.SECOND, 0);
-        nextZuluMidnight.add(Calendar.HOUR, 24);
-        return nextZuluMidnight.getTime();
-    }
-
     public static class SimpleTextCrypto {
 
         public static String encryptValue(final String value, final SecretKey key)
@@ -756,6 +993,31 @@ public class
         }
     }
 
+    public static String calcEtagUserString(final PwmApplication pwmApplication, final PwmSession pwmSession) {
+        if (pwmApplication == null || pwmSession == null) {
+            return "";
+        }
+
+        final SessionStateBean sessionStateBean = pwmSession.getSessionStateBean();
+        if (sessionStateBean == null) {
+            return "";
+        }
+
+        final StringBuilder sb = new StringBuilder();
+        sb.append(Long.toString(pwmApplication.getStartupTime().getTime(),36));
+        sb.append("-");
+        sb.append(String.valueOf(sessionStateBean.getLocale()));
+        if (sessionStateBean.isAuthenticated()) {
+            sb.append("-");
+            try {
+                sb.append(md5sum(pwmSession.getUserInfoBean().getUserDN()));
+            } catch (IOException e) {
+                //nothing doin
+            }
+        }
+        return sb.toString();
+    }
+
     public static String figureForwardURL(
             final PwmApplication pwmApplication,
             final PwmSession pwmSession,
@@ -785,10 +1047,8 @@ public class
     public static int figureLdapConnectionCount(final PwmApplication pwmApplication, final ContextManager contextManager) {
         int counter = 0;
         try {
-            for (final String identifer : pwmApplication.getConfig().getLdapProfiles().keySet()) {
-                if (pwmApplication.getProxyChaiProvider(identifer).isConnected()) {
-                    counter++;
-                }
+            if (pwmApplication.getProxyChaiProvider().isConnected()) {
+                counter++;
             }
 
             for (final PwmSession loopSession : contextManager.getPwmSessions()) {
@@ -830,19 +1090,18 @@ public class
                 final UserInfoBean userInfoBean,
                 final UserDataReader userDataReader,
                 final EmailItemBean configuredEmailSetting,
-                final MessageSendMethod tokenSendMethod,
+                final PwmSetting.MessageSendMethod tokenSendMethod,
                 final String emailAddress,
                 final String smsNumber,
                 final String smsMessage,
                 final String tokenKey
         )
-                throws PwmUnrecoverableException, ChaiUnavailableException
-        {
+                throws PwmUnrecoverableException, ChaiUnavailableException {
+            final Configuration config = pwmApplication.getConfig();
             final boolean success;
             switch (tokenSendMethod) {
                 case NONE:
                     // should never get here
-                    LOGGER.error("attempt to send token to destination type 'NONE'");
                     throw new PwmUnrecoverableException(PwmError.ERROR_UNKNOWN);
                 case BOTH:
                     // Send both email and SMS, success if one of both succeeds
@@ -876,7 +1135,7 @@ public class
             pwmApplication.getStatisticsManager().incrementValue(Statistic.RECOVERY_TOKENS_SENT);
         }
 
-        public static boolean sendEmailToken(
+        private static Boolean sendEmailToken(
                 final PwmApplication pwmApplication,
                 final UserInfoBean userInfoBean,
                 final UserDataReader userDataReader,
@@ -890,9 +1149,7 @@ public class
                 return false;
             }
 
-            pwmApplication.getIntruderManager().mark(RecordType.TOKEN_DEST, toAddress, null);
-
-            pwmApplication.getEmailQueue().submit(new EmailItemBean(
+            pwmApplication.sendEmailUsingQueue(new EmailItemBean(
                     toAddress,
                     configuredEmailSetting.getFrom(),
                     configuredEmailSetting.getSubject(),
@@ -903,7 +1160,7 @@ public class
             return true;
         }
 
-        public static boolean sendSmsToken(
+        private static Boolean sendSmsToken(
                 final PwmApplication pwmApplication,
                 final UserInfoBean userInfoBean,
                 final UserDataReader userDataReader,
@@ -923,106 +1180,10 @@ public class
 
             final String modifiedMessage = smsMessage.replaceAll("%TOKEN%", tokenKey);
 
-            pwmApplication.getIntruderManager().mark(RecordType.TOKEN_DEST, smsNumber, null);
-
             final Integer maxlen = ((Long) config.readSettingAsLong(PwmSetting.SMS_MAX_TEXT_LENGTH)).intValue();
             pwmApplication.sendSmsUsingQueue(new SmsItemBean(smsNumber, senderId, modifiedMessage, maxlen), userInfoBean, userDataReader);
             LOGGER.debug("token SMS added to send queue for " + smsNumber);
             return true;
         }
-    }
-
-    public static Gson getGson(GsonBuilder gsonBuilder) {
-        if (gsonBuilder == null) {
-            gsonBuilder = new GsonBuilder();
-        }
-        return gsonBuilder
-                .registerTypeAdapter(Date.class, new DateTypeAdapter())
-                .registerTypeAdapter(X509Certificate.class, new X509CertificateAdapter())
-                .create();
-    }
-
-    public static Gson getGson() {
-        return GSON_SINGLETON;
-    }
-
-    private static Gson GSON_SINGLETON = new GsonBuilder()
-            .registerTypeAdapter(Date.class, new DateTypeAdapter())
-            .registerTypeAdapter(X509Certificate.class, new X509CertificateAdapter())
-            .create();
-
-    /**
-     * Gson Serializer for {@link X509Certificate}.  Neccessary because sometimes X509Certs have circular refecences
-     * and the default gson serializer will cause a {@code java.lang.StackOverflowError}.  Standard Base64 encoding of
-     * the cert is used as the json format.
-     */
-    private static class X509CertificateAdapter implements JsonSerializer<X509Certificate>, JsonDeserializer<X509Certificate> {
-        private X509CertificateAdapter() {
-        }
-
-        public synchronized JsonElement serialize(X509Certificate cert, Type type, JsonSerializationContext jsonSerializationContext) {
-            try {
-                return new JsonPrimitive(Base64Util.encodeBytes(cert.getEncoded()));
-            } catch (CertificateEncodingException e) {
-                throw new IllegalStateException("unable to json-encode certificate: " + e.getMessage());
-            }
-        }
-
-        public X509Certificate deserialize(JsonElement jsonElement, Type type, JsonDeserializationContext jsonDeserializationContext)
-                throws JsonParseException
-        {
-            try {
-                final CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
-                return (X509Certificate)certificateFactory.generateCertificate(new ByteArrayInputStream(Base64Util.decode(jsonElement.getAsString())));
-            } catch (Exception e) {
-                throw new JsonParseException("unable to parse x509certificate: " + e.getMessage());
-            }
-        }
-    }
-
-    /**
-     * GsonSerializer that stores dates in ISO 8601 format, with a deserialier that also reads local-platform format reading.
-     */
-    private static class DateTypeAdapter implements JsonSerializer<Date>, JsonDeserializer<Date> {
-        private static final DateFormat isoDateFormat;
-        private static final DateFormat gsonDateFormat;
-
-        static {
-            isoDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-            isoDateFormat.setTimeZone(TimeZone.getTimeZone("Zulu"));
-
-            gsonDateFormat = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT);
-            gsonDateFormat.setTimeZone(TimeZone.getDefault());
-        }
-
-        private DateTypeAdapter() {
-        }
-
-        public synchronized JsonElement serialize(Date date, Type type, JsonSerializationContext jsonSerializationContext) {
-            return new JsonPrimitive(isoDateFormat.format(date));
-        }
-
-        public synchronized Date deserialize(JsonElement jsonElement, Type type, JsonDeserializationContext jsonDeserializationContext) {
-            try {
-                return isoDateFormat.parse(jsonElement.getAsString());
-            } catch (ParseException e) { /* noop */ }
-
-            // for backwards compatibility
-            try {
-                return gsonDateFormat.parse(jsonElement.getAsString());
-            } catch (ParseException e) {
-                LOGGER.error("unable to parse stored json timestamp '" + jsonElement.getAsString() + "' error: " + e.getMessage());
-                throw new JsonParseException(e);
-            }
-        }
-    }
-
-    public static String makeThreadName(final PwmApplication pwmApplication, final Class theClass) {
-        String instanceName = "-";
-        if (pwmApplication != null && pwmApplication.getInstanceID() != null) {
-            instanceName = pwmApplication.getInstanceID();
-        }
-
-        return PwmConstants.PWM_APP_NAME + "-" + instanceName + "-" + theClass.getSimpleName();
     }
 }

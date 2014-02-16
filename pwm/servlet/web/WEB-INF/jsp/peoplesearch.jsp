@@ -3,7 +3,7 @@
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -22,8 +22,7 @@
 
 <%@ page import="com.google.gson.Gson" %>
 <%@ page import="password.pwm.bean.servlet.PeopleSearchBean" %>
-<%@ page import="password.pwm.ldap.UserSearchEngine" %>
-<%@ page import="password.pwm.util.Helper" %>
+<%@ page import="password.pwm.util.operations.UserSearchEngine" %>
 <!DOCTYPE html>
 <%@ page language="java" session="true" isThreadSafe="true" contentType="text/html; charset=UTF-8" %>
 <%@ taglib uri="pwm" prefix="pwm" %>
@@ -31,14 +30,14 @@
 <% final PeopleSearchBean peopleSearchBean = (PeopleSearchBean)pwmSession.getSessionBean(PeopleSearchBean.class); %>
 <html dir="<pwm:LocaleOrientation/>">
 <%@ include file="/WEB-INF/jsp/fragment/header.jsp" %>
-<body class="nihilo">
+<body onload="pwmPageLoadHandler();" class="nihilo">
 <div id="wrapper">
     <jsp:include page="/WEB-INF/jsp/fragment/header-body.jsp">
         <jsp:param name="pwm.PageName" value="Title_PeopleSearch"/>
     </jsp:include>
     <div id="centerbody">
         <form action="<pwm:url url='PeopleSearch'/>" method="post" enctype="application/x-www-form-urlencoded" name="search"
-              onsubmit="return PWM_MAIN.handleFormSubmit('submitBtn',this)">
+              onsubmit="return handleFormSubmit('submitBtn',this)">
             <%@ include file="fragment/message.jsp" %>
             <p>&nbsp;</p>
 
@@ -54,7 +53,7 @@
                    value="search"/>
             <input type="hidden" name="pwmFormID" value="<pwm:FormID/>"/>
             <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_CANCEL_BUTTON)) { %>
-            <button type="button" style="visibility:hidden;" name="button" class="btn" id="button_cancel"
+            <button style="visibility:hidden;" name="button" class="btn" id="button_cancel"
                     onclick="window.location='<%=request.getContextPath()%>/public/<pwm:url url='CommandServlet'/>?processAction=continue';return false">
                 <pwm:Display key="Button_Cancel"/>
             </button>
@@ -63,7 +62,7 @@
         <br class="clear"/>
         <% final UserSearchEngine.UserSearchResults searchResults = peopleSearchBean.getSearchResults(); %>
         <% if (searchResults != null) { %>
-        <% final Gson gson = Helper.getGson(); %>
+        <% final Gson gson = new Gson(); %>
         <noscript>
             <span>Javascript is required to view this page.</span>
             <%--
@@ -101,10 +100,10 @@
         <script async="async">
             PWM_GLOBAL['startupFunctions'].push(function(){
                 require(["dojo/domReady!"],function(){
-                    PWM_MAIN.getObject("waitMessage").style.display = 'inline';
+                    getObject("waitMessage").style.display = 'inline';
                     require(["dojo","dojo/_base/declare", "dgrid/Grid", "dgrid/Keyboard", "dgrid/Selection", "dgrid/extensions/ColumnResizer", "dgrid/extensions/ColumnReorder", "dgrid/extensions/ColumnHider", "dojo/domReady!"],
                             function(dojo,declare, Grid, Keyboard, Selection, ColumnResizer, ColumnReorder, ColumnHider){
-                                var data = <%=gson.toJson(searchResults.resultsAsJsonOutput(pwmApplicationHeader))%>;
+                                var data = <%=gson.toJson(searchResults.resultsAsJsonOutput(pwmSession))%>;
                                 var columnHeaders = <%=gson.toJson(searchResults.getHeaderAttributeMap())%>;
 
                                 // Create a new constructor by mixing in the components
@@ -121,7 +120,7 @@
                                     var row = grid.row(evt);
                                     loadDetails(row.data['userKey']);
                                 });
-                                PWM_MAIN.getObject("waitMessage").style.display = 'none';
+                                getObject("waitMessage").style.display = 'none';
                             });
                 });
             });
@@ -151,16 +150,16 @@
 </form>
 <script type="text/javascript">
     function loadDetails(userKey) {
-        PWM_MAIN.showWaitDialog(null,null,function(){
+        showWaitDialog(null,null,function(){
             setTimeout(function(){
-                PWM_MAIN.getObject("userKey").value = userKey;
-                PWM_MAIN.getObject("loadDetailsForm").submit();
+                getObject("userKey").value = userKey;
+                getObject("loadDetailsForm").submit();
             },10);
         });
     }
 
     PWM_GLOBAL['startupFunctions'].push(function(){
-        PWM_MAIN.getObject('username').focus();
+        getObject('username').focus();
     });
 </script>
 <%@ include file="fragment/footer.jsp" %>

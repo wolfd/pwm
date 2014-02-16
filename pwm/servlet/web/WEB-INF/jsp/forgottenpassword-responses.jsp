@@ -3,7 +3,7 @@
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -21,8 +21,8 @@
   --%>
 
 <%@ page import="com.novell.ldapchai.cr.Challenge" %>
-<%@ page import="password.pwm.bean.SessionStateBean" %>
 <%@ page import="password.pwm.bean.servlet.ForgottenPasswordBean" %>
+<%@ page import="password.pwm.bean.SessionStateBean" %>
 <%@ page import="password.pwm.config.FormConfiguration" %>
 <%@ page import="java.util.List" %>
 <!DOCTYPE html>
@@ -37,7 +37,7 @@
 in the body onload below, the true parameter toggles the hide button an extra time to default the page to hiding the responses.
 this is handled this way so on browsers where hiding fields is not possible, the default is to show the fields.
 --%>
-<body class="nihilo">
+<body onload="pwmPageLoadHandler();" class="nihilo">
 <div id="wrapper">
 <jsp:include page="fragment/header-body.jsp">
     <jsp:param name="pwm.PageName" value="Title_RecoverPassword"/>
@@ -48,7 +48,7 @@ this is handled this way so on browsers where hiding fields is not possible, the
 
         <form name="responseForm" action="<pwm:url url='ForgottenPassword'/>" method="post"
               enctype="application/x-www-form-urlencoded"
-              onsubmit="PWM_MAIN.handleFormSubmit('submitBtn',this);return false">
+              onsubmit="handleFormSubmit('submitBtn',this);return false">
             <%@ include file="/WEB-INF/jsp/fragment/message.jsp" %>
 
             <% // loop through required attributes (challenge.requiredAttributes), if any are configured
@@ -80,8 +80,15 @@ this is handled this way so on browsers where hiding fields is not possible, the
                 <input type="submit" name="checkResponses" class="btn"
                        value="<pwm:Display key="Button_RecoverPassword"/>"
                        id="submitBtn"/>
-                <%@ include file="/WEB-INF/jsp/fragment/button-reset.jsp" %>
-                <%@ include file="/WEB-INF/jsp/fragment/button-cancel.jsp" %>
+                <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_RESET_BUTTON)) { %>
+                <input type="reset" name="reset" class="btn"
+                       value="<pwm:Display key="Button_Reset"/>"/>
+                <% } %>
+                <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_CANCEL_BUTTON)) { %>
+                <button style="visibility:hidden;" name="button" class="btn" id="button_cancel" onclick="handleFormCancel();return false">
+                    <pwm:Display key="Button_Cancel"/>
+                </button>
+                <% } %>
                 <input type="hidden" name="pwmFormID" value="<pwm:FormID/>"/>
             </div>
         </form>
@@ -90,7 +97,7 @@ this is handled this way so on browsers where hiding fields is not possible, the
 </div>
 <script type="text/javascript">
     PWM_GLOBAL['startupFunctions'].push(function(){
-        PWM_RESPONSES.startupResponsesPage();
+        startupResponsesPage();
         document.forms.responseForm.elements[0].focus();
         ShowHidePasswordHandler.initAllForms();
     });

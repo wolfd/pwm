@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,10 +22,9 @@
 
 package password.pwm.ws.server.rest;
 
+import com.novell.ldapchai.ChaiFactory;
 import com.novell.ldapchai.ChaiUser;
 import com.novell.ldapchai.exception.ChaiUnavailableException;
-import password.pwm.PwmConstants;
-import password.pwm.bean.UserIdentity;
 import password.pwm.error.ErrorInformation;
 import password.pwm.error.PwmError;
 import password.pwm.error.PwmException;
@@ -36,13 +35,11 @@ import password.pwm.util.stats.Statistic;
 import password.pwm.ws.server.RestRequestBean;
 import password.pwm.ws.server.RestResultBean;
 import password.pwm.ws.server.RestServerHelper;
-import password.pwm.ws.server.ServicePermissions;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,15 +48,6 @@ import java.util.List;
 public class RestRandomPasswordServer {
     @Context
     HttpServletRequest request;
-
-    private static final ServicePermissions servicePermissions = new ServicePermissions();
-
-    static {
-        servicePermissions.setAdminOnly(false);
-        servicePermissions.setAuthRequired(false);
-        servicePermissions.setBlockExternal(true);
-        servicePermissions.setHelpdeskPermitted(true);
-    }
 
     public static class JsonOutput implements Serializable
     {
@@ -73,67 +61,23 @@ public class RestRandomPasswordServer {
         public int minLength;
         public int maxLength;
         public String chars;
-        public boolean noUser;
-    }
-
-    @POST
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response doPostRandomPasswordForm(
-            final @FormParam("username") String username,
-            final @FormParam("strength") int strength,
-            final @FormParam("maxLength") int maxLength,
-            final @FormParam("minLength") int minLength,
-            final @FormParam("chars") String chars,
-            final @FormParam("noUser") boolean noUser
-    )
-            throws PwmUnrecoverableException
-    {
-        final RestRequestBean restRequestBean;
-        try {
-            restRequestBean = RestServerHelper.initializeRestRequest(request, servicePermissions, username);
-        } catch (PwmUnrecoverableException e) {
-            return RestResultBean.fromError(e.getErrorInformation()).asJsonResponse();
-        }
-
-        final JsonInput jsonInput = new JsonInput();
-        jsonInput.username = username;
-        jsonInput.strength = strength;
-        jsonInput.maxLength = maxLength;
-        jsonInput.minLength = minLength;
-        jsonInput.chars = chars;
-        jsonInput.noUser = noUser;
-
-        try {
-            final JsonOutput jsonOutput = doOperation(restRequestBean, jsonInput);
-            final RestResultBean restResultBean = new RestResultBean();
-            restResultBean.setData(jsonOutput);
-            return restResultBean.asJsonResponse();
-        } catch (PwmException e) {
-            return RestResultBean.fromError(e.getErrorInformation(), restRequestBean).asJsonResponse();
-        } catch (Exception e) {
-            final String errorMessage = "unexpected error executing web service: " + e.getMessage();
-            final ErrorInformation errorInformation = new ErrorInformation(PwmError.ERROR_UNKNOWN, errorMessage);
-            return RestResultBean.fromError(errorInformation, restRequestBean).asJsonResponse();
-        }
     }
 
     // This method is called if TEXT_PLAIN is request
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     public String doPlainRandomPassword(
-            final @QueryParam("username") String username,
-            final @QueryParam("strength") int strength,
-            final @QueryParam("minLength") int minLength,
-            final @QueryParam("maxLength") int maxLength,
-            final @QueryParam("chars") String chars,
-            final @QueryParam("noUser") boolean noUser
+            @QueryParam("username") String username,
+            @QueryParam("strength") int strength,
+            @QueryParam("minLength") int minLength,
+            @QueryParam("maxLength") int maxLength,
+            @QueryParam("chars") String chars
     )
             throws PwmUnrecoverableException
     {
         final RestRequestBean restRequestBean;
         try {
-            restRequestBean = RestServerHelper.initializeRestRequest(request, servicePermissions, username);
+            restRequestBean = RestServerHelper.initializeRestRequest(request, false, username);
         } catch (PwmUnrecoverableException e) {
             RestServerHelper.handleNonJsonErrorResult(e.getErrorInformation());
             return null;
@@ -145,7 +89,6 @@ public class RestRandomPasswordServer {
         jsonInput.maxLength = maxLength;
         jsonInput.minLength = minLength;
         jsonInput.chars = chars;
-        jsonInput.noUser = noUser;
 
         try {
             return doOperation(restRequestBean, jsonInput).password;
@@ -159,30 +102,70 @@ public class RestRandomPasswordServer {
 
     @POST
     @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    public String doPostRandomPasswordForm(
+            final @FormParam("username") String username,
+            final @FormParam("strength") int strength,
+            final @FormParam("maxLength") int maxLength,
+            final @FormParam("minLength") int minLength,
+            final @FormParam("chars") String chars
+    )
+            throws PwmUnrecoverableException
+    {
+        final RestRequestBean restRequestBean;
+        try {
+            restRequestBean = RestServerHelper.initializeRestRequest(request, false, username);
+        } catch (PwmUnrecoverableException e) {
+            return RestServerHelper.outputJsonErrorResult(e.getErrorInformation(), request);
+        }
+
+        final JsonInput jsonInput = new JsonInput();
+        jsonInput.username = username;
+        jsonInput.strength = strength;
+        jsonInput.maxLength = maxLength;
+        jsonInput.minLength = minLength;
+        jsonInput.chars = chars;
+
+        try {
+            final JsonOutput jsonOutput = doOperation(restRequestBean, jsonInput);
+            final RestResultBean restResultBean = new RestResultBean();
+            restResultBean.setData(jsonOutput);
+            return restResultBean.toJson();
+        } catch (PwmException e) {
+            return RestServerHelper.outputJsonErrorResult(e.getErrorInformation(), request);
+        } catch (Exception e) {
+            final String errorMessage = "unexpected error executing web service: " + e.getMessage();
+            final ErrorInformation errorInformation = new ErrorInformation(PwmError.ERROR_UNKNOWN, errorMessage);
+            return RestServerHelper.outputJsonErrorResult(errorInformation, request);
+        }
+    }
+
+    @POST
+    @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_JSON)
-    public Response doPostRandomPasswordJson(
+    public String doPostRandomPasswordJson(
             final JsonInput jsonInput
     )
             throws PwmUnrecoverableException
     {
         final RestRequestBean restRequestBean;
         try {
-            restRequestBean = RestServerHelper.initializeRestRequest(request, servicePermissions, jsonInput.username);
+            restRequestBean = RestServerHelper.initializeRestRequest(request, false, jsonInput.username);
         } catch (PwmUnrecoverableException e) {
-            return RestResultBean.fromError(e.getErrorInformation()).asJsonResponse();
+            return RestServerHelper.outputJsonErrorResult(e.getErrorInformation(), request);
         }
 
         try {
             final JsonOutput jsonOutput = doOperation(restRequestBean, jsonInput);
             final RestResultBean restResultBean = new RestResultBean();
             restResultBean.setData(jsonOutput);
-            return restResultBean.asJsonResponse();
+            return restResultBean.toJson();
         } catch (PwmException e) {
-            return RestResultBean.fromError(e.getErrorInformation(), restRequestBean).asJsonResponse();
+            return RestServerHelper.outputJsonErrorResult(e.getErrorInformation(), request);
         } catch (Exception e) {
             final String errorMessage = "unexpected error executing web service: " + e.getMessage();
             final ErrorInformation errorInformation = new ErrorInformation(PwmError.ERROR_UNKNOWN, errorMessage);
-            return RestResultBean.fromError(errorInformation, restRequestBean).asJsonResponse();
+            return RestServerHelper.outputJsonErrorResult(errorInformation, request);
         }
     }
 
@@ -210,23 +193,19 @@ public class RestRandomPasswordServer {
             randomConfig.setSeedlistPhrases(charValues);
         }
 
-        if (!jsonInput.noUser && restRequestBean.getPwmSession().getSessionStateBean().isAuthenticated()) {
-            final UserIdentity userIdentity = UserIdentity.fromKey(jsonInput.username,restRequestBean.getPwmApplication().getConfig());
-            if (userIdentity != null) {
-                final ChaiUser theUser = restRequestBean.getPwmSession().getSessionManager().getActor(restRequestBean.getPwmApplication(),userIdentity);
+        if (restRequestBean.getPwmSession().getSessionStateBean().isAuthenticated()) {
+            if (jsonInput.username != null && jsonInput.username.length() > 0) {
+                final ChaiUser theUser = ChaiFactory.createChaiUser(jsonInput.username, restRequestBean.getPwmSession().getSessionManager().getChaiProvider());
                 randomConfig.setPasswordPolicy(PasswordUtility.readPasswordPolicyForUser(
                         restRequestBean.getPwmApplication(),
                         restRequestBean.getPwmSession(),
-                        restRequestBean.getUserIdentity(),
                         theUser,
                         restRequestBean.getPwmSession().getSessionStateBean().getLocale()));
             } else {
                 randomConfig.setPasswordPolicy(restRequestBean.getPwmSession().getUserInfoBean().getPasswordPolicy());
             }
         } else {
-            randomConfig.setPasswordPolicy(restRequestBean.getPwmApplication().getConfig().getPasswordPolicy(
-                    PwmConstants.DEFAULT_PASSWORD_PROFILE,
-                    restRequestBean.getPwmSession().getSessionStateBean().getLocale()));
+            randomConfig.setPasswordPolicy(restRequestBean.getPwmApplication().getConfig().getGlobalPasswordPolicy(restRequestBean.getPwmSession().getSessionStateBean().getLocale()));
         }
 
         final String randomPassword = RandomPasswordGenerator.createRandomPassword(restRequestBean.getPwmSession(), randomConfig, restRequestBean.getPwmApplication());

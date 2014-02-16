@@ -3,7 +3,7 @@
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
 <%@ taglib uri="pwm" prefix="pwm" %>
 <html dir="<pwm:LocaleOrientation/>">
 <%@ include file="fragment/header.jsp" %>
-<body class="nihilo">
+<body onload="pwmPageLoadHandler();" class="nihilo">
 <div id="wrapper">
     <jsp:include page="fragment/header-body.jsp">
         <jsp:param name="pwm.PageName" value="Title_ForgottenPassword"/>
@@ -34,9 +34,17 @@
         <p><pwm:Display key="Display_ForgottenPassword"/></p>
         <form action="<pwm:url url='ForgottenPassword'/>" method="post" enctype="application/x-www-form-urlencoded"
               name="searchForm"
-              onsubmit="PWM_MAIN.handleFormSubmit('submitBtn',this);return false" id="searchForm">
+              onsubmit="handleFormSubmit('submitBtn',this);return false" id="searchForm">
             <%@ include file="/WEB-INF/jsp/fragment/message.jsp" %>
-            <%@ include file="/WEB-INF/jsp/fragment/ldap-selector.jsp" %>
+            <% //check to see if any locations are configured.
+                if (!ContextManager.getPwmApplication(session).getConfig().getLoginContexts().isEmpty()) {
+            %>
+            <h2><label for="context"><pwm:Display key="Field_Location"/></label></h2>
+            <select name="context" id="context" class="inputfield">
+                <pwm:DisplayLocationOptions name="context"/>
+            </select>
+            <br/>
+            <% } %>
             <br/>
             <% request.setAttribute("form",PwmSetting.FORGOTTEN_PASSWORD_SEARCH_FORM); %>
             <jsp:include page="fragment/form.jsp"/>
@@ -49,8 +57,16 @@
                        name="search"
                        value="<pwm:Display key="Button_Search"/>"
                        id="submitBtn"/>
-                <%@ include file="/WEB-INF/jsp/fragment/button-reset.jsp" %>
-                <%@ include file="/WEB-INF/jsp/fragment/button-cancel.jsp" %>
+                <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_RESET_BUTTON)) { %>
+                <input type="reset" class="btn"
+                       name="reset" onclick="clearForm('searchForm');return false;"
+                       value="<pwm:Display key="Button_Reset"/>"/>
+                <% } %>
+                <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_CANCEL_BUTTON)) { %>
+                <button style="visibility:hidden;" name="button" class="btn" id="button_cancel" onclick="handleFormCancel();return false">
+                    <pwm:Display key="Button_Cancel"/>
+                </button>
+                <% } %>
                 <input type="hidden" name="pwmFormID" value="<pwm:FormID/>"/>
             </div>
         </form>

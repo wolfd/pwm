@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,20 +22,21 @@
 
 package password.pwm.ws.server.rest;
 
-import password.pwm.bean.PasswordStatus;
+import password.pwm.PwmPasswordPolicy;
+import password.pwm.PwmSession;
 import password.pwm.bean.UserInfoBean;
 import password.pwm.config.Configuration;
+import password.pwm.config.PasswordStatus;
 import password.pwm.config.PwmPasswordRule;
 import password.pwm.error.ErrorInformation;
 import password.pwm.error.PwmError;
 import password.pwm.error.PwmException;
 import password.pwm.error.PwmUnrecoverableException;
-import password.pwm.ldap.UserStatusReader;
 import password.pwm.tag.PasswordRequirementsTag;
+import password.pwm.util.operations.UserStatusHelper;
 import password.pwm.ws.server.RestRequestBean;
 import password.pwm.ws.server.RestResultBean;
 import password.pwm.ws.server.RestServerHelper;
-import password.pwm.ws.server.ServicePermissions;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -44,7 +45,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.util.*;
@@ -65,12 +65,11 @@ public class RestStatusServer {
         public PasswordStatus passwordStatus;
         public Map<String,String> passwordPolicy;
         public List<String> passwordRules;
-        public Map<String,String> atributes;
 
         public static JsonStatusData fromUserInfoBean(final UserInfoBean userInfoBean, final Configuration config, final Locale locale) {
             final JsonStatusData jsonStatusData = new JsonStatusData();
-            jsonStatusData.userDN = userInfoBean.getUserIdentity().toDeliminatedKey();
-            jsonStatusData.userID = userInfoBean.getUsername();
+            jsonStatusData.userDN = userInfoBean.getUserDN();
+            jsonStatusData.userID = userInfoBean.getUserID();
             jsonStatusData.userEmailAddress = userInfoBean.getUserEmailAddress();
             jsonStatusData.passwordExpirationTime = userInfoBean.getPasswordExpirationTime();
             jsonStatusData.passwordLastModifiedTime = userInfoBean.getPasswordLastModifiedTime();
@@ -91,10 +90,6 @@ public class RestStatusServer {
                     locale
             );
 
-            if (userInfoBean.getCachedAttributeValues() != null && !userInfoBean.getCachedAttributeValues().isEmpty()) {
-                jsonStatusData.atributes = Collections.unmodifiableMap(userInfoBean.getCachedAttributeValues());
-            }
-
             return jsonStatusData;
         }
     }
@@ -110,32 +105,28 @@ public class RestStatusServer {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public Response doGetStatusData(
+    public String doGetStatusData(
             @QueryParam("username") final String username
     ) {
         final RestRequestBean restRequestBean;
         try {
-            final ServicePermissions servicePermissions = new ServicePermissions();
-            servicePermissions.setAdminOnly(false);
-            servicePermissions.setAuthRequired(true);
-            servicePermissions.setBlockExternal(true);
-            restRequestBean = RestServerHelper.initializeRestRequest(request, servicePermissions, username);
+            restRequestBean = RestServerHelper.initializeRestRequest(request, true, username);
         } catch (PwmUnrecoverableException e) {
-            return RestResultBean.fromError(e.getErrorInformation()).asJsonResponse();
+            return RestServerHelper.outputJsonErrorResult(e.getErrorInformation(), request);
         }
 
         try {
             final UserInfoBean userInfoBean;
-            if (restRequestBean.getUserIdentity() != null) {
+            if (restRequestBean.getUserDN() != null && restRequestBean.getUserDN().length() > 0) {
                 userInfoBean = new UserInfoBean();
-                final UserStatusReader userStatusReader = new UserStatusReader(restRequestBean.getPwmApplication());
-                userStatusReader.populateUserInfoBean(
+                UserStatusHelper.populateUserInfoBean(
                         restRequestBean.getPwmSession(),
                         userInfoBean,
+                        restRequestBean.getPwmApplication(),
                         restRequestBean.getPwmSession().getSessionStateBean().getLocale(),
-                        restRequestBean.getUserIdentity(),
+                        restRequestBean.getUserDN(),
                         null,
-                        restRequestBean.getPwmSession().getSessionManager().getChaiProvider(restRequestBean.getPwmApplication())
+                        restRequestBean.getPwmSession().getSessionManager().getChaiProvider()
                 );
             } else {
                 userInfoBean = restRequestBean.getPwmSession().getUserInfoBean();
@@ -146,13 +137,14 @@ public class RestStatusServer {
                     restRequestBean.getPwmApplication().getConfig(),
                     restRequestBean.getPwmSession().getSessionStateBean().getLocale()
             ));
-            return restResultBean.asJsonResponse();
+            return restResultBean.toJson();
         } catch (PwmException e) {
-            return RestResultBean.fromError(e.getErrorInformation(), restRequestBean).asJsonResponse();
+            return RestServerHelper.outputJsonErrorResult(e.getErrorInformation(), request);
         } catch (Exception e) {
             final String errorMsg = "unexpected error building json response: " + e.getMessage();
             final ErrorInformation errorInformation = new ErrorInformation(PwmError.ERROR_UNKNOWN, errorMsg);
-            return RestResultBean.fromError(errorInformation, restRequestBean).asJsonResponse();
+            return RestServerHelper.outputJsonErrorResult(errorInformation, request);
         }
     }
+
 }

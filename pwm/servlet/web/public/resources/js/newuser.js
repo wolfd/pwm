@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,28 +23,26 @@
 var COLOR_BAR_TOP       = 0x8ced3f;
 var COLOR_BAR_BOTTOM    = 0xcc0e3e;
 
-var PWM_NEWUSER = PWM_NEWUSER || {};
-
 // takes response values in the fields, sends an http request to the servlet
 // and then parses (and displays) the response from the servlet.
-PWM_NEWUSER.validateNewUserForm=function() {
+function validateNewUserForm() {
     var validationProps = new Array();
-    validationProps['messageWorking'] = PWM_MAIN.showString('Display_CheckingData');
+    validationProps['messageWorking'] = showString('Display_CheckingData');
     validationProps['serviceURL'] = 'NewUser' + "?processAction=validate";
     validationProps['readDataFunction'] = function(){
-        return PWM_NEWUSER.makeFormData();
+        return makeFormData();
     };
     validationProps['processResultsFunction'] = function(data){
-        PWM_NEWUSER.updateDisplay(data);
+        updateDisplay(data);
     };
 
-    PWM_MAIN.pwmFormValidator(validationProps);
-};
+    pwmFormValidator(validationProps);
+}
 
-PWM_NEWUSER.makeFormData=function() {
+function makeFormData() {
     var paramData = { };
 
-    var newUserForm = PWM_MAIN.getObject('newUserForm');
+    var newUserForm = getObject('newUserForm');
 
     for (var i = 0; i < newUserForm.elements.length; i++ ) {
         var loopElement = newUserForm.elements[i];
@@ -52,91 +50,93 @@ PWM_NEWUSER.makeFormData=function() {
     }
 
     return paramData;
-};
+}
 
-PWM_NEWUSER.updateDisplay=function(data) {
-    PWM_NEWUSER.markConfirmationCheck(null);
-    PWM_NEWUSER.markStrength(null);
+function updateDisplay(data)
+{
+    markConfirmationCheck(null);
+    markStrength(null);
 
     if (data['error']) {
-        PWM_MAIN.showError(data['errorMessage']);
+        showError(data['errorMessage']);
     } else {
         var resultInfo = data['data'];
         var message = resultInfo["message"];
 
         if (resultInfo["passed"] == true) {
             if (resultInfo["match"] == "MATCH") {
-                PWM_MAIN.getObject("submitBtn").disabled = false;
-                PWM_MAIN.showSuccess(message);
+                getObject("submitBtn").disabled = false;
+                showSuccess(message);
             } else {
-                PWM_MAIN.getObject("submitBtn").disabled = true;
-                PWM_MAIN.showInfo(message);
+                getObject("submitBtn").disabled = true;
+                showInfo(message);
             }
         } else {
-            PWM_MAIN.getObject("submitBtn").disabled = true;
-            PWM_MAIN.showError(message);
+            getObject("submitBtn").disabled = true;
+            showError(message);
         }
 
-        PWM_NEWUSER.markConfirmationCheck(resultInfo["match"]);
-        PWM_NEWUSER.markStrength(resultInfo["strength"]);
+        markConfirmationCheck(resultInfo["match"]);
+        markStrength(resultInfo["strength"]);
     }
-};
+}
 
-PWM_NEWUSER.markConfirmationCheck=function(matchStatus) {
-    if (PWM_MAIN.getObject("confirmCheckMark") || PWM_MAIN.getObject("confirmCrossMark")) {
+function markConfirmationCheck(matchStatus) {
+    if (getObject("confirmCheckMark") || getObject("confirmCrossMark")) {
         if (matchStatus == "MATCH") {
-            PWM_MAIN.getObject("confirmCheckMark").style.visibility = 'visible';
-            PWM_MAIN.getObject("confirmCrossMark").style.visibility = 'hidden';
-            PWM_MAIN.getObject("confirmCheckMark").width = '15';
-            PWM_MAIN.getObject("confirmCrossMark").width = '0';
+            getObject("confirmCheckMark").style.visibility = 'visible';
+            getObject("confirmCrossMark").style.visibility = 'hidden';
+            getObject("confirmCheckMark").width = '15';
+            getObject("confirmCrossMark").width = '0';
         } else if (matchStatus == "NO_MATCH") {
-            PWM_MAIN.getObject("confirmCheckMark").style.visibility = 'hidden';
-            PWM_MAIN.getObject("confirmCrossMark").style.visibility = 'visible';
-            PWM_MAIN.getObject("confirmCheckMark").width = '0';
-            PWM_MAIN.getObject("confirmCrossMark").width = '15';
+            getObject("confirmCheckMark").style.visibility = 'hidden';
+            getObject("confirmCrossMark").style.visibility = 'visible';
+            getObject("confirmCheckMark").width = '0';
+            getObject("confirmCrossMark").width = '15';
         } else {
-            PWM_MAIN.getObject("confirmCheckMark").style.visibility = 'hidden';
-            PWM_MAIN.getObject("confirmCrossMark").style.visibility = 'hidden';
-            PWM_MAIN.getObject("confirmCheckMark").width = '0';
-            PWM_MAIN.getObject("confirmCrossMark").width = '0';
+            getObject("confirmCheckMark").style.visibility = 'hidden';
+            getObject("confirmCrossMark").style.visibility = 'hidden';
+            getObject("confirmCheckMark").width = '0';
+            getObject("confirmCrossMark").width = '0';
         }
     }
-};
+}
 
-PWM_NEWUSER.markStrength=function(strength) { //strength meter
-    if (PWM_MAIN.getObject("strengthBox") == null) {
+function markStrength(strength) { //strength meter
+    if (getObject("strengthBox") == null) {
         return;
     }
 
-    if (PWM_MAIN.getObject("password1").value.length > 0) {
-        PWM_MAIN.getObject("strengthBox").style.visibility = 'visible';
+    if (getObject("password1").value.length > 0) {
+        getObject("strengthBox").style.visibility = 'visible';
     } else {
-        PWM_MAIN.getObject("strengthBox").style.visibility = 'hidden';
+        getObject("strengthBox").style.visibility = 'hidden';
     }
 
     var strengthLabel = "";
     var barColor = "";
 
     if (strength > 70) {
-        strengthLabel = PWM_MAIN.showString('Display_PasswordStrengthHigh');
+        strengthLabel = showString('Display_PasswordStrengthHigh');
     } else if (strength > 45) {
-        strengthLabel = PWM_MAIN.showString('Display_PasswordStrengthMedium');
+        strengthLabel = showString('Display_PasswordStrengthMedium');
     } else {
-        strengthLabel = PWM_MAIN.showString('Display_PasswordStrengthLow');
+        strengthLabel = showString('Display_PasswordStrengthLow');
     }
 
     var colorFade = function(h1, h2, p) { return ((h1>>16)+((h2>>16)-(h1>>16))*p)<<16|(h1>>8&0xFF)+((h2>>8&0xFF)-(h1>>8&0xFF))*p<<8|(h1&0xFF)+((h2&0xFF)-(h1&0xFF))*p; }
     var gradColor = colorFade(COLOR_BAR_BOTTOM, COLOR_BAR_TOP, strength / 100).toString(16) + '';
 
-    var barObject = PWM_MAIN.getObject("strengthBar");
-    if (barObject != null && strength != null) {
+
+    var barObject = getObject("strengthBar");
+    if (barObject != null) {
         barObject.style.width = strength + '%';
         barObject.style.backgroundColor = '#' + gradColor;
     }
 
-    var labelObject = PWM_MAIN.getObject("strengthLabel");
+    var labelObject = getObject("strengthLabel");
     if (labelObject != null) {
         labelObject.innerHTML = strengthLabel == null ? "" : strengthLabel;
     }
-};
+}
 

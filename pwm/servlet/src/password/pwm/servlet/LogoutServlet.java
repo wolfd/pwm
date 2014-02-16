@@ -24,6 +24,7 @@ package password.pwm.servlet;
 
 import com.novell.ldapchai.exception.ChaiUnavailableException;
 import password.pwm.*;
+import password.pwm.bean.SessionStateBean;
 import password.pwm.config.PwmSetting;
 import password.pwm.error.PwmUnrecoverableException;
 import password.pwm.util.PwmLogger;
@@ -79,7 +80,7 @@ public class LogoutServlet extends TopServlet {
                 logoutURL.append(!pwmSession.getSessionStateBean().isPrivateUrlAccessed());
                 String sessionForwardURL = pwmSession.getSessionStateBean().getForwardURL();
                 if (sessionForwardURL != null && sessionForwardURL.length() > 0) {
-                    logoutURL.append("&" + pwmApplication.getConfig().readAppProperty(AppProperty.HTTP_PARAM_NAME_FORWARD_URL) + "=");
+                    logoutURL.append("&" + PwmConstants.PARAM_FORWARD_URL + "=");
                     logoutURL.append(URLEncoder.encode(sessionForwardURL, "UTF-8"));
                 }
 

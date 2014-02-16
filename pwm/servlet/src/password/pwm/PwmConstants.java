@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,6 @@ import password.pwm.i18n.Message;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.TimeZone;
@@ -41,28 +40,16 @@ public abstract class PwmConstants {
 // ------------------------------ FIELDS ------------------------------
 
     // ------------------------- PUBLIC CONSTANTS -------------------------
-    public static final String BUILD_TIME           = readBuildInfoBundle("build.time",SimpleDateFormat.getDateTimeInstance().format(new Date()));
-    public static final String BUILD_NUMBER         = readBuildInfoBundle("build.number","0");
-    public static final String BUILD_TYPE           = readBuildInfoBundle("build.type","");
-    public static final String BUILD_USER           = readBuildInfoBundle("build.user",System.getProperty("user.name"));
-    public static final String BUILD_REVISION       = readBuildInfoBundle("build.revision","0");
+    public static final String BUILD_TIME           = readBuildInfoBundle("build.time");
+    public static final String BUILD_NUMBER         = readBuildInfoBundle("build.number");
+    public static final String BUILD_TYPE           = readBuildInfoBundle("build.type");
+    public static final String BUILD_NAME           = readBuildInfoBundle("build.name");
+    public static final String BUILD_USER           = readBuildInfoBundle("build.user");
     public static final String BUILD_JAVA_VENDOR    = readBuildInfoBundle("build.java.vendor");
     public static final String BUILD_JAVA_VERSION   = readBuildInfoBundle("build.java.version");
-    public static final String BUILD_VERSION        = readBuildInfoBundle("build.version","");
+    public static final String PWM_VERSION          = readBuildInfoBundle("pwm.version");
 
-    private static final String MISSING_VERSION_STRING = readPwmConstantsBundle("missingVersionString");
-    public static final String SERVLET_VERSION;
-    static {
-        final String servletVersion =
-                (BUILD_VERSION.length() > 0 ? "v" + BUILD_VERSION : "") +
-                        (BUILD_NUMBER.length() > 0 ? " b" + BUILD_NUMBER : "") +
-                        (BUILD_REVISION.length() > 0 ? " r" + BUILD_REVISION : "") +
-                        (BUILD_TYPE.length() > 0 ? " (" + BUILD_TYPE + ")" : "").trim();
-
-        SERVLET_VERSION = servletVersion.isEmpty()
-                ? MISSING_VERSION_STRING
-                : servletVersion;
-    }
+    public static final String SERVLET_VERSION = "v" + PWM_VERSION + " b" + BUILD_NUMBER + " (" + BUILD_TYPE + ")";
 
     public static final String CONFIG_FILE_CONTEXT_PARAM = "pwmConfigPath";
     public static final String CONFIG_FILE_FILENAME = readPwmConstantsBundle("configFilename");
@@ -76,63 +63,97 @@ public abstract class PwmConstants {
     public static final long STATISTICS_PUBLISH_FREQUENCY_MS = Long.parseLong(readPwmConstantsBundle("statisticsPublishFrequencyMs"));
 
     public static final long NEWUSER_PASSWORD_POLICY_CACHE_MS = Long.parseLong(readPwmConstantsBundle("newuserPasswordPolicyCacheMs"));
+    public static final int MAX_EMAIL_QUEUE_SIZE = Integer.parseInt(readPwmConstantsBundle("maxEmailQueueSize"));
+    public static final int MAX_SMS_QUEUE_SIZE = Integer.parseInt(readPwmConstantsBundle("maxSmsQueueSize"));
     public static final int MAX_CONFIG_FILE_CHARS = Integer.parseInt(readPwmConstantsBundle("config.maxFileChars"));
+    public static final int MAX_NMAS_THREAD_COUNT = Integer.parseInt(readPwmConstantsBundle("maxNmasThreadCount"));
+    public static final int MIN_NMAS_THREAD_SECONDS = Integer.parseInt(readPwmConstantsBundle("minNmasThreadSeconds"));
+    public static final int MAX_NMAS_THREAD_SECONDS = Integer.parseInt(readPwmConstantsBundle("maxNmasThreadSeconds"));
+    public static final int NMAS_WATCHDOG_FREQUENCY_MS = Integer.parseInt(readPwmConstantsBundle("nmasWatchdogFrequencyCheckMs"));
 
     public static final Locale DEFAULT_LOCALE = new Locale(readPwmConstantsBundle("locale.defaultLocale"));
 
-    public static final String DEFAULT_DATETIME_FORMAT_STR = readPwmConstantsBundle("locale.defaultDateTimeFormat");
+    public static final DateFormat DEFAULT_DATETIME_FORMAT = new SimpleDateFormat(readPwmConstantsBundle("locale.defaultDateTimeFormat"));
+    public static final DateFormat DEFAULT_DATE_FORMAT = new SimpleDateFormat(readPwmConstantsBundle("locale.defaultDateFormat"));
+    public static final DateFormat DEFAULT_TIME_FORMAT = new SimpleDateFormat(readPwmConstantsBundle("locale.defaultTimeFormat"));
     public static final TimeZone DEFAULT_TIMEZONE = TimeZone.getTimeZone(readPwmConstantsBundle("locale.defaultTimeZone"));
-    public static final DateFormat DEFAULT_DATETIME_FORMAT = new SimpleDateFormat(DEFAULT_DATETIME_FORMAT_STR);
-    static {
-        DEFAULT_DATETIME_FORMAT.setTimeZone(DEFAULT_TIMEZONE);
-    }
 
     public static final int DEFAULT_WORDLIST_LOADFACTOR = Integer.parseInt(readPwmConstantsBundle("wordlist.loadFactor"));
+    public static final int HTTP_PARAMETER_READ_LENGTH = Integer.parseInt(readPwmConstantsBundle("httpParameterMaxReadLength"));
+    public static final int HTTP_BODY_READ_LENGTH = Integer.parseInt(readPwmConstantsBundle("httpBodyMaxReadLength"));
+    public static final int HTTP_SESSION_VALIDATION_KEY_LENGTH = Integer.parseInt(readPwmConstantsBundle("httpSessionValidationKeyLength"));
     public static final int CONFIG_FILE_SCAN_FREQUENCY = Integer.parseInt(readPwmConstantsBundle("configFileScanFrequency"));
+    public static final int CONFIG_BACKUP_ROTATIONS = Integer.parseInt(readPwmConstantsBundle("configFileBackupRotations"));
     public static final int PWMDB_LOGGER_MAX_QUEUE_SIZE = Integer.parseInt(readPwmConstantsBundle("pwmDBLoggerMaxQueueSize"));
     public static final int PWMDB_LOGGER_MAX_DIRTY_BUFFER_MS = Integer.parseInt(readPwmConstantsBundle("pwmDBLoggerMaxDirtyBufferMS"));
     public static final boolean CLEAR_SESSIONS_ON_RESTART = Boolean.parseBoolean(readPwmConstantsBundle("clearSessionsOnRestart"));
+    public static final boolean ALLOW_HTML_IN_ERROR_MESSAGES = Boolean.parseBoolean(readPwmConstantsBundle("allowHtmlInErrorMessages"));
+    public static final boolean INCLUDE_X_AMB_HEADER = Boolean.parseBoolean(readPwmConstantsBundle("includeXAmbHeader"));
+    public static final boolean INCLUDE_X_VERSION_HEADER = Boolean.parseBoolean(readPwmConstantsBundle("includeXVersionHeader"));
+    public static final boolean HTTP_RECYCLE_SESSIONS_ON_AUTH = Boolean.parseBoolean(readPwmConstantsBundle("httpRecycleSessionsOnAuthentication"));
+    public static final boolean ENABLE_AUDIT_AUTHENTICATION_TYPE = Boolean.parseBoolean(readPwmConstantsBundle("enableAuditAuthenticationType"));
     public static final boolean ENABLE_EULA_DISPLAY = Boolean.parseBoolean(readPwmConstantsBundle("enableEulaDisplay"));
-    public static final boolean TRIAL_MODE = Boolean.parseBoolean(readPwmConstantsBundle("trial"));
-    public static final int TRIAL_MAX_AUTHENTICATIONS = 100;
-    public static final int TRIAL_MAX_TOTAL_AUTH = 10000;
 
     public static final String RECAPTCHA_VALIDATE_URL = readPwmConstantsBundle("recaptchaValidateUrl");
 
+    public static final int RESOURCE_SERVLET_MAX_CACHE_ITEMS = Integer.parseInt(readPwmConstantsBundle("resourceServletMaxCacheItems"));
+    public static final int RESOURCE_SERVLET_MAX_CACHE_BYTES = Integer.parseInt(readPwmConstantsBundle("resourceServletMaxCacheBytes"));
+    public static final int RESOURCE_SERVLET_EXPIRATION_SECONDS = Integer.parseInt(readPwmConstantsBundle("resourceServletExpirationSeconds"));
+    public static final boolean RESOURCE_SERVLET_ENABLE_GZIP = Boolean.parseBoolean(readPwmConstantsBundle("resourceServletEnableGzip"));
+    public static final boolean RESOURCE_SERVLET_ENABLE_PATH_NONCE = Boolean.parseBoolean(readPwmConstantsBundle("resourceServletEnablePathNonce"));
+    public static final String RESOURCE_SERVLET_NONCE_PATH_PREFIX = readPwmConstantsBundle("resourceServletNoncePathPrefix");
+    public static final boolean SERVLET_FILTER_ENABLE_GZIP = Boolean.parseBoolean(readPwmConstantsBundle("servletFilterEnableGzip"));
     public static final int USER_COOKIE_MAX_AGE_SECONDS = Integer.parseInt(readPwmConstantsBundle("userCookieMaxAgeSeconds"));
+
+    public static final int LDAP_PROXY_CONNECTION_TIMEOUT = Integer.parseInt(readPwmConstantsBundle("ldapProxyConnectionTimeout"));
+    public static final int LDAP_CHECKER_CONNECTION_TIMEOUT = Integer.parseInt(readPwmConstantsBundle("ldapCheckerConnectionTimeout"));
+    public static final int LDAP_CHECKER_RECENT_ERRORS_DURATION = Integer.parseInt(readPwmConstantsBundle("ldapCheckerRecentErrorDuration"));
+
+    public static final int CLIENT_AJAX_TYPING_TIMEOUT = Integer.parseInt(readPwmConstantsBundle("client.ajaxTypingTimeout"));
+    public static final int CLIENT_AJAX_TYPING_WAIT = Integer.parseInt(readPwmConstantsBundle("client.ajaxTypingWait"));
+    public static final int CLIENT_ACTIVITY_MAX_EPS_RATE = Integer.parseInt(readPwmConstantsBundle("client.activityMaxEpsRate"));
     public static final int SERVER_AJAX_TYPING_CACHE_SIZE = Integer.parseInt(readPwmConstantsBundle("server.ajaxTypingCacheSize"));
+
     public static final int DATABASE_ACCESSOR_KEY_LENGTH = Integer.parseInt(readPwmConstantsBundle("databaseAccessor.keyLength"));
-    public static final int CONFIGGUIDE_IDLE_TIMEOUT = Integer.parseInt(readPwmConstantsBundle("configGuide.idleTimeout"));
+
+    public static final long INTRUDER_RETENTION_TIME_MS = Long.parseLong(readPwmConstantsBundle("intruderRetentionTimeMS"));
+    public static final long INTRUDER_CLEANUP_FREQUENCY_MS = Long.parseLong(readPwmConstantsBundle("intruderCleanupFrequencyMS"));
+    public static final long INTRUDER_MIN_DELAY_PENALTY_MS = Long.parseLong(readPwmConstantsBundle("intruderMinimumDelayPenaltyMS"));
+    public static final long INTRUDER_MAX_DELAY_PENALTY_MS = Long.parseLong(readPwmConstantsBundle("intruderMaximumDelayPenaltyMS"));
+    public static final long INTRUDER_DELAY_MAX_JITTER_MS = Long.parseLong(readPwmConstantsBundle("intruderDelayMaxJitterMS"));
 
     public static final long TOKEN_REMOVAL_DELAY_MS = Long.parseLong(readPwmConstantsBundle("token.removalDelayMS"));
     public static final int TOKEN_PURGE_BATCH_SIZE = Integer.parseInt(readPwmConstantsBundle("token.purgeBatchSize"));
     public static final int TOKEN_MAX_UNIQUE_CREATE_ATTEMPTS = Integer.parseInt(readPwmConstantsBundle("token.maxUniqueCreateAttempts"));
 
-    public static final String DEFAULT_LDAP_PROFILE = "_default";
-    public static final String DEFAULT_PASSWORD_PROFILE = "";
-    public static final String DEFAULT_CHALLENGE_PROFILE = "";
+    public static final int SHARED_HISTORY_HASH_LOOP_COUNT = Integer.parseInt(readPwmConstantsBundle("sharedHistory.hashLoopCount"));
+    public static final int RESPONSES_HASH_LOOP_COUNT = Integer.parseInt(readPwmConstantsBundle("responses.hashLoopCount"));
 
-    public static final String TOKEN_KEY_PWD_CHG_DATE = "lastPwdChange";
+    public static final int PASSWORD_UPDATE_CYCLE_DELAY_MS = Integer.parseInt(readPwmConstantsBundle("passwordUpdateCycleDelayMS"));
+    public static final int PASSWORD_UPDATE_INITIAL_DELAY_MS = Integer.parseInt(readPwmConstantsBundle("passwordUpdateInitialDelayMS"));
+
+    public static final String LOGGING_PATTERN = readPwmConstantsBundle("logging.pattern");
+    public static final String LOGGING_FILE_MAX_SIZE = readPwmConstantsBundle("logging.file.maxSize");
+    public static final int    LOGGING_FILE_MAX_ROLLOVER = Integer.parseInt(readPwmConstantsBundle("logging.file.maxRollover"));
+
+    public static final String TOKEN_KEY_PWD_CHG_DATE = "pwm_lastPwdChange";
     public static final String UNCONFIGURED_URL_VALUE = "[UNCONFIGURED_URL]";
     public static final float JAVA_MINIMUM_VERSION = (float)1.6;
+
+    public static final long CERTIFICATE_WARN_PERIOD_MS = Long.parseLong(readPwmConstantsBundle("certificateWarnPeriodMS"));
 
     public static final String HTTP_HEADER_BASIC_AUTH = readPwmConstantsBundle("httpHeaderAuthorization");
     public static final String HTTP_BASIC_AUTH_PREFIX = readPwmConstantsBundle("httpHeaderAuthorizationBasic");
     public static final String HTTP_HEADER_X_FORWARDED_FOR = readPwmConstantsBundle("httpHeaderXForwardedFor");
-    public static final String HTTP_HEADER_REST_CLIENT_KEY = readPwmConstantsBundle("httpRestClientKey");
+    public static final String HTTP_BASIC_AUTH_DECODE_CHARSET = readPwmConstantsBundle("httpBasicAuthDecodeCharset");
 
     public static final String DEFAULT_BAD_PASSWORD_ATTEMPT = readPwmConstantsBundle("defaultBadPasswordAttempt");
 
     public static final String CONTEXT_ATTR_CONTEXT_MANAGER = "ContextManager";
     public static final String CONTEXT_ATTR_RESOURCE_CACHE = "ResourceFileServlet-Cache";
     public static final String SESSION_ATTR_PWM_SESSION = "PwmSession";
+    public static final String REQUEST_ATTR_PWM_REQUEST = "PwmRequest";
     public static final String REQUEST_ATTR_ORIGINAL_URI = "OriginalUri";
-    public static final String REQUEST_ATTR_SHOW_LOCALE = "pwm.showLocale";
-    public static final String REQUEST_ATTR_SHOW_IDLE = "pwm.showIdle";
-    public static final String REQUEST_ATTR_HIDE_THEME = "pwm.hideTheme";
-    public static final String REQUEST_ATTR_HIDE_FOOTER_TEXT = "pwm.hideFooterText";
-    public static final String REQUEST_ATTR_NO_PWM_MAIN_INIT = "pwm.noPwmMainInit";
-    public static final String REQUEST_ATTR_NO_REQ_COUNTER = "pwm.noReqCounterIncrement";
 
     public static final String DEFAULT_BUILD_CHECKSUM_FILENAME = "BuildChecksum.properties";
 
@@ -143,23 +164,18 @@ public abstract class PwmConstants {
     public static final String URL_JSP_LOGOUT = "WEB-INF/jsp/logout.jsp";
     public static final String URL_JSP_SUCCESS = "WEB-INF/jsp/success.jsp";
     public static final String URL_JSP_ERROR = "WEB-INF/jsp/error.jsp";
-    public static final String URL_JSP_INIT = "WEB-INF/jsp/init.jsp";
+    public static final String URL_JSP_REDIRECT = "WEB-INF/jsp/redirect.jsp";
     public static final String URL_JSP_PASSWORD_CHANGE = "WEB-INF/jsp/changepassword.jsp";
     public static final String URL_JSP_PASSWORD_FORM = "WEB-INF/jsp/changepassword-form.jsp";
     public static final String URL_JSP_PASSWORD_CHANGE_WAIT = "WEB-INF/jsp/changepassword-wait.jsp";
     public static final String URL_JSP_PASSWORD_AGREEMENT = "WEB-INF/jsp/changepassword-agreement.jsp";
-    public static final String URL_JSP_PASSWORD_COMPLETE = "WEB-INF/jsp/changepassword-complete.jsp";
     public static final String URL_JSP_SETUP_RESPONSES = "WEB-INF/jsp/setupresponses.jsp";
     public static final String URL_JSP_SETUP_HELPDESK_RESPONSES = "WEB-INF/jsp/setupresponses-helpdesk.jsp";
-    public static final String URL_JSP_SETUP_OTP_SECRET_EXISTING = "WEB-INF/jsp/setupotpsecret-existing.jsp";
-    public static final String URL_JSP_SETUP_OTP_SECRET = "WEB-INF/jsp/setupotpsecret.jsp";
-    public static final String URL_JSP_SETUP_OTP_SECRET_TEST = "WEB-INF/jsp/setupotpsecret-test.jsp";
     public static final String URL_JSP_CONFIRM_RESPONSES = "WEB-INF/jsp/setupresponses-confirm.jsp";
     public static final String URL_JSP_RECOVER_PASSWORD_SEARCH = "WEB-INF/jsp/forgottenpassword-search.jsp";
     public static final String URL_JSP_RECOVER_PASSWORD_RESPONSES = "WEB-INF/jsp/forgottenpassword-responses.jsp";
     public static final String URL_JSP_RECOVER_PASSWORD_CHOICE = "WEB-INF/jsp/forgottenpassword-choice.jsp";
     public static final String URL_JSP_RECOVER_PASSWORD_ENTER_CODE = "WEB-INF/jsp/forgottenpassword-entercode.jsp";
-    public static final String URL_JSP_RECOVER_PASSWORD_ENTER_OTP = "WEB-INF/jsp/forgottenpassword-enterotp.jsp";
     public static final String URL_JSP_FORGOTTEN_USERNAME = "WEB-INF/jsp/forgottenusername-search.jsp";
     public static final String URL_JSP_ACTIVATE_USER = "WEB-INF/jsp/activateuser.jsp";
     public static final String URL_JSP_ACTIVATE_USER_AGREEMENT = "WEB-INF/jsp/activateuser-agreement.jsp";
@@ -179,24 +195,22 @@ public abstract class PwmConstants {
     public static final String URL_JSP_CAPTCHA = "WEB-INF/jsp/captcha.jsp";
     public static final String URL_JSP_PEOPLE_SEARCH = "WEB-INF/jsp/peoplesearch.jsp";
     public static final String URL_JSP_PEOPLE_SEARCH_DETAIL = "WEB-INF/jsp/peoplesearch-detail.jsp";
-    public static final String URL_JSP_CONFIG_MANAGER_EDITOR = "WEB-INF/jsp/configeditor.jsp";
-    public static final String URL_JSP_CONFIG_MANAGER_EDITOR_SETTINGS = "fragment/configeditor-settings.jsp";
-    public static final String URL_JSP_CONFIG_MANAGER_EDITOR_LOCALEBUNDLE = "fragment/configeditor-localeBundle.jsp";
-    public static final String URL_JSP_CONFIG_MANAGER_EDITOR_PROFILE = "fragment/configeditor-profiles.jsp";
+    public static final String URL_JSP_CONFIG_MANAGER_EDITOR = "WEB-INF/jsp/configmanager-editor.jsp";
+    public static final String URL_JSP_CONFIG_MANAGER_EDITOR_SETTINGS = "WEB-INF/jsp/configmanager-editor-settings.jsp";
+    public static final String URL_JSP_CONFIG_MANAGER_EDITOR_LOCALEBUNDLE = "WEB-INF/jsp/configmanager-editor-localeBundle.jsp";
     public static final String URL_JSP_CONFIG_MANAGER_LOGVIEW = "WEB-INF/jsp/logview.jsp";
-    public static final String URL_JSP_CONFIG_MANAGER_MODE_CONFIGURATION = "WEB-INF/jsp/configmanager.jsp";
+    public static final String URL_JSP_CONFIG_MANAGER_MODE_CONFIGURATION = "WEB-INF/jsp/configmanager-mode-configuration.jsp";
     public static final String URL_JSP_CONFIG_MANAGER_LOGIN = "WEB-INF/jsp/configmanager-login.jsp";
+    public static final String URL_JSP_CONFIG_MANAGER_MODE_RUNNING = "WEB-INF/jsp/configguide-mode-running.jsp";
     public static final String URL_JSP_CONFIG_GUIDE = "WEB-INF/jsp/configguide-%1%.jsp";
     public static final String URL_JSP_HELPDESK_SEARCH = "WEB-INF/jsp/helpdesk.jsp";
     public static final String URL_JSP_HELPDESK_DETAIL = "WEB-INF/jsp/helpdesk-detail.jsp";
 
     public static final String URL_SERVLET_LOGIN = "Login";
-    public static final String URL_SERVLET_OAUTH_COSUMER = "oauth";
     public static final String URL_SERVLET_LOGOUT = "Logout";
     public static final String URL_SERVLET_CHANGE_PASSWORD = "ChangePassword";
     public static final String URL_SERVLET_UPDATE_PROFILE = "UpdateProfile";
     public static final String URL_SERVLET_SETUP_RESPONSES = "SetupResponses";
-    public static final String URL_SERVLET_SETUP_OTP_SECRET = "SetupOtpSecret";
     public static final String URL_SERVLET_RECOVER_PASSWORD = "ForgottenPassword";
     public static final String URL_SERVLET_NEW_USER = "NewUser";
     public static final String URL_SERVLET_GUEST_REGISTRATION = "GuestRegistration";
@@ -211,15 +225,18 @@ public abstract class PwmConstants {
     public static final String PARAM_RESPONSE_PREFIX = "PwmResponse_R_";
     public static final String PARAM_QUESTION_PREFIX = "PwmResponse_Q_";
     public static final String PARAM_FORM_ID = "pwmFormID";
-    public static final String PARAM_OTP_TOKEN = "otpToken";
     public static final String PARAM_TOKEN = readPwmConstantsBundle("paramName.token");
-    public static final String PARAM_CONTEXT = "context";
-    public static final String PARAM_LDAP_PROFILE = "ldapProfile";
+    public static final String PARAM_FORWARD_URL = readPwmConstantsBundle("paramName.forwardURL");
+    public static final String PARAM_LOGOUT_URL = readPwmConstantsBundle("paramName.logoutURL");
+    public static final String PARAM_THEME = readPwmConstantsBundle("paramName.theme");
+    public static final String PARAM_LOCALE = readPwmConstantsBundle("paramName.locale");
+    public static final String PARAM_PASSWORD_EXPIRED = readPwmConstantsBundle("paramName.passwordExpired");
+
+    public static final String COOKIE_THEME = readPwmConstantsBundle("cookieName.theme");
+    public static final String COOKIE_LOCALE = readPwmConstantsBundle("cookieName.locale");
 
     public static final String VALUE_REPLACEMENT_USERNAME = "%USERNAME%";
     public static final String EMAIL_REGEX_MATCH = readPwmConstantsBundle("emailRegexMatch");
-
-    public static final String MIMETYPE_FORM = "application/x-www-form-urlencoded";
 
     // don't worry.  look over there.
     public static final String[] X_AMB_HEADER = new String[]{
@@ -264,27 +281,18 @@ public abstract class PwmConstants {
             "I changed my password to \"incorrect\", so whenever i forget, it will tell me \"your password is incorrect\".",
     };
 
-    public final static int TOTP_PAST_INTERVALS = 1;    // Allows one older TOTP token - compensate for clock out of sync
-    public final static int TOTP_FUTURE_INTERVALS = 1;  // Allows one newer TOTP token - compensate for clock out of sync
-    public final static int TOTP_INTERVAL = 30;         // 30 second interval
-    public final static int OTP_TOKEN_LENGTH = 6;
-    public final static int OTP_RECOVERY_TOKEN_LENGTH = 8;
-    public final static int OTP_RECOVERY_TOKEN_COUNT = 5;
+    static {
+        DEFAULT_DATETIME_FORMAT.setTimeZone(DEFAULT_TIMEZONE);
+        DEFAULT_DATE_FORMAT.setTimeZone(DEFAULT_TIMEZONE);
+        DEFAULT_TIME_FORMAT.setTimeZone(DEFAULT_TIMEZONE);
+    }
 
     private static String readPwmConstantsBundle(final String key) {
         return  ResourceBundle.getBundle(PwmConstants.class.getName()).getString(key);
     }
 
     private static String readBuildInfoBundle(final String key) {
-        return readBuildInfoBundle(key, null);
-    }
-    private static String readBuildInfoBundle(final String key, final String defaultValue) {
-        final ResourceBundle resourceBundle = ResourceBundle.getBundle("password.pwm.BuildInformation");
-        if (resourceBundle.containsKey(key)) {
-            return resourceBundle.getString(key);
-        }
-
-        return defaultValue;
+        return  ResourceBundle.getBundle("password.pwm.BuildInformation").getString(key);
     }
 
 // -------------------------- ENUMERATIONS --------------------------

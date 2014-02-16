@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,10 +22,12 @@
 
 package password.pwm.bean.servlet;
 
+import com.novell.ldapchai.cr.ResponseSet;
 import password.pwm.bean.PwmSessionBean;
 import password.pwm.bean.UserInfoBean;
 import password.pwm.config.FormConfiguration;
-import password.pwm.event.UserAuditRecord;
+import password.pwm.event.AuditRecord;
+import password.pwm.util.operations.UserSearchEngine;
 
 import java.io.Serializable;
 import java.util.Collections;
@@ -35,8 +37,8 @@ import java.util.Map;
 
 public class HelpdeskBean implements PwmSessionBean {
     private String searchString;
-    private Map<String,String> searchColumnHeaders = Collections.emptyMap();
     private UserInfoBean userInfoBean = new UserInfoBean();
+    private UserSearchEngine.UserSearchResults searchResults;
     private AdditionalUserInfo additionalUserInfo = new AdditionalUserInfo();
 
     public static class AdditionalUserInfo implements Serializable {
@@ -44,7 +46,7 @@ public class HelpdeskBean implements PwmSessionBean {
         private boolean pwmIntruder;
         private boolean accountEnabled;
         private Date lastLoginTime;
-        private List<UserAuditRecord> userHistory;
+        private List<AuditRecord> userHistory;
         private Map<FormConfiguration, String> searchDetails;
 
         public boolean isIntruderLocked() {
@@ -79,11 +81,11 @@ public class HelpdeskBean implements PwmSessionBean {
             this.lastLoginTime = lastLoginTime;
         }
 
-        public List<UserAuditRecord> getUserHistory() {
+        public List<AuditRecord> getUserHistory() {
             return userHistory;
         }
 
-        public void setUserHistory(List<UserAuditRecord> userHistory) {
+        public void setUserHistory(List<AuditRecord> userHistory) {
             this.userHistory = userHistory;
         }
 
@@ -104,6 +106,14 @@ public class HelpdeskBean implements PwmSessionBean {
         this.userInfoBean = userInfoBean;
     }
 
+    public UserSearchEngine.UserSearchResults getSearchResults() {
+        return searchResults;
+    }
+
+    public void setSearchResults(UserSearchEngine.UserSearchResults searchResults) {
+        this.searchResults = searchResults;
+    }
+
     public String getSearchString() {
         return searchString;
     }
@@ -120,13 +130,4 @@ public class HelpdeskBean implements PwmSessionBean {
         this.additionalUserInfo = additionalUserInfo;
     }
 
-    public Map<String, String> getSearchColumnHeaders()
-    {
-        return searchColumnHeaders;
-    }
-
-    public void setSearchColumnHeaders(Map<String, String> searchColumnHeaders)
-    {
-        this.searchColumnHeaders = searchColumnHeaders;
-    }
 }

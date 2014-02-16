@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,8 +33,6 @@ import password.pwm.error.ErrorInformation;
 import password.pwm.error.PwmError;
 import password.pwm.error.PwmUnrecoverableException;
 import password.pwm.i18n.Message;
-import password.pwm.util.stats.Statistic;
-import password.pwm.util.stats.StatisticsManager;
 import password.pwm.ws.server.RestResultBean;
 
 import javax.servlet.ServletContext;
@@ -44,20 +42,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.*;
-import java.math.BigInteger;
-import java.net.*;
+import java.net.InetAddress;
+import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.*;
 
 public class ServletHelper {
 
     private static final PwmLogger LOGGER = PwmLogger.getLogger(ServletHelper.class);
-
-    private static final Set<String> HTTP_DEBUG_STRIP_VALUES = new HashSet<String>(
-            Arrays.asList(new String[] {
-                    "password",
-                    PwmConstants.PARAM_TOKEN,
-                    PwmConstants.PARAM_RESPONSE_PREFIX,
-            }));
 
     /**
      * Wrapper for {@link #forwardToErrorPage(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse, boolean)} )}
@@ -134,7 +126,7 @@ public class ServletHelper {
             throws IOException, ServletException
     {
         req.setAttribute("nextURL",redirectURL);
-        final String redirectPageJsp = '/' + PwmConstants.URL_JSP_INIT;
+        final String redirectPageJsp = '/' + PwmConstants.URL_JSP_REDIRECT;
         req.getSession().getServletContext().getRequestDispatcher(redirectPageJsp).forward(req, resp);
     }
 
@@ -197,12 +189,11 @@ public class ServletHelper {
         return sb.toString();
     }
 
-    public static String debugHttpRequest(final PwmApplication pwmApplication, final HttpServletRequest req) {
-        return debugHttpRequest(pwmApplication, req, "");
+    public static String debugHttpRequest(final HttpServletRequest req) {
+        return debugHttpRequest(req, "");
     }
 
-    public static String debugHttpRequest(final PwmApplication pwmApplication, final HttpServletRequest req, final String extraText) {
-
+    public static String debugHttpRequest(final HttpServletRequest req, final String extraText) {
         final StringBuilder sb = new StringBuilder();
 
         sb.append(req.getMethod());
@@ -233,13 +224,11 @@ public class ServletHelper {
 
                 for (final String paramValue : paramValues) {
                     sb.append("  ").append(paramName).append("=");
-                    boolean strip = false;
-                    for (final String stripValue : HTTP_DEBUG_STRIP_VALUES) {
-                        if (paramName.toLowerCase().contains(stripValue.toLowerCase())) {
-                            strip = true;
-                        }
-                    }
-                    if (strip) {
+                    if (
+                            paramName.toLowerCase().contains("password") ||
+                                    paramName.startsWith(PwmConstants.PARAM_RESPONSE_PREFIX) ||
+                                    paramName.contains(PwmConstants.PARAM_TOKEN)
+                            ) {
                         sb.append(PwmConstants.LOG_REMOVED_VALUE_REPLACEMENT);
                     } else {
                         sb.append('\'');
@@ -292,13 +281,8 @@ public class ServletHelper {
         throw new Exception("unable to locate resource file path=" + relativePath + ", name=" + filename);
     }
 
-    public static String readRequestBody(final HttpServletRequest request)
-            throws IOException, PwmUnrecoverableException
-    {
-        final PwmApplication pwmApplication = ContextManager.getPwmApplication(request);
-        final int maxChars = Integer.parseInt(
-                pwmApplication.getConfig().readAppProperty(AppProperty.HTTP_BODY_MAXREAD_LENGTH));
-        return readRequestBody(request, maxChars);
+    public static String readRequestBody(final HttpServletRequest request) throws IOException {
+        return readRequestBody(request, PwmConstants.HTTP_BODY_READ_LENGTH);
     }
 
     public static String readRequestBody(final HttpServletRequest request, final int maxChars) throws IOException {
@@ -315,37 +299,16 @@ public class ServletHelper {
         return inputData.toString();
     }
 
-    public static void addPwmResponseHeaders(
-            final PwmApplication pwmApplication,
-            final PwmSession pwmSession,
-            final HttpServletResponse resp,
-            boolean fromServlet
-    ) {
+    public static void addPwmResponseHeaders(final PwmApplication pwmApplication, final HttpServletResponse resp, boolean includeXAmb) {
         if (!resp.isCommitted()) {
-            final boolean includeXAmb = Boolean.parseBoolean(pwmApplication.getConfig().readAppProperty(AppProperty.HTTP_HEADER_SEND_XAMB));
-            final boolean includeXInstance = Boolean.parseBoolean(pwmApplication.getConfig().readAppProperty(AppProperty.HTTP_HEADER_SEND_XINSTANCE));
-            final boolean includeXSessionID = Boolean.parseBoolean(pwmApplication.getConfig().readAppProperty(AppProperty.HTTP_HEADER_SEND_XSESSIONID));
-            final boolean includeXVersion = Boolean.parseBoolean(pwmApplication.getConfig().readAppProperty(AppProperty.HTTP_HEADER_SEND_XVERSION));
-            final boolean includeXFrameDeny = Boolean.parseBoolean(pwmApplication.getConfig().readAppProperty(AppProperty.HTTP_HEADER_SEND_XFRAMEDENY));
-
-            if (fromServlet && includeXAmb) {
-                resp.setHeader("X-" + PwmConstants.PWM_APP_NAME + "-Amb", PwmConstants.X_AMB_HEADER[PwmRandom.getInstance().nextInt(PwmConstants.X_AMB_HEADER.length)]);
-            }
-
-            if (includeXVersion) {
+            if (includeXAmb && PwmConstants.INCLUDE_X_VERSION_HEADER) {
                 resp.setHeader("X-" + PwmConstants.PWM_APP_NAME + "-Version", PwmConstants.SERVLET_VERSION);
             }
 
-            if (includeXInstance) {
-                resp.setHeader("X-" + PwmConstants.PWM_APP_NAME + "-Instance", String.valueOf(pwmApplication.getInstanceID()));
-            }
+            resp.setHeader("X-" + PwmConstants.PWM_APP_NAME + "-Instance", String.valueOf(pwmApplication.getInstanceID()));
 
-            if (includeXSessionID && pwmSession != null) {
-                resp.setHeader("X-" + PwmConstants.PWM_APP_NAME + "-SessionID", pwmSession.getSessionStateBean().getSessionID());
-            }
-
-            if (includeXFrameDeny) {
-                resp.setHeader("X-Frame-Options", "DENY");
+            if (includeXAmb && PwmConstants.INCLUDE_X_AMB_HEADER) {
+                resp.setHeader("X-" + PwmConstants.PWM_APP_NAME + "-Amb", PwmConstants.X_AMB_HEADER[PwmRandom.getInstance().nextInt(PwmConstants.X_AMB_HEADER.length)]);
             }
         }
     }
@@ -360,27 +323,12 @@ public class ServletHelper {
                 if (cookie != null) {
                     final String loopName = cookie.getName();
                     if (cookieName.equals(loopName)) {
-                        try {
-                            return URLDecoder.decode(cookie.getValue(),"UTF8");
-                        } catch (UnsupportedEncodingException e) {
-                            LOGGER.warn("error decoding cookie value for cookie '" + loopName + "', error: " + e.getMessage());
-                        }
+                        return cookie.getValue();
                     }
                 }
             }
         }
         return null;
-    }
-
-    public static void writeCookie(final HttpServletResponse resp, final String cookieName, final String cookieValue) {
-        Cookie theCookie = null;
-        try {
-            theCookie = new Cookie(cookieName, URLEncoder.encode(cookieValue, "UTF8"));
-        } catch (UnsupportedEncodingException e) {
-            LOGGER.warn("error decoding cookie value for cookie '" + cookieName + "', error: " + e.getMessage());
-        }
-        theCookie.setMaxAge(1024);
-        resp.addCookie(theCookie);
     }
 
     public static boolean cookieEquals(final HttpServletRequest req, final String cookieName, final String cookieValue) {
@@ -496,16 +444,12 @@ public class ServletHelper {
         return sb.toString();
     }
 
-    public static void recycleSessions(
-            final PwmApplication pwmApplication,
-            final PwmSession pwmSession,
-            final HttpServletRequest req,
-            final HttpServletResponse resp
-    )
+    public static void recycleSessions(final PwmSession pwmSession, HttpServletRequest req)
             throws IOException, ServletException
     {
-        final boolean recycleEnabled = Boolean.parseBoolean(pwmApplication.getConfig().readAppProperty(AppProperty.HTTP_SESSION_RECYCLE_AT_AUTH));
-        if (!recycleEnabled) {
+        pwmSession.getSessionStateBean().regenerateSessionVerificationKey();
+
+        if (!PwmConstants.HTTP_RECYCLE_SESSIONS_ON_AUTH) {
             return;
         }
 
@@ -517,11 +461,7 @@ public class ServletHelper {
         final Enumeration oldSessionAttrNames = oldSession.getAttributeNames();
         while (oldSessionAttrNames.hasMoreElements()) {
             final String attrName = (String)oldSessionAttrNames.nextElement();
-            sessionAttributes.put(attrName, oldSession.getAttribute(attrName));
-        }
-
-        for (final String attrName : sessionAttributes.keySet()) {
-            oldSession.removeAttribute(attrName);
+            sessionAttributes.put(attrName,oldSession.getAttribute(attrName));
         }
 
         //invalidate the old session
@@ -535,8 +475,7 @@ public class ServletHelper {
             newSession.setAttribute(attrName, sessionAttributes.get(attrName));
         }
 
-        //require session validation again
-        pwmSession.getSessionStateBean().setSessionVerified(false);
+        pwmSession.setHttpSession(newSession);
     }
 
     public static void handleRequestInitialization(
@@ -554,7 +493,6 @@ public class ServletHelper {
         // mark if first request
         if (ssBean.getSessionCreationTime() == null) {
             ssBean.setSessionCreationTime(new Date());
-            ssBean.setSessionLastAccessedTime(new Date());
         }
 
         // mark session ip address
@@ -585,11 +523,10 @@ public class ServletHelper {
     )
             throws PwmUnrecoverableException
     {
-        final String localeCookieName = pwmApplication.getConfig().readAppProperty(AppProperty.HTTP_COOKIE_NAME_LOCALE);
-        final String localeCookie = ServletHelper.readCookie(req,localeCookieName);
-        if (localeCookieName.length() > 0 && localeCookie != null) {
+        final String localeCookie = ServletHelper.readCookie(req,PwmConstants.COOKIE_LOCALE);
+        if (PwmConstants.COOKIE_LOCALE.length() > 0 && localeCookie != null) {
             LOGGER.debug(pwmSession, "detected locale cookie in request, setting locale to " + localeCookie);
-            pwmSession.setLocale(pwmApplication, localeCookie);
+            pwmSession.setLocale(localeCookie);
         } else {
             final List<Locale> knownLocales = pwmApplication.getConfig().getKnownLocales();
             final Locale userLocale = Helper.localeResolver(req.getLocale(), knownLocales);
@@ -597,9 +534,8 @@ public class ServletHelper {
             LOGGER.trace(pwmSession, "user locale set to '" + pwmSession.getSessionStateBean().getLocale() + "'");
         }
 
-        final String themeCookieName = pwmApplication.getConfig().readAppProperty(AppProperty.HTTP_COOKIE_NAME_THEME);
-        final String themeCookie = ServletHelper.readCookie(req,themeCookieName);
-        if (localeCookieName.length() > 0 && themeCookie != null && themeCookie.length() > 0) {
+        final String themeCookie = ServletHelper.readCookie(req,PwmConstants.COOKIE_THEME);
+        if (PwmConstants.COOKIE_THEME.length() > 0 && themeCookie != null && themeCookie.length() > 0) {
             LOGGER.debug(pwmSession, "detected theme cookie in request, setting theme to " + themeCookie);
             pwmSession.getSessionStateBean().setTheme(themeCookie);
         }
@@ -626,8 +562,9 @@ public class ServletHelper {
 
         // check idle time
         {
-            if (ssBean.getSessionLastAccessedTime() != null && ssBean.getSessionMaximumTimeout() != null) {
-                final TimeDuration maxIdleCheckTime = pwmSession.getSessionStateBean().getSessionMaximumTimeout();
+            if (ssBean.getSessionLastAccessedTime() != null) {
+                final Long maxIdleSeconds = pwmApplication.getConfig().readSettingAsLong(PwmSetting.IDLE_TIMEOUT_SECONDS);
+                final TimeDuration maxIdleCheckTime = new TimeDuration((maxIdleSeconds * 1000) + (60 * 1000));
                 final TimeDuration idleTime = TimeDuration.fromCurrent(ssBean.getSessionLastAccessedTime());
                 if (idleTime.isLongerThan(maxIdleCheckTime)) {
                     final String errorMsg = "session idle time (" + idleTime.asCompactString() + ") is longer than maximum idle time age";
@@ -705,46 +642,5 @@ public class ServletHelper {
                 }
             }
         }
-
-        // check trial
-        if (PwmConstants.TRIAL_MODE) {
-            final String currentAuthString = pwmApplication.getStatisticsManager().getStatBundleForKey(StatisticsManager.KEY_CURRENT).getStatistic(Statistic.AUTHENTICATIONS);
-            if (new BigInteger(currentAuthString).compareTo(BigInteger.valueOf(PwmConstants.TRIAL_MAX_AUTHENTICATIONS)) > 0) {
-                throw new PwmUnrecoverableException(new ErrorInformation(PwmError.ERROR_TRIAL_VIOLATION,"maximum usage per server startup exceeded"));
-            }
-
-            final String totalAuthString = pwmApplication.getStatisticsManager().getStatBundleForKey(StatisticsManager.KEY_CUMULATIVE).getStatistic(Statistic.AUTHENTICATIONS);
-            if (new BigInteger(totalAuthString).compareTo(BigInteger.valueOf(PwmConstants.TRIAL_MAX_TOTAL_AUTH)) > 0) {
-                throw new PwmUnrecoverableException(new ErrorInformation(PwmError.ERROR_TRIAL_VIOLATION,"maximum usage for this server has been exceeded"));
-            }
-        }
-    }
-
-    public static String appendAndEncodeUrlParameters(
-            final String inputUrl,
-            final Map<String, String> parameters
-    )
-            throws UnsupportedEncodingException
-    {
-        final StringBuilder output = new StringBuilder();
-        output.append(inputUrl == null ? "" : inputUrl);
-
-        if (parameters != null) {
-            for (final String key : parameters.keySet()) {
-                final String value = parameters.get(key);
-                final String encodedValue = URLEncoder.encode(value,"UTF8");
-
-                output.append(output.toString().contains("?") ? "&" : "?");
-                output.append(key);
-                output.append("=");
-                output.append(encodedValue);
-            }
-        }
-
-        if (output.charAt(0) == '?' || output.charAt(0) == '&') {
-            output.deleteCharAt(0);
-        }
-
-        return output.toString();
     }
 }

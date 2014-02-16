@@ -3,7 +3,7 @@
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -26,12 +26,13 @@
 <%@ taglib uri="pwm" prefix="pwm" %>
 <html dir="<pwm:LocaleOrientation/>">
 <%@ include file="fragment/header.jsp" %>
-<body class="nihilo">
+<body onload="pwmPageLoadHandler();" class="nihilo">
 <%-- begin reCaptcha section (http://code.google.com/apis/recaptcha/docs/display.html) --%>
 <% final String reCaptchaPublicKey = ContextManager.getPwmApplication(session).getConfig().readSettingAsString(PwmSetting.RECAPTCHA_KEY_PUBLIC); %>
 <% final String reCaptchaProtocol = request.isSecure() ? "https" : "http"; %>
 <% final Locale locale = PwmSession.getPwmSession(session).getSessionStateBean().getLocale(); %>
-<script defer type="text/javascript" src="<%=reCaptchaProtocol%>://www.google.com/recaptcha/api/js/recaptcha_ajax.js"></script>
+<script type="text/javascript" src="<%=reCaptchaProtocol%>://www.google.com/recaptcha/api/js/recaptcha_ajax.js">
+</script>
 <script type="text/javascript">
     PWM_GLOBAL['startupFunctions'].push(function(){
         Recaptcha.create("<%=reCaptchaPublicKey%>",
@@ -53,7 +54,7 @@
         <%@ include file="fragment/message.jsp" %>
         <br/>
         <form action="<pwm:url url='Captcha'/>" method="post" enctype="application/x-www-form-urlencoded"
-              name="verifyCaptcha" onsubmit="PWM_MAIN.handleFormSubmit('verify_button',this);return false">
+              name="verifyCaptcha" onsubmit="handleFormSubmit('verify_button',this);return false">
             <div id="recaptcha_WaitDialogBlank">
                 <div id="recaptcha_widget" style="display:none" class="recaptcha_widget">
                     <div id="recaptcha_image"></div>
@@ -65,22 +66,22 @@
                     <ul class="recaptcha_options">
                         <li>
                             <a href="javascript:Recaptcha.reload()">
-                                <span class="fa fa-refresh" title="<pwm:Display key="Display_CaptchaRefresh"/>"></span>
+                                <span class="icon-refresh" title="<pwm:Display key="Display_CaptchaRefresh"/>"></span>
                             </a>
                         </li>
                         <li class="recaptcha_only_if_image">
                             <a href="javascript:Recaptcha.switch_type('audio')">
-                                <span class="fa fa-volume-up" title="<pwm:Display key="Display_CaptchaGetAudio"/>"></span>
+                                <span class="icon-volume-up" title="<pwm:Display key="Display_CaptchaGetAudio"/>"></span>
                             </a>
                         </li>
                         <li class="recaptcha_only_if_audio">
                             <a href="javascript:Recaptcha.switch_type('image')">
-                                <span class="fa fa-picture" title="<pwm:Display key="Display_CaptchaGetImage"/>"></span>
+                                <span class="icon-picture" title="<pwm:Display key="Display_CaptchaGetImage"/>"></span>
                             </a>
                         </li>
                         <li>
                             <a href="javascript:Recaptcha.showhelp()">
-                                <span class="fa fa-question-sign" title="<pwm:Display key="Display_CaptchaHelp"/>"></span>
+                                <span class="icon-question-sign" title="<pwm:Display key="Display_CaptchaHelp"/>"></span>
                             </a>
                         </li>
                     </ul>
@@ -100,9 +101,16 @@
                 <input type="submit" name="verify" class="btn"
                        id="verify_button"
                        value="<pwm:Display key="Button_Verify"/>"/>
-                <%@ include file="/WEB-INF/jsp/fragment/button-reset.jsp" %>
+                <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_RESET_BUTTON)) { %>
+                <input type="reset" name="reset" class="btn"
+                       value="<pwm:Display key="Button_Reset"/>"/>
+                <% } %>
                 <input type="hidden" name="pwmFormID" value="<pwm:FormID/>"/>
-                <%@ include file="/WEB-INF/jsp/fragment/button-cancel.jsp" %>
+                <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_CANCEL_BUTTON)) { %>
+                <button style="visibility:hidden;" name="button" class="btn" id="button_cancel" onclick="handleFormCancel();return false">
+                    <pwm:Display key="Button_Cancel"/>
+                </button>
+                <% } %>
             </div>
         </form>
     </div>

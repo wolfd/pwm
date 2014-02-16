@@ -26,7 +26,6 @@ import com.google.gson.Gson;
 import org.jdom2.Element;
 import password.pwm.config.PwmSetting;
 import password.pwm.config.StoredValue;
-import password.pwm.util.Helper;
 
 import java.util.Collections;
 import java.util.List;
@@ -39,7 +38,7 @@ public class BooleanValue implements StoredValue {
     }
 
     static BooleanValue fromJson(String value) {
-        return new BooleanValue(Helper.getGson().fromJson(value, Boolean.class));
+        return new BooleanValue(new Gson().fromJson(value,Boolean.class));
     }
 
     static BooleanValue fromXmlElement(final Element settingElement) {
@@ -65,7 +64,7 @@ public class BooleanValue implements StoredValue {
     }
 
     public String toString() {
-        return Helper.getGson().toJson(value);
+        return new Gson().toJson(value);
     }
 
     public String toDebugString() {

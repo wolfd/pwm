@@ -1,11 +1,13 @@
 <%@ page import="password.pwm.bean.servlet.ConfigGuideBean" %>
 <%@ page import="password.pwm.servlet.ConfigGuideServlet" %>
+<%@ page import="java.security.cert.X509Certificate" %>
+<%@ page import="password.pwm.servlet.ConfigManagerServlet" %>
 <%--
   ~ Password Management Servlets (PWM)
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -30,7 +32,7 @@
 <%@ taglib uri="pwm" prefix="pwm" %>
 <html dir="<pwm:LocaleOrientation/>">
 <%@ include file="fragment/header.jsp" %>
-<body class="nihilo">
+<body class="nihilo" onload="pwmPageLoadHandler();">
 <link href="<%=request.getContextPath()%><pwm:url url='/public/resources/configStyle.css'/>" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="<%=request.getContextPath()%><pwm:url url="/public/resources/js/configguide.js"/>"></script>
 <script type="text/javascript" src="<%=request.getContextPath()%><pwm:url url="/public/resources/js/configeditor.js"/>"></script>
@@ -109,7 +111,7 @@
         </form>
         <br/>
         <div id="buttonbar">
-            <button class="btn" id="button_previous" onclick="gotoStep('CR_STORAGE');"><pwm:Display key="Button_Previous" bundle="Config"></pwm:Display></button>
+            <button class="btn" id="button_previous" onclick="gotoStep('LDAP3');"><pwm:Display key="Button_Previous" bundle="Config"></pwm:Display></button>
             <button class="btn" id="button_next" onclick="gotoStep('END');"><pwm:Display key="Button_Next" bundle="Config"></pwm:Display></button>
         </div>
     </div>
@@ -122,6 +124,7 @@
     }
 
     PWM_GLOBAL['startupFunctions'].push(function(){
+        getObject('localeSelectionMenu').style.display = 'none';
         require(["dojo/parser","dijit/TitlePane","dijit/form/Form","dijit/form/ValidationTextBox","dijit/form/NumberSpinner","dijit/form/CheckBox"],function(dojoParser){
             dojoParser.parse();
             checkIfNextEnabled();
@@ -129,27 +132,26 @@
     });
 
     function checkIfNextEnabled() {
-        var password = PWM_MAIN.getObject('<%=ConfigGuideServlet.PARAM_CONFIG_PASSWORD%>').value;
-        var password2 = PWM_MAIN.getObject('<%=ConfigGuideServlet.PARAM_CONFIG_PASSWORD_VERIFY%>').value;
+        var password = getObject('<%=ConfigGuideServlet.PARAM_CONFIG_PASSWORD%>').value;
+        var password2 = getObject('<%=ConfigGuideServlet.PARAM_CONFIG_PASSWORD_VERIFY%>').value;
 
-        PWM_MAIN.getObject('button_next').disabled = true;
-        PWM_MAIN.getObject('confirmCheckMark').style.visibility = 'hidden';
-        PWM_MAIN.getObject('confirmCrossMark').style.visibility = 'hidden';
+        getObject('button_next').disabled = true;
+        getObject('confirmCheckMark').style.visibility = 'hidden';
+        getObject('confirmCrossMark').style.visibility = 'hidden';
         if (password2.length > 0) {
             if (password === password2) {
                 console.log('yep');
-                PWM_MAIN.getObject('confirmCheckMark').style.visibility = 'visible';
-                PWM_MAIN.getObject('confirmCrossMark').style.visibility = 'hidden';
-                PWM_MAIN.getObject('button_next').disabled = false;
+                getObject('confirmCheckMark').style.visibility = 'visible';
+                getObject('confirmCrossMark').style.visibility = 'hidden';
+                getObject('button_next').disabled = false;
             } else {
                 console.log('nope');
-                PWM_MAIN.getObject('confirmCheckMark').style.visibility = 'hidden';
-                PWM_MAIN.getObject('confirmCrossMark').style.visibility = 'visible';
+                getObject('confirmCheckMark').style.visibility = 'hidden';
+                getObject('confirmCrossMark').style.visibility = 'visible';
             }
         }
     }
 </script>
-<% request.setAttribute(PwmConstants.REQUEST_ATTR_SHOW_LOCALE,"false"); %>
 <%@ include file="fragment/footer.jsp" %>
 </body>
 </html>

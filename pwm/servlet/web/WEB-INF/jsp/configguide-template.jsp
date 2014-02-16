@@ -5,7 +5,7 @@
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@
 <% ConfigGuideBean configGuideBean = (ConfigGuideBean)PwmSession.getPwmSession(session).getSessionBean(ConfigGuideBean.class);%>
 <html dir="<pwm:LocaleOrientation/>">
 <%@ include file="fragment/header.jsp" %>
-<body class="nihilo">
+<body class="nihilo" onload="pwmPageLoadHandler();">
 <script type="text/javascript" src="<%=request.getContextPath()%><pwm:url url="/public/resources/js/configguide.js"/>"></script>
 <div id="wrapper">
     <div id="header">
@@ -49,7 +49,7 @@
         <select id="templateSelect" onchange="selectTemplate(this.value);">
             <%
                 boolean noTemplateYet = false;
-                if (configGuideBean.getStoredConfiguration().readConfigProperty(StoredConfiguration.ConfigProperty.PROPERTY_KEY_TEMPLATE) == null) {
+                if (configGuideBean.getStoredConfiguration().readProperty(StoredConfiguration.PROPERTY_KEY_TEMPLATE) == null) {
                     noTemplateYet = true;
             %>
             <option value="NOTSELECTED" selected="selected"><pwm:Display key="Display_SelectionIndicator"/></option>
@@ -72,13 +72,13 @@
 </div>
 <script type="text/javascript">
     PWM_GLOBAL['startupFunctions'].push(function(){
+        getObject('localeSelectionMenu').style.display = 'none';
         <% if (noTemplateYet) { %>
-        PWM_MAIN.getObject('button_next').disabled = true;
+        getObject('button_next').disabled = true;
         <% } %>
-        selectTemplate(PWM_MAIN.getObject('templateSelect').value);
+        selectTemplate(getObject('templateSelect').value);
     });
 </script>
-<% request.setAttribute(PwmConstants.REQUEST_ATTR_SHOW_LOCALE,"false"); %>
 <%@ include file="fragment/footer.jsp" %>
 </body>
 </html>

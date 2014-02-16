@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,20 +22,23 @@
 
 package password.pwm;
 
+import com.google.gson.Gson;
 import com.novell.ldapchai.ChaiUser;
 import com.novell.ldapchai.exception.ChaiOperationException;
 import com.novell.ldapchai.exception.ChaiUnavailableException;
+import com.novell.ldapchai.provider.ChaiProvider;
 import com.novell.ldapchai.util.SearchHelper;
 import password.pwm.bean.SessionStateBean;
-import password.pwm.bean.UserIdentity;
 import password.pwm.config.Configuration;
 import password.pwm.config.FormConfiguration;
 import password.pwm.config.PwmSetting;
 import password.pwm.error.*;
-import password.pwm.ldap.UserSearchEngine;
 import password.pwm.util.PwmLogger;
+import password.pwm.util.operations.UserSearchEngine;
+import password.pwm.util.operations.UserStatusHelper;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.util.*;
 
@@ -150,8 +153,7 @@ public class Validator {
             final HttpServletRequest req,
             final String value
     ) throws PwmUnrecoverableException {
-        final int maxLength = Integer.parseInt(ContextManager.getPwmApplication(req).getConfig().readAppProperty(AppProperty.HTTP_PARAM_MAX_READ_LENGTH));
-        final Set<String> results = readStringsFromRequest(req, value, maxLength);
+        final Set<String> results = readStringsFromRequest(req, value, PwmConstants.HTTP_PARAMETER_READ_LENGTH);
         if (results == null || results.isEmpty()) {
             return "";
         }
@@ -159,13 +161,12 @@ public class Validator {
         return results.iterator().next();
     }
 
-    public static void validatePwmFormID(final HttpServletRequest req)
-            throws PwmUnrecoverableException
-    {
+    public static void validatePwmFormID(final HttpServletRequest req) throws PwmUnrecoverableException {
         final PwmSession pwmSession = PwmSession.getPwmSession(req);
         final PwmApplication pwmApplication = ContextManager.getPwmApplication(req);
         final SessionStateBean ssBean = pwmSession.getSessionStateBean();
         final String pwmFormID = ssBean.getSessionVerificationKey();
+        final long requestSequenceCounter = ssBean.getRequestCounter();
 
         final String submittedPwmFormID = req.getParameter(PwmConstants.PARAM_FORM_ID);
 
@@ -178,31 +179,16 @@ public class Validator {
                 throw new PwmUnrecoverableException(PwmError.ERROR_INVALID_FORMID);
             }
         }
-    }
-
-    public static void validatePwmRequestCounter(final HttpServletRequest req)
-            throws PwmOperationalException, PwmUnrecoverableException
-    {
-        final PwmSession pwmSession = PwmSession.getPwmSession(req);
-        final PwmApplication pwmApplication = ContextManager.getPwmApplication(req);
-        final SessionStateBean ssBean = pwmSession.getSessionStateBean();
-        final String pwmFormID = ssBean.getSessionVerificationKey();
-        final long requestSequenceCounter = ssBean.getRequestCounter();
-
-        final String submittedPwmFormID = req.getParameter(PwmConstants.PARAM_FORM_ID);
-        if (submittedPwmFormID == null || submittedPwmFormID.isEmpty()) {
-            return;
-        }
 
         if (pwmApplication.getConfig().readSettingAsBoolean(PwmSetting.SECURITY_ENABLE_REQUEST_SEQUENCE)) {
             try {
                 final String submittedSequenceCounterStr = submittedPwmFormID.substring(pwmFormID.length(),submittedPwmFormID.length());
                 final long submittedSequenceCounter = Long.parseLong(submittedSequenceCounterStr,36);
                 if (submittedSequenceCounter != requestSequenceCounter) {
-                    throw new PwmOperationalException(PwmError.ERROR_INCORRECT_REQUEST_SEQUENCE);
+                    throw new PwmUnrecoverableException(PwmError.ERROR_INCORRECT_REQUEST_SEQUENCE);
                 }
             } catch (NumberFormatException e) {
-                throw new PwmOperationalException(PwmError.ERROR_INCORRECT_REQUEST_SEQUENCE);
+                throw new PwmUnrecoverableException(PwmError.ERROR_INCORRECT_REQUEST_SEQUENCE);
             }
         }
     }
@@ -214,21 +200,6 @@ public class Validator {
             final String defaultValue
     ) throws PwmUnrecoverableException {
 
-        final String result = readStringFromRequest(req, value, maxLength);
-        if (result == null || result.length() < 1) {
-            return defaultValue;
-        }
-
-        return result;
-    }
-
-    public static String readStringFromRequest(
-            final HttpServletRequest req,
-            final String value,
-            final String defaultValue
-    ) throws PwmUnrecoverableException {
-
-        final int maxLength = Integer.parseInt(ContextManager.getPwmApplication(req).getConfig().readAppProperty(AppProperty.HTTP_PARAM_MAX_READ_LENGTH));
         final String result = readStringFromRequest(req, value, maxLength);
         if (result == null || result.length() < 1) {
             return defaultValue;
@@ -342,10 +313,11 @@ public class Validator {
 
     public static void validateAttributeUniqueness(
             final PwmApplication pwmApplication,
+            final ChaiProvider chaiProvider,
             final Map<FormConfiguration,String> formValues,
             final Locale locale,
             final SessionManager sessionManager,
-            final Collection<UserIdentity> excludeDN
+            final Collection<String> excludeDN
     )
             throws PwmDataValidationException, ChaiUnavailableException, ChaiOperationException, PwmUnrecoverableException
     {
@@ -409,18 +381,19 @@ public class Validator {
 
         final UserSearchEngine.SearchConfiguration searchConfiguration = new UserSearchEngine.SearchConfiguration();
         searchConfiguration.setFilter(filter.toString());
+        searchConfiguration.setChaiProvider(chaiProvider);
 
         int resultSearchSizeLimit = 1 + (excludeDN == null ? 0 : excludeDN.size());
 
         try {
             final UserSearchEngine userSearchEngine = new UserSearchEngine(pwmApplication);
-            final Map<UserIdentity,Map<String,String>> results = new LinkedHashMap<UserIdentity, Map<String, String>>(userSearchEngine.performMultiUserSearch(null,searchConfiguration,resultSearchSizeLimit,Collections.<String>emptyList()));
+            final Map<ChaiUser,Map<String,String>> results = new LinkedHashMap<ChaiUser, Map<String, String>>(userSearchEngine.performMultiUserSearch(null,searchConfiguration,resultSearchSizeLimit,Collections.<String>emptyList()));
 
             if (excludeDN != null && !excludeDN.isEmpty()) {
-                for (final UserIdentity loopIgnoreIdentity : excludeDN) {
-                    for (final Iterator<UserIdentity> iterator = results.keySet().iterator(); iterator.hasNext(); ) {
-                        final UserIdentity loopUser = iterator.next();
-                        if (loopIgnoreIdentity.equals(loopUser)) {
+                for (final String loopDN : excludeDN) {
+                    for (final Iterator<ChaiUser> iterator = results.keySet().iterator(); iterator.hasNext(); ) {
+                        final ChaiUser loopUser = iterator.next();
+                        if (loopDN.equals(loopUser.getEntryDN())) {
                             iterator.remove();
                         }
                     }
@@ -428,10 +401,10 @@ public class Validator {
             }
 
             if (!results.isEmpty()) {
-                final UserIdentity userIdentity = results.keySet().iterator().next();
+                final ChaiUser theUser = results.keySet().iterator().next();
                 if (labelMap.size() == 1) { // since only one value searched, it must be that one value
                     final String attributeName = labelMap.values().iterator().next();
-                    LOGGER.trace("found duplicate value for attribute '" + attributeName + "' on entry " + userIdentity);
+                    LOGGER.trace("found duplicate value for attribute '" + attributeName + "' on entry " + theUser.getEntryDN());
                     final ErrorInformation error = new ErrorInformation(PwmError.ERROR_FIELD_DUPLICATE, null, new String[]{attributeName});
                     throw new PwmDataValidationException(error);
                 }
@@ -439,10 +412,9 @@ public class Validator {
                 // do a compare on a user values to find one that matches.
                 for (final String name : filterClauses.keySet()) {
                     final String value = filterClauses.get(name);
-                    final ChaiUser theUser = pwmApplication.getProxiedChaiUser(userIdentity);
                     if (theUser.compareStringAttribute(name,value)) {
                         final String label = labelMap.get(name);
-                        LOGGER.trace("found duplicate value for attribute '" + label + "' on entry " + userIdentity);
+                        LOGGER.trace("found duplicate value for attribute '" + label + "' on entry " + theUser.getEntryDN());
                         final ErrorInformation error = new ErrorInformation(PwmError.ERROR_FIELD_DUPLICATE, null, new String[]{label});
                         throw new PwmDataValidationException(error);
                     }

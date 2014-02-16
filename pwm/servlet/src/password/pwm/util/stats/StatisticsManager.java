@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,7 +34,6 @@ import password.pwm.PwmService;
 import password.pwm.bean.StatsPublishBean;
 import password.pwm.config.Configuration;
 import password.pwm.config.PwmSetting;
-import password.pwm.config.option.DataStorageMethod;
 import password.pwm.error.PwmException;
 import password.pwm.health.HealthRecord;
 import password.pwm.util.Helper;
@@ -227,7 +226,7 @@ public class StatisticsManager implements PwmService {
         }
 
         {
-            final Gson gson = Helper.getGson();
+            final Gson gson = new Gson();
             for (final Statistic.EpsType loopEpsType : Statistic.EpsType.values()) {
                 for (final Statistic.EpsType loopEpsDuration : Statistic.EpsType.values()) {
                     final String key = "EPS-" + loopEpsType.toString() + loopEpsDuration.toString();
@@ -272,10 +271,9 @@ public class StatisticsManager implements PwmService {
         localDB.put(LocalDB.DB.PWM_STATS, DB_KEY_INITIAL_DAILY_KEY, initialDailyKey.toString());
 
         { // setup a timer to rull over at 0Zula and one to write current stats every 10 seconds
-            final String threadName = Helper.makeThreadName(pwmApplication, this.getClass()) + " timer";
-            daemonTimer = new Timer(threadName, true);
+            daemonTimer = new Timer(PwmConstants.PWM_APP_NAME + "-StatisticsManager timer",true);
             daemonTimer.schedule(new FlushTask(), 10 * 1000, DB_WRITE_FREQUENCY_MS);
-            daemonTimer.schedule(new NightlyTask(), Helper.nextZuluZeroTime());
+            daemonTimer.schedule(new NightlyTask(), nextDate());
         }
 
         if (pwmApplication.getApplicationMode() == PwmApplication.MODE.RUNNING) {
@@ -299,13 +297,23 @@ public class StatisticsManager implements PwmService {
         status = STATUS.OPEN;
     }
 
+    private static Date nextDate() {
+        final Calendar nextZuluMidnight = GregorianCalendar.getInstance(TimeZone.getTimeZone("Zulu"));
+        nextZuluMidnight.set(Calendar.HOUR_OF_DAY,0);
+        nextZuluMidnight.set(Calendar.MINUTE,0);
+        nextZuluMidnight.set(Calendar.SECOND,0);
+        nextZuluMidnight.add(Calendar.HOUR,24);
+        LOGGER.trace("scheduled next nightly rotate at " + StatisticsBundle.STORED_DATETIME_FORMATTER.format(nextZuluMidnight.getTime()));
+        return nextZuluMidnight.getTime();
+    }
+
     private void writeDbValues() {
         if (localDB != null) {
             try {
                 localDB.put(LocalDB.DB.PWM_STATS, DB_KEY_CUMULATIVE, statsCummulative.output());
                 localDB.put(LocalDB.DB.PWM_STATS, currentDailyKey.toString(), statsDaily.output());
 
-                final Gson gson = Helper.getGson();
+                final Gson gson = new Gson();
                 for (final Statistic.EpsType loopEpsType : Statistic.EpsType.values()) {
                     for (final Statistic.EpsDuration loopEpsDuration : Statistic.EpsDuration.values()) {
                         final String key = "EPS-" + loopEpsType.toString();
@@ -361,7 +369,7 @@ public class StatisticsManager implements PwmService {
         public void run() {
             writeDbValues();
             resetDailyStats();
-            daemonTimer.schedule(new NightlyTask(), Helper.nextZuluZeroTime());
+            daemonTimer.schedule(new NightlyTask(), nextDate());
         }
     }
 
@@ -476,7 +484,7 @@ public class StatisticsManager implements PwmService {
             otherData.put(StatsPublishBean.KEYS.INSTALL_DATE.toString(),PwmConstants.DEFAULT_DATETIME_FORMAT.format(pwmApplication.getInstallTime()));
 
             try {
-                otherData.put(StatsPublishBean.KEYS.LDAP_VENDOR.toString(),pwmApplication.getProxyChaiProvider(PwmConstants.DEFAULT_LDAP_PROFILE).getDirectoryVendor().toString());
+                otherData.put(StatsPublishBean.KEYS.LDAP_VENDOR.toString(),pwmApplication.getProxyChaiProvider().getDirectoryVendor().toString());
             } catch (Exception e) {
                 LOGGER.trace("unable to read ldap vendor type for stats publication: " + e.getMessage());
             }
@@ -487,13 +495,13 @@ public class StatisticsManager implements PwmService {
                     statData,
                     configuredSettings,
                     PwmConstants.BUILD_NUMBER,
-                    PwmConstants.BUILD_VERSION,
+                    PwmConstants.PWM_VERSION,
                     otherData
             );
         }
         final URI requestURI = new URI(PwmConstants.PWM_URL_CLOUD + "/rest/pwm/statistics");
         final HttpPost httpPost = new HttpPost(requestURI.toString());
-        final Gson gson = Helper.getGson();
+        final Gson gson = new Gson();
         final String jsonDataString = gson.toJson(statsPublishData);
         httpPost.setEntity(new StringEntity(jsonDataString));
         httpPost.setHeader("Accept", "application/json");
@@ -541,14 +549,5 @@ public class StatisticsManager implements PwmService {
         }
 
         return counter;
-    }
-
-    public ServiceInfo serviceInfo()
-    {
-        if (status() == STATUS.OPEN) {
-            return new ServiceInfo(Collections.<DataStorageMethod>singletonList(DataStorageMethod.LOCALDB));
-        } else {
-            return new ServiceInfo(Collections.<DataStorageMethod>emptyList());
-        }
     }
 }

@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,29 +23,22 @@
 package password.pwm.ws.server.rest;
 
 import com.novell.ldapchai.util.StringHelper;
-import password.pwm.ContextManager;
 import password.pwm.Permission;
-import password.pwm.config.Configuration;
-import password.pwm.config.PwmSetting;
 import password.pwm.error.ErrorInformation;
 import password.pwm.error.PwmError;
 import password.pwm.error.PwmUnrecoverableException;
-import password.pwm.util.PwmLogger;
 import password.pwm.util.stats.Statistic;
 import password.pwm.util.stats.StatisticsBundle;
 import password.pwm.util.stats.StatisticsManager;
 import password.pwm.ws.server.RestRequestBean;
 import password.pwm.ws.server.RestResultBean;
 import password.pwm.ws.server.RestServerHelper;
-import password.pwm.ws.server.ServicePermissions;
 
-import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.math.BigDecimal;
@@ -56,16 +49,12 @@ import java.util.TreeMap;
 
 @Path("/statistics")
 public class RestStatisticsServer {
-    private static final PwmLogger LOGGER = PwmLogger.getLogger(RestStatisticsServer.class);
 
     @Context
     HttpServletRequest request;
 
     @Context
     HttpServletResponse response;
-
-    @Context
-    ServletContext context;
 
     public static class JsonOutput implements Serializable
     {
@@ -77,18 +66,17 @@ public class RestStatisticsServer {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    public Response doPwmStatisticJsonGet(
+    public String doPwmStatisticJsonGet(
             final @QueryParam("statKey") String statKey,
             final @QueryParam("statName") String statName,
             final @QueryParam("days") String days
     )
     {
-        final ServicePermissions servicePermissions = figurePermissions();
         final RestRequestBean restRequestBean;
         try {
-            restRequestBean = RestServerHelper.initializeRestRequest(request, servicePermissions, null);
+            restRequestBean = RestServerHelper.initializeRestRequest(request, false, null);
         } catch (PwmUnrecoverableException e) {
-            return RestResultBean.fromError(e.getErrorInformation()).asJsonResponse();
+            return RestServerHelper.outputJsonErrorResult(e.getErrorInformation(), request);
         }
 
         try {
@@ -108,14 +96,13 @@ public class RestStatisticsServer {
 
             final RestResultBean resultBean = new RestResultBean();
             resultBean.setData(jsonOutput);
-            return resultBean.asJsonResponse();
+            return resultBean.toJson();
         //} catch (PwmException e) {
-        //    return RestResultBean.fromError(e.getErrorInformation(),restRequestBean).asJsonResponse();
+        //    return RestServerHelper.outputJsonErrorResult(e.getErrorInformation(), request);
         } catch (Exception e) {
             final String errorMsg = "unexpected error building json response: " + e.getMessage();
             final ErrorInformation errorInformation = new ErrorInformation(PwmError.ERROR_UNKNOWN, errorMsg);
-            return RestResultBean.fromError(errorInformation,restRequestBean).asJsonResponse();
-
+            return RestServerHelper.outputJsonErrorResult(errorInformation, request);
         }
     }
 
@@ -123,10 +110,9 @@ public class RestStatisticsServer {
     @Produces("text/csv")
     @Path("/file")
     public String doPwmStatisticFileGet() {
-        final ServicePermissions servicePermissions = figurePermissions();
         final RestRequestBean restRequestBean;
         try {
-            restRequestBean = RestServerHelper.initializeRestRequest(request, servicePermissions, null);
+            restRequestBean = RestServerHelper.initializeRestRequest(request, true, null);
         } catch (PwmUnrecoverableException e) {
             RestServerHelper.handleNonJsonErrorResult(e.getErrorInformation());
             return null;
@@ -184,18 +170,5 @@ public class RestStatisticsServer {
         }
 
         return outputMap;
-    }
-
-    private ServicePermissions figurePermissions() {
-        ServicePermissions servicePermissions = ServicePermissions.ADMIN_OR_CONFIGMODE;
-        try {
-            final Configuration config = ContextManager.getContextManager(context).getPwmApplication().getConfig();
-            if (config.readSettingAsBoolean(PwmSetting.PUBLIC_HEALTH_STATS_WEBSERVICES)) {
-                servicePermissions = ServicePermissions.PUBLIC;
-            }
-        } catch (PwmUnrecoverableException e) {
-            LOGGER.error("unable to read service permissions, defaulting to non-public; error: " + e.getMessage());
-        }
-        return servicePermissions;
     }
 }

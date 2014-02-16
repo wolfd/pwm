@@ -1,25 +1,26 @@
 <%@ page import="password.pwm.bean.servlet.ActivateUserBean" %>
+<%@ page import="password.pwm.util.operations.UserDataReader" %>
 <%--
-  ~ Password Management Servlets (PWM)
-  ~ http://code.google.com/p/pwm/
-  ~
-  ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
-  ~
-  ~ This program is free software; you can redistribute it and/or modify
-  ~ it under the terms of the GNU General Public License as published by
-  ~ the Free Software Foundation; either version 2 of the License, or
-  ~ (at your option) any later version.
-  ~
-  ~ This program is distributed in the hope that it will be useful,
-  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  ~ GNU General Public License for more details.
-  ~
-  ~ You should have received a copy of the GNU General Public License
-  ~ along with this program; if not, write to the Free Software
-  ~ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-  --%>
+~ Password Management Servlets (PWM)
+~ http://code.google.com/p/pwm/
+~
+~ Copyright (c) 2006-2009 Novell, Inc.
+~ Copyright (c) 2009-2012 The PWM Project
+~
+~ This program is free software; you can redistribute it and/or modify
+~ it under the terms of the GNU General Public License as published by
+~ the Free Software Foundation; either version 2 of the License, or
+~ (at your option) any later version.
+~
+~ This program is distributed in the hope that it will be useful,
+~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+~ GNU General Public License for more details.
+~
+~ You should have received a copy of the GNU General Public License
+~ along with this program; if not, write to the Free Software
+~ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+--%>
 
 <!DOCTYPE html>
 <%@ page language="java" session="true" isThreadSafe="true" contentType="text/html; charset=UTF-8" %>
@@ -27,11 +28,11 @@
 <% final ActivateUserBean activateUserBean = PwmSession.getPwmSession(session).getActivateUserBean(); %>
 <html dir="<pwm:LocaleOrientation/>">
 <%@ include file="fragment/header.jsp" %>
-<body class="nihilo">
+<body onload="pwmPageLoadHandler()" class="nihilo">
 <script type="text/javascript">
     function updateContinueButton() {
-        var checkBox = PWM_MAIN.getObject("agreeCheckBox");
-        var continueButton = PWM_MAIN.getObject("submitBtn");
+        var checkBox = getObject("agreeCheckBox");
+        var continueButton = getObject("submitBtn");
         if (checkBox != null && continueButton != null) {
             if (checkBox.checked) {
                 continueButton.removeAttribute('disabled');
@@ -47,15 +48,14 @@
     </jsp:include>
     <div id="centerbody">
         <%@ include file="fragment/message.jsp" %>
-        <% final MacroMachine macroMachine = new MacroMachine(pwmApplicationHeader, pwmSessionHeader.getUserInfoBean(), pwmSessionHeader.getSessionManager().getUserDataReader(pwmApplicationHeader)); %>
         <% final String agreementText = ContextManager.getPwmApplication(session).getConfig().readSettingAsLocalizedString(PwmSetting.ACTIVATE_AGREEMENT_MESSAGE, PwmSession.getPwmSession(session).getSessionStateBean().getLocale()); %>
-        <% final String expandedText = macroMachine.expandMacros(agreementText); %>
+        <% final String expandedText = MacroMachine.expandMacros(agreementText, pwmApplicationHeader, pwmSessionHeader.getUserInfoBean(), new UserDataReader(activateUserBean.getTheUser())); %>
         <br/><br/>
         <div id="agreementText" class="agreementText"><%= expandedText %></div>
         <div id="buttonbar">
             <form action="<pwm:url url='ActivateUser'/>" method="post"
                   enctype="application/x-www-form-urlencoded"
-                  onsubmit="PWM_MAIN.handleFormSubmit('submitBtn',this);return false"
+                  onsubmit="handleFormSubmit('submitBtn',this);return false"
                   style="display: inline;">
                 <%-- remove the next line to remove the "I Agree" checkbox --%>
                 <input type="checkbox" id="agreeCheckBox" onclick="updateContinueButton()" data-dojo-type="dijit.form.CheckBox"
@@ -75,7 +75,7 @@
                 <input type="hidden" name="processAction" value="reset"/>
                 <input type="submit" name="button" class="btn"
                        value="<pwm:Display key="Button_Cancel"/>"
-                       id="buttonCancel"/>
+                       id="button_reset"/>
                 <input type="hidden" name="pwmFormID" value="<pwm:FormID/>"/>
             </form>
         </div>

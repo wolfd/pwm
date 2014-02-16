@@ -1,24 +1,3 @@
-/*
- * Password Management Servlets (PWM)
- * http://code.google.com/p/pwm/
- *
- * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2013 The PWM Project
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 package password.pwm.util.operations.cr;
 
 import com.novell.ldapchai.ChaiUser;
@@ -27,8 +6,6 @@ import com.novell.ldapchai.cr.ChaiResponseSet;
 import com.novell.ldapchai.cr.ResponseSet;
 import com.novell.ldapchai.exception.ChaiException;
 import password.pwm.bean.ResponseInfoBean;
-import password.pwm.bean.UserIdentity;
-import password.pwm.config.option.DataStorageMethod;
 import password.pwm.error.ErrorInformation;
 import password.pwm.error.PwmError;
 import password.pwm.error.PwmUnrecoverableException;
@@ -50,7 +27,6 @@ public class LocalDbCrOperator implements CrOperator {
 
     public ResponseSet readResponseSet(
             final ChaiUser theUser,
-            final UserIdentity userIdentity,
             final String userGUID
     )
             throws PwmUnrecoverableException
@@ -63,7 +39,7 @@ public class LocalDbCrOperator implements CrOperator {
 
         if (localDB == null) {
             final String errorMsg = "LocalDB is not available, unable to search for user responses";
-            final ErrorInformation errorInformation = new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE, errorMsg);
+            final ErrorInformation errorInformation = new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE, errorMsg);
             throw new PwmUnrecoverableException(errorInformation);
         }
 
@@ -86,12 +62,12 @@ public class LocalDbCrOperator implements CrOperator {
         return null;
     }
 
-    public ResponseInfoBean readResponseInfo(ChaiUser theUser, UserIdentity userIdentity, String userGUID)
+    public ResponseInfoBean readResponseInfo(ChaiUser theUser, String userGUID)
             throws PwmUnrecoverableException
     {
         try {
-            final ResponseSet responseSet = readResponseSet(theUser, userIdentity, userGUID);
-            return responseSet == null ? null : CrOperators.convertToNoAnswerInfoBean(responseSet, DataStorageMethod.LOCALDB);
+            final ResponseSet responseSet = readResponseSet(theUser,userGUID);
+            return responseSet == null ? null : CrOperators.convertToNoAnswerInfoBean(responseSet);
         } catch (ChaiException e) {
             throw new PwmUnrecoverableException(new ErrorInformation(PwmError.ERROR_RESPONSES_NORESPONSES,"unexpected error reading response info " + e.getMessage()));
         }
@@ -104,7 +80,7 @@ public class LocalDbCrOperator implements CrOperator {
 
         if (localDB == null) {
             final String errorMsg = "LocalDB is not available, unable to write user responses";
-            final ErrorInformation errorInformation = new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE, errorMsg);
+            final ErrorInformation errorInformation = new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE, errorMsg);
             throw new PwmUnrecoverableException(errorInformation);
         }
 
@@ -128,7 +104,7 @@ public class LocalDbCrOperator implements CrOperator {
 
         if (localDB == null || localDB.status() != LocalDB.Status.OPEN) {
             final String errorMsg = "LocalDB is not available, unable to write user responses";
-            final ErrorInformation errorInformation = new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE, errorMsg);
+            final ErrorInformation errorInformation = new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE, errorMsg);
             throw new PwmUnrecoverableException(errorInformation);
         }
 

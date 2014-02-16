@@ -4,7 +4,7 @@
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -130,11 +130,6 @@
             <rtexprvalue>true</rtexprvalue>
         </attribute>
         <attribute>
-            <name>value3</name>
-            <required>false</required>
-            <rtexprvalue>true</rtexprvalue>
-        </attribute>
-        <attribute>
             <name>displayIfMissing</name>
             <required>false</required>
             <rtexprvalue>true</rtexprvalue>
@@ -161,11 +156,6 @@
             <required>true</required>
             <rtexprvalue>true</rtexprvalue>
         </attribute>
-        <attribute>
-            <name>addContext</name>
-            <required>false</required>
-            <rtexprvalue>true</rtexprvalue>
-        </attribute>
     </tag>
     <tag>
         <name>FormID</name>
@@ -178,6 +168,18 @@
         <tag-class>password.pwm.tag.LocaleOrientationTag</tag-class>
         <body-content>empty</body-content>
         <description>Output text "rtl" or "ltr" depending on session locale</description>
+    </tag>
+    <tag>
+        <name>ThemeURL</name>
+        <tag-class>password.pwm.tag.ThemeUrlTag</tag-class>
+        <body-content>empty</body-content>
+        <description>Output the name of the active theme</description>
+        <attribute>
+            <name>type</name>
+            <required>false</required>
+            <rtexprvalue>true</rtexprvalue>
+            <description>"mobile" for the mobile CSS stylesheet, otherwise not required.</description>
+        </attribute>
     </tag>
 </taglib>
 

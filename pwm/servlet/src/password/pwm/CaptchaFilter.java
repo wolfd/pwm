@@ -37,10 +37,7 @@ public class CaptchaFilter implements Filter {
 
     private static final PwmLogger LOGGER = PwmLogger.getLogger(CaptchaFilter.class);
 
-    private ServletContext servletContext;
-
     public void init(final FilterConfig filterConfig) throws ServletException {
-        this.servletContext = filterConfig.getServletContext();
     }
 
     public void doFilter(final ServletRequest servletRequest, final ServletResponse servletResponse, final FilterChain filterChain)
@@ -59,7 +56,7 @@ public class CaptchaFilter implements Filter {
     private void processFilter(final HttpServletRequest req, final HttpServletResponse resp, final FilterChain filterChain)
             throws PwmUnrecoverableException, IOException {
         final PwmSession pwmSession = PwmSession.getPwmSession(req);
-        final PwmApplication pwmApplication = ContextManager.getPwmApplication(this.servletContext);
+        final PwmApplication pwmApplication = ContextManager.getPwmApplication(req.getSession());
         final SessionStateBean ssBean = pwmSession.getSessionStateBean();
 
         final String captchaServletURL = req.getContextPath() + "/public/" + PwmConstants.URL_SERVLET_CAPTCHA;
@@ -111,6 +108,5 @@ public class CaptchaFilter implements Filter {
     }
 
     public void destroy() {
-        this.servletContext = null;
     }
 }

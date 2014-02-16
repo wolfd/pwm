@@ -22,6 +22,7 @@
 
 package password.pwm.util.operations;
 
+import com.google.gson.Gson;
 import com.novell.ldapchai.ChaiUser;
 import com.novell.ldapchai.cr.*;
 import com.novell.ldapchai.exception.*;
@@ -29,20 +30,17 @@ import com.novell.ldapchai.impl.edir.NmasCrFactory;
 import com.novell.ldapchai.provider.*;
 import password.pwm.*;
 import password.pwm.bean.ResponseInfoBean;
-import password.pwm.bean.UserIdentity;
-import password.pwm.config.ChallengeProfile;
 import password.pwm.config.Configuration;
 import password.pwm.config.PwmSetting;
-import password.pwm.config.option.DataStorageMethod;
 import password.pwm.error.*;
 import password.pwm.health.HealthRecord;
-import password.pwm.ldap.LdapOperationsHelper;
 import password.pwm.util.Helper;
 import password.pwm.util.PwmLogger;
 import password.pwm.util.TimeDuration;
 import password.pwm.util.operations.cr.*;
 import password.pwm.wordlist.WordlistManager;
 
+import java.net.URL;
 import java.util.*;
 
 /**
@@ -51,7 +49,7 @@ import java.util.*;
 public class CrService implements PwmService {
     private static final PwmLogger LOGGER = PwmLogger.getLogger(CrService.class);
 
-    private final Map<DataStorageMethod,CrOperator> operatorMap = new HashMap<DataStorageMethod,CrOperator>();
+    private final Map<Configuration.STORAGE_METHOD,CrOperator> operatorMap = new HashMap<Configuration.STORAGE_METHOD,CrOperator>();
     private PwmApplication pwmApplication;
 
     public CrService() {
@@ -65,11 +63,11 @@ public class CrService implements PwmService {
     @Override
     public void init(PwmApplication pwmApplication) throws PwmException {
         this.pwmApplication = pwmApplication;
-        operatorMap.put(DataStorageMethod.DB, new DbCrOperator(pwmApplication));
-        operatorMap.put(DataStorageMethod.LDAP, new LdapCrOperator(pwmApplication.getConfig()));
-        operatorMap.put(DataStorageMethod.LOCALDB, new LocalDbCrOperator(pwmApplication.getLocalDB()));
-        operatorMap.put(DataStorageMethod.NMAS, new NMASCrOperator(pwmApplication));
-        operatorMap.put(DataStorageMethod.NMASUAWS, new NMASUAWSOperator(pwmApplication));
+        operatorMap.put(Configuration.STORAGE_METHOD.DB, new DbCrOperator(pwmApplication));
+        operatorMap.put(Configuration.STORAGE_METHOD.LDAP, new LdapCrOperator(pwmApplication.getConfig()));
+        operatorMap.put(Configuration.STORAGE_METHOD.LOCALDB, new LocalDbCrOperator(pwmApplication.getLocalDB()));
+        operatorMap.put(Configuration.STORAGE_METHOD.NMAS, new NMASCrOperator(pwmApplication));
+        operatorMap.put(Configuration.STORAGE_METHOD.NMASUAWS, new NMASUAWSOperator(pwmApplication));
     }
 
     @Override
@@ -85,8 +83,7 @@ public class CrService implements PwmService {
         return Collections.emptyList();
     }
 
-    public ChallengeProfile readUserChallengeProfile(
-            final UserIdentity userIdentity,
+    public ChallengeSet readUserChallengeSet(
             final ChaiUser theUser,
             final PwmPasswordPolicy policy,
             final Locale locale
@@ -121,52 +118,20 @@ public class CrService implements PwmService {
         }
 
         // use PWM policies if PWM is configured and either its all that is configured OR the NMAS policy read was not successfull
-        final String challengeProfileID = determineChallengeProfileForUser(pwmApplication, userIdentity, locale);
-        final ChallengeProfile challengeProfile = config.getChallengeProfile(challengeProfileID, locale);
-
         if (returnSet == null) {
-            LOGGER.debug("no detected c/r policy for user " + theUser.getEntryDN() + " in ldap ");
-            LOGGER.trace("readUserChallengeProfile completed in " + TimeDuration.fromCurrent(methodStartTime).asCompactString());
-            return challengeProfile;
-        }
-
-        LOGGER.debug("using ldap c/r policy for user " + theUser.getEntryDN() + ": " + returnSet.toString());
-        LOGGER.trace("readUserChallengeProfile completed in " + TimeDuration.fromCurrent(methodStartTime).asCompactString());
-        return challengeProfile.overrideChallengeSet(returnSet);
-    }
-
-    protected static String determineChallengeProfileForUser(
-            final PwmApplication pwmApplication,
-            final UserIdentity userIdentity,
-            final Locale locale
-    ) {
-        final List<String> profiles = pwmApplication.getConfig().getChallengeProfiles();
-        if (profiles.isEmpty()) {
-            throw new IllegalStateException("no available challenge profiles");
-        } else if (profiles.size() == 1) {
-            LOGGER.trace("only one challenge profile defined, returning default");
-            return "";
-        }
-
-        for (final String profile : profiles) {
-            if (!PwmConstants.DEFAULT_CHALLENGE_PROFILE.equalsIgnoreCase(profile)) {
-                final ChallengeProfile loopPolicy = pwmApplication.getConfig().getChallengeProfile(profile, locale);
-                final String queryMatch = loopPolicy.getQueryString();
-                if (queryMatch != null && queryMatch.length() > 0) {
-                    LOGGER.debug("testing challenge profiles '" + profile + "'");
-                    try {
-                        boolean match = Permission.testQueryMatch(pwmApplication,null,userIdentity,queryMatch);
-                        if (match) {
-                            return profile;
-                        }
-                    } catch (PwmUnrecoverableException e) {
-                        LOGGER.error("unexpected error while testing password policy profile '" + profile + "', error: " + e.getMessage());
-                    }
-                }
+            returnSet = config.getGlobalChallengeSet(locale);
+            if (returnSet != null) {
+                LOGGER.debug("using ldap c/r policy for user " + theUser.getEntryDN() + ": " + returnSet.toString());
             }
         }
 
-        return PwmConstants.DEFAULT_CHALLENGE_PROFILE;
+        if (returnSet == null) {
+            LOGGER.warn("no available c/r policy for user" + theUser.getEntryDN() + ": ");
+        }
+
+        LOGGER.trace("readUserChallengeSet completed in " + TimeDuration.fromCurrent(methodStartTime).asCompactString());
+
+        return returnSet;
     }
 
     public void validateResponses(
@@ -283,7 +248,6 @@ public class CrService implements PwmService {
 
     public ResponseInfoBean readUserResponseInfo(
             final PwmSession pwmSession,
-            final UserIdentity userIdentity,
             final ChaiUser theUser
     )
             throws ChaiUnavailableException, PwmUnrecoverableException
@@ -292,23 +256,32 @@ public class CrService implements PwmService {
 
         LOGGER.trace(pwmSession, "beginning read of user response sequence");
 
-        final List<DataStorageMethod> readPreferences = config.helper().getCrReadPreference();
+        final List<Configuration.STORAGE_METHOD> readPreferences = config.getResponseStorageLocations(PwmSetting.FORGOTTEN_PASSWORD_READ_PREFERENCE);
+        {
+            final String wsURL = pwmApplication.getConfig().readSettingAsString(PwmSetting.EDIRECTORY_PWD_MGT_WEBSERVICE_URL);
+            if (wsURL != null && wsURL.length() > 0) {
+                readPreferences.add(Configuration.STORAGE_METHOD.NMASUAWS);
+            }
+        }
+        if (pwmApplication.getConfig().readSettingAsBoolean(PwmSetting.EDIRECTORY_USE_NMAS_RESPONSES)) {
+            readPreferences.add(Configuration.STORAGE_METHOD.NMAS);
+        }
 
-        final String debugMsg = "will attempt to read the following storage methods: " + Helper.getGson().toJson(readPreferences) + " for response info for user " + theUser.getEntryDN();
+        final String debugMsg = "will attempt to read the following storage methods: " + new Gson().toJson(readPreferences) + " for response info for user " + theUser.getEntryDN();
         LOGGER.debug(pwmSession, debugMsg);
 
         final String userGUID;
-        if (readPreferences.contains(DataStorageMethod.DB) || readPreferences.contains(DataStorageMethod.LOCALDB)) {
-            userGUID = LdapOperationsHelper.readLdapGuidValue(pwmApplication, userIdentity);
+        if (readPreferences.contains(Configuration.STORAGE_METHOD.DB) || readPreferences.contains(Configuration.STORAGE_METHOD.LOCALDB)) {
+            userGUID = Helper.readLdapGuidValue(pwmApplication, theUser.getEntryDN());
         } else {
             userGUID = null;
         }
 
-        for (final DataStorageMethod storageMethod : readPreferences) {
+        for (final Configuration.STORAGE_METHOD storageMethod : readPreferences) {
             final ResponseInfoBean readResponses;
 
             LOGGER.trace(pwmSession, "attempting read of response info via storage method: " + storageMethod);
-            readResponses = operatorMap.get(storageMethod).readResponseInfo(theUser, userIdentity, userGUID);
+            readResponses = operatorMap.get(storageMethod).readResponseInfo(theUser, userGUID);
 
             if (readResponses != null) {
                 LOGGER.debug(pwmSession,"returning response info read via method " + storageMethod + " for user " + theUser.getEntryDN());
@@ -325,7 +298,6 @@ public class CrService implements PwmService {
 
     public ResponseSet readUserResponseSet(
             final PwmSession pwmSession,
-            final UserIdentity userIdentity,
             final ChaiUser theUser
     )
             throws ChaiUnavailableException, PwmUnrecoverableException
@@ -334,23 +306,32 @@ public class CrService implements PwmService {
 
         LOGGER.trace(pwmSession, "beginning read of user response sequence");
 
-        final List<DataStorageMethod> readPreferences = config.helper().getCrReadPreference();
+        final List<Configuration.STORAGE_METHOD> readPreferences = config.getResponseStorageLocations(PwmSetting.FORGOTTEN_PASSWORD_READ_PREFERENCE);
 
-        final String debugMsg = "will attempt to read the following storage methods: " + Helper.getGson().toJson(readPreferences) + " for user " + theUser.getEntryDN();
+        {
+            final String wsURL = pwmApplication.getConfig().readSettingAsString(PwmSetting.EDIRECTORY_PWD_MGT_WEBSERVICE_URL);
+            if (wsURL != null && wsURL.length() > 0) {
+                readPreferences.add(Configuration.STORAGE_METHOD.NMASUAWS);
+            }
+        }
+        if (pwmApplication.getConfig().readSettingAsBoolean(PwmSetting.EDIRECTORY_USE_NMAS_RESPONSES)) {
+            readPreferences.add(Configuration.STORAGE_METHOD.NMAS);
+        }
+        final String debugMsg = "will attempt to read the following storage methods: " + new Gson().toJson(readPreferences) + " for user " + theUser.getEntryDN();
         LOGGER.debug(pwmSession, debugMsg);
 
         final String userGUID;
-        if (readPreferences.contains(DataStorageMethod.DB) || readPreferences.contains(DataStorageMethod.LOCALDB)) {
-            userGUID = LdapOperationsHelper.readLdapGuidValue(pwmApplication, userIdentity);
+        if (readPreferences.contains(Configuration.STORAGE_METHOD.DB) || readPreferences.contains(Configuration.STORAGE_METHOD.LOCALDB)) {
+            userGUID = Helper.readLdapGuidValue(pwmApplication, theUser.getEntryDN());
         } else {
             userGUID = null;
         }
 
-        for (final DataStorageMethod storageMethod : readPreferences) {
+        for (final Configuration.STORAGE_METHOD storageMethod : readPreferences) {
             final ResponseSet readResponses;
 
             LOGGER.trace(pwmSession, "attempting read of responses via storage method: " + storageMethod);
-            readResponses = operatorMap.get(storageMethod).readResponseSet(theUser, userIdentity, userGUID);
+            readResponses = operatorMap.get(storageMethod).readResponseSet(theUser, userGUID);
 
             if (readResponses != null) {
                 LOGGER.debug(pwmSession,"returning responses read via method " + storageMethod + " for user " + theUser.getEntryDN());
@@ -374,21 +355,21 @@ public class CrService implements PwmService {
     {
 
         int attempts = 0, successes = 0;
-        final Map<DataStorageMethod,String> errorMessages = new LinkedHashMap<DataStorageMethod, String>();
         final Configuration config = pwmApplication.getConfig();
 
-        final List<DataStorageMethod> writeMethods = config.helper().getCrWritePreference();
+        final List<Configuration.STORAGE_METHOD> writeMethods = config.getResponseStorageLocations(PwmSetting.FORGOTTEN_PASSWORD_WRITE_PREFERENCE);
+        if (pwmApplication.getConfig().readSettingAsBoolean(PwmSetting.EDIRECTORY_STORE_NMAS_RESPONSES)) {
+            writeMethods.add(Configuration.STORAGE_METHOD.NMAS);
+        }
 
-        for (final DataStorageMethod loopWriteMethod : writeMethods) {
+        for (final Configuration.STORAGE_METHOD loopWriteMethod : writeMethods) {
             try {
                 attempts++;
                 operatorMap.get(loopWriteMethod).writeResponses(theUser,userGUID,responseInfoBean);
                 LOGGER.debug("saved responses using storage method " + loopWriteMethod + " for user " + theUser.getEntryDN());
-                errorMessages.put(loopWriteMethod,"Success");
                 successes++;
             } catch (PwmUnrecoverableException e) {
-                final String errorMsg = "error saving responses via " + loopWriteMethod + ", error: " + e.getMessage();
-                errorMessages.put(loopWriteMethod,errorMsg);
+                final String errorMsg = "unexpected error saving responses via " + loopWriteMethod + ", error: " + e.getMessage();
                 LOGGER.error(errorMsg);
             }
         }
@@ -399,9 +380,8 @@ public class CrService implements PwmService {
             throw new PwmOperationalException(errorInfo);
         }
 
-        if (attempts != successes) {
-            final String errorMsg = "response storage only partially successful; attempts=" + attempts + ", successes=" + successes
-                    + ", detail=" + Helper.getGson().toJson(errorMessages);
+        if (attempts != successes) { // should be impossible to get here, but just in case.
+            final String errorMsg = "response storage only partially successful; attempts=" + attempts + ", successes=" + successes;
             final ErrorInformation errorInfo = new ErrorInformation(PwmError.ERROR_WRITING_RESPONSES, errorMsg);
             throw new PwmOperationalException(errorInfo);
         }
@@ -421,9 +401,12 @@ public class CrService implements PwmService {
 
         LOGGER.trace(pwmSession, "beginning clear response operation for user " + theUser.getEntryDN() + " guid=" + userGUID);
 
-        final List<DataStorageMethod> writeMethods = config.helper().getCrWritePreference();
+        final List<Configuration.STORAGE_METHOD> writeMethods = config.getResponseStorageLocations(PwmSetting.FORGOTTEN_PASSWORD_WRITE_PREFERENCE);
+        if (pwmApplication.getConfig().readSettingAsBoolean(PwmSetting.EDIRECTORY_STORE_NMAS_RESPONSES)) {
+            writeMethods.add(Configuration.STORAGE_METHOD.NMAS);
+        }
 
-        for (final DataStorageMethod loopWriteMethod : writeMethods) {
+        for (final Configuration.STORAGE_METHOD loopWriteMethod : writeMethods) {
             try {
                 attempts++;
                 operatorMap.get(loopWriteMethod).clearResponses(theUser, userGUID);
@@ -461,9 +444,10 @@ public class CrService implements PwmService {
 
         final String userDN = theUser.getEntryDN();
 
+        final ChaiProvider provider = pwmApplication.getProxyChaiProvider();
         final Configuration config = pwmApplication.getConfig();
 
-        if (!Helper.testUserMatchQueryString(theUser, config.readSettingAsString(PwmSetting.QUERY_MATCH_CHECK_RESPONSES))) {
+        if (!Helper.testUserMatchQueryString(provider, userDN, config.readSettingAsString(PwmSetting.QUERY_MATCH_CHECK_RESPONSES))) {
             LOGGER.debug(pwmSession, "checkIfResponseConfigNeeded: " + userDN + " is not eligible for checkIfResponseConfigNeeded due to query match");
             return false;
         }
@@ -491,12 +475,4 @@ public class CrService implements PwmService {
         }
     }
 
-    @Override
-    public ServiceInfo serviceInfo()
-    {
-        final LinkedHashSet<DataStorageMethod> usedStorageMethods = new LinkedHashSet<DataStorageMethod>();
-        usedStorageMethods.addAll(pwmApplication.getConfig().helper().getCrReadPreference());
-        usedStorageMethods.addAll(pwmApplication.getConfig().helper().getCrWritePreference());
-        return new ServiceInfo(Collections.unmodifiableList(new ArrayList(usedStorageMethods)));
-    }
 }

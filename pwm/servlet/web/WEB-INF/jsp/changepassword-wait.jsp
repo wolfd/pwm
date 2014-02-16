@@ -1,11 +1,9 @@
-<%@ page import="password.pwm.util.TimeDuration" %>
-<%@ page import="java.util.Date" %>
 <%--
   ~ Password Management Servlets (PWM)
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -26,51 +24,21 @@
 <%@ page language="java" session="true" isThreadSafe="true" contentType="text/html; charset=UTF-8" %>
 <%@ taglib uri="pwm" prefix="pwm" %>
 <html dir="<pwm:LocaleOrientation/>">
+<meta http-equiv="refresh"
+      content="0;url='<%=request.getAttribute("nextURL").toString()%>'">
 <%@ include file="fragment/header.jsp" %>
-<body class="nihilo">
-<%
-    Date maxCompleteTime = PwmSession.getPwmSession(request).getChangePasswordBean().getChangePasswordMaxCompletion();
-    long maxWaitSeconds = maxCompleteTime == null ? 1 : TimeDuration.fromCurrent(maxCompleteTime).getTotalSeconds();
-    long checkIntervalSeconds = Long.parseLong(pwmApplicationHeader.getConfig().readAppProperty(AppProperty.CLIENT_AJAX_PW_WAIT_CHECK_SECONDS));
-%>
-<meta http-equiv="refresh" content="<%=maxWaitSeconds%>;url='ChangePassword?processAction=complete&pwmFormID=<pwm:FormID/>">
-<noscript>
-    <meta http-equiv="refresh" content="<%=checkIntervalSeconds%>;url='ChangePassword?processAction=complete&pwmFormID=<pwm:FormID/>">
-</noscript>
+<body onload="pwmPageLoadHandler();" class="nihilo">
 <div id="wrapper">
     <jsp:include page="fragment/header-body.jsp">
         <jsp:param name="pwm.PageName" value="Title_PleaseWait"/>
     </jsp:include>
-    <div id="centerbody" >
+    <div id="centerbody">
         <%@ include file="/WEB-INF/jsp/fragment/message.jsp" %>
         <p><pwm:Display key="Display_PleaseWaitPassword"/></p>
-        <div style="width:400px; margin-left: auto; margin-right: auto; padding-top: 70px">
-            <div data-dojo-type="dijit/ProgressBar" style="width:400px" data-dojo-id="passwordProgressBar" id="passwordProgressBar" data-dojo-props="maximum:100"></div>
-        </div>
-        <div style="text-align: center; width: 100%; padding-top: 50px">
-            <%--
-            <div>Elapsed Time: <span id="elapsedSeconds"></span></div>
-            <div>Estimated Time Remaining: <span id="estimatedRemainingSeconds"></span></div>
-            --%>
-        </div>
-        <br/>
-        <table id="progressMessageTable">
-
-        </table>
+        <div id="buttonbar"></div>
+        <div id="WaitDialogBlank"></div>
     </div>
     <div class="push"></div>
 </div>
-<script type="text/javascript">
-    PWM_GLOBAL['startupFunctions'].push(function(){
-        PWM_GLOBAL['idle_suspendTimeout'] = true;
-        require(["dojo/parser", "dijit/ProgressBar","dojo/ready"], function(parser,registry){
-            parser.parse();
-            PWM_CHANGEPW.refreshChangePasswordStatus(<%=checkIntervalSeconds * 1000%>);
-        });
-    });
-</script>
-<script type="text/javascript" src="<%=request.getContextPath()%><pwm:url url='/public/resources/js/changepassword.js'/>"></script>
-<% request.setAttribute(PwmConstants.REQUEST_ATTR_HIDE_FOOTER_TEXT,"true"); %>
-<%@ include file="/WEB-INF/jsp/fragment/footer.jsp" %>
 </body>
 </html>

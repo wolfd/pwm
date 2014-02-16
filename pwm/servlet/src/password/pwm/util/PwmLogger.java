@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,17 +22,14 @@
 
 package password.pwm.util;
 
-import password.pwm.AppProperty;
+import password.pwm.AlertHandler;
 import password.pwm.PwmApplication;
 import password.pwm.PwmSession;
 import password.pwm.error.ErrorInformation;
-import password.pwm.event.AuditEvent;
-import password.pwm.event.SystemAuditRecord;
 import password.pwm.util.localdb.LocalDB;
 import password.pwm.util.localdb.LocalDBException;
 
 import java.util.Date;
-import java.util.HashMap;
 
 /**
  * @author Jason D. Rivard
@@ -74,13 +71,8 @@ public class PwmLogger {
             final PwmLogLevel minimumDbLogLevel,
             final PwmApplication pwmApplication
     ) {
-        final boolean devDebugMode = Boolean.parseBoolean(pwmApplication.getConfig().readAppProperty(AppProperty.LOGGING_DEV_OUTPUT));
         try {
-            final LocalDBLogger.Settings settings = new LocalDBLogger.Settings();
-            settings.setMaxEvents(maxEvents);
-            settings.setMaxAgeMs(maxAgeMS);
-            settings.setDevDebug(devDebugMode);
-            PwmLogger.localDBLogger = new LocalDBLogger(pwmApplication, pwmDB, settings);
+            PwmLogger.localDBLogger = new LocalDBLogger(pwmDB, maxEvents, maxAgeMS);
         } catch (LocalDBException e) {
             //nothing to do;
         }
@@ -159,7 +151,7 @@ public class PwmLogger {
     private static String makeActorString(final PwmSession pwmSession) {
         if (pwmSession != null) {
             if (pwmSession.getSessionStateBean().isAuthenticated()) {
-                final String userDN = pwmSession.getUserInfoBean().getUserIdentity().getUserDN();
+                final String userDN = pwmSession.getUserInfoBean().getUserDN();
                 if (userDN != null && userDN.length() > 0) {
                     return userDN;
                 }
@@ -225,20 +217,7 @@ public class PwmLogger {
 
             if (level == PwmLogLevel.FATAL) {
                 if (!message.toString().contains("5039")) {
-                    final HashMap<String,String> messageInfo = new HashMap<String,String>();
-                    messageInfo.put("level",logEvent.getLevel().toString());
-                    messageInfo.put("actor",logEvent.getActor());
-                    messageInfo.put("source",logEvent.getSource());
-                    messageInfo.put("topic",logEvent.getTopic());
-                    messageInfo.put("errorMessage",logEvent.getMessage());
-
-                    final String messageInfoStr = Helper.getGson().toJson(messageInfo);
-                    pwmApplication.getAuditManager().submit(new SystemAuditRecord(
-                            AuditEvent.FATAL_EVENT,
-                            new Date(),
-                            messageInfoStr,
-                            pwmApplication.getInstanceID()
-                    ));
+                    AlertHandler.alertFatalEvent(pwmApplication, logEvent);
                 }
             }
         } catch (Exception e2) {

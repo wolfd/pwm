@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,12 +23,10 @@
 package password.pwm.ws.server.rest;
 
 import com.novell.ldapchai.exception.ChaiUnavailableException;
-import password.pwm.ContextManager;
 import password.pwm.Permission;
 import password.pwm.PwmApplication;
 import password.pwm.PwmSession;
 import password.pwm.config.Configuration;
-import password.pwm.config.PwmSetting;
 import password.pwm.error.ErrorInformation;
 import password.pwm.error.PwmError;
 import password.pwm.error.PwmException;
@@ -36,14 +34,11 @@ import password.pwm.error.PwmUnrecoverableException;
 import password.pwm.health.HealthMonitor;
 import password.pwm.health.HealthRecord;
 import password.pwm.health.HealthStatus;
-import password.pwm.util.PwmLogger;
 import password.pwm.util.stats.Statistic;
 import password.pwm.ws.server.RestRequestBean;
 import password.pwm.ws.server.RestResultBean;
 import password.pwm.ws.server.RestServerHelper;
-import password.pwm.ws.server.ServicePermissions;
 
-import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
@@ -52,7 +47,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -62,8 +56,6 @@ import java.util.Locale;
 
 @Path("/health")
 public class RestHealthServer {
-    final private static PwmLogger LOGGER = PwmLogger.getLogger(RestHealthServer.class);
-
 
     public static class JsonOutput implements Serializable {
         public Date timestamp;
@@ -99,18 +91,14 @@ public class RestHealthServer {
     @Context
     HttpServletRequest request;
 
-    @Context
-    ServletContext context;
-
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     public String doPwmHealthPlainGet(
             @QueryParam("refreshImmediate") final boolean requestImmediateParam
     ) {
-        final ServicePermissions servicePermissions = figurePermissions();
         final RestRequestBean restRequestBean;
         try {
-            restRequestBean = RestServerHelper.initializeRestRequest(request, servicePermissions, null);
+            restRequestBean = RestServerHelper.initializeRestRequest(request, false, null);
         } catch (PwmUnrecoverableException e) {
             RestServerHelper.handleNonJsonErrorResult(e.getErrorInformation());
             return null;
@@ -137,18 +125,21 @@ public class RestHealthServer {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public Response doPwmHealthJsonGet(
+    public String doPwmHealthJsonGet(
             @QueryParam("refreshImmediate") final boolean requestImmediateParam
     ) {
-        final ServicePermissions servicePermissions = figurePermissions();
         final RestRequestBean restRequestBean;
         try {
-            restRequestBean = RestServerHelper.initializeRestRequest(request, servicePermissions, null);
+            restRequestBean = RestServerHelper.initializeRestRequest(request, false, null);
         } catch (PwmUnrecoverableException e) {
-            return RestResultBean.fromError(e.getErrorInformation()).asJsonResponse();
+            return e.getMessage();
         }
 
         try {
+            if (restRequestBean.isExternal() && !Permission.checkPermission(Permission.PWMADMIN, restRequestBean.getPwmSession(), restRequestBean.getPwmApplication())) {
+                throw new PwmUnrecoverableException(new ErrorInformation(PwmError.ERROR_UNAUTHORIZED,"actor does not have required permission"));
+            }
+
             processRefreshImmediate(restRequestBean.getPwmApplication(),restRequestBean.getPwmSession(),requestImmediateParam);
             final JsonOutput jsonOutput = processGetHealthCheckData(restRequestBean.getPwmApplication(),restRequestBean.getPwmSession().getSessionStateBean().getLocale());
             if (restRequestBean.isExternal()) {
@@ -156,13 +147,13 @@ public class RestHealthServer {
             }
             final RestResultBean restResultBean = new RestResultBean();
             restResultBean.setData(jsonOutput);
-            return restResultBean.asJsonResponse();
+            return restResultBean.toJson();
         } catch (PwmException e) {
-            return RestResultBean.fromError(e.getErrorInformation(), restRequestBean).asJsonResponse();
+            return RestServerHelper.outputJsonErrorResult(e.getErrorInformation(), request);
         } catch (Exception e) {
             final String errorMessage = "unexpected error executing web service: " + e.getMessage();
             final ErrorInformation errorInformation = new ErrorInformation(PwmError.ERROR_UNKNOWN, errorMessage);
-            return RestResultBean.fromError(errorInformation, restRequestBean).asJsonResponse();
+            return RestServerHelper.outputJsonErrorResult(errorInformation, request);
         }
     }
 
@@ -206,18 +197,5 @@ public class RestHealthServer {
             final HealthMonitor healthMonitor = pwmApplication.getHealthMonitor();
             healthMonitor.getHealthRecords(true);
         }
-    }
-
-    private ServicePermissions figurePermissions() {
-        ServicePermissions servicePermissions = ServicePermissions.ADMIN_OR_CONFIGMODE;
-        try {
-            final Configuration config = ContextManager.getContextManager(context).getPwmApplication().getConfig();
-            if (config.readSettingAsBoolean(PwmSetting.PUBLIC_HEALTH_STATS_WEBSERVICES)) {
-                servicePermissions = ServicePermissions.PUBLIC;
-            }
-        } catch (PwmUnrecoverableException e) {
-            LOGGER.error("unable to read service permissions, defaulting to non-public; error: " + e.getMessage());
-        }
-        return servicePermissions;
     }
 }

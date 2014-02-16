@@ -3,7 +3,7 @@
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
 <%@ taglib uri="pwm" prefix="pwm" %>
 <html dir="<pwm:LocaleOrientation/>">
 <%@ include file="/WEB-INF/jsp/fragment/header.jsp" %>
-<body class="nihilo">
+<body onload="pwmPageLoadHandler()" class="nihilo">
 <style type="text/css">
     <!--
     .licenseBlock {
@@ -42,7 +42,6 @@
         <jsp:param name="pwm.PageName" value="Software License Reference"/>
     </jsp:include>
     <div id="centerbody">
-    <p style="font-style: italic; text-align: center; width: 100%">nanos gigantum humeris insidentes</p>
         <div class="licenseBlock">
             <h1>PWM License</h1>
             <a href="http://code.google.com/p/pwm">http://code.google.com/p/pwm</a>
@@ -137,26 +136,8 @@
             <br/>
         </div>
         <div class="licenseBlock">
-            <h2>Google Authenticator</h2>
-            <a href="http://code.google.com/p/google-authenticator/">http://code.google.com/p/google-authenticator/</a>
-            <br/><br/>
-            <div style="width:580px" data-dojo-type="dijit/TitlePane" data-dojo-props="title: 'License',open: false">
-                <pre><jsp:include page="license/apache20_license.txt"/></pre>
-            </div>
-            <br/>
-        </div>
-        <div class="licenseBlock">
             <h2>Gson</h2>
             <a href="http://code.google.com/p/google-gson/">http://code.google.com/p/google-gson/</a>
-            <br/><br/>
-            <div style="width:580px" data-dojo-type="dijit/TitlePane" data-dojo-props="title: 'License',open: false">
-                <pre><jsp:include page="license/h2_license.txt"/></pre>
-            </div>
-            <br/>
-        </div>
-        <div class="licenseBlock">
-            <h2>H2</h2>
-            <a href="http://www.h2database.com">http://www.h2database.com</a>
             <br/><br/>
             <div style="width:580px" data-dojo-type="dijit/TitlePane" data-dojo-props="title: 'License',open: false">
                 <pre><jsp:include page="license/apache20_license.txt"/></pre>
@@ -211,38 +192,11 @@
             <br/>
         </div>
         <div class="licenseBlock">
-            <h2>QRgen</h2>
-            <a href="https://github.com/kenglxn/QRGen">https://github.com/kenglxn/QRGen</a>
-            <br/><br/>
-            <div style="width:580px" data-dojo-type="dijit/TitlePane" data-dojo-props="title: 'License',open: false">
-                <pre><jsp:include page="license/apache20_license.txt"/></pre>
-            </div>
-            <br/>
-        </div>
-        <div class="licenseBlock">
-            <h2>Scrypt</h2>
-            <a href="https://github.com/wg/scrypt">https://github.com/wg/scrypt</a>
-            <br/><br/>
-            <div style="width:580px" data-dojo-type="dijit/TitlePane" data-dojo-props="title: 'License',open: false">
-                <pre><jsp:include page="license/apache20_license.txt"/></pre>
-            </div>
-            <br/>
-        </div>
-        <div class="licenseBlock">
             <h2>Syslog4j</h2>
             <a href="http://www.syslog4j.org/">http://www.syslog4j.org/</a>
             <br/><br/>
             <div style="width:580px" data-dojo-type="dijit/TitlePane" data-dojo-props="title: 'License',open: false">
                 <pre><jsp:include page="license/lgpl-2.1-license.txt"/></pre>
-            </div>
-            <br/>
-        </div>
-        <div class="licenseBlock">
-            <h2>ZXing</h2>
-            <a href="http://code.google.com/p/zxing/">http://code.google.com/p/zxing/</a>
-            <br/><br/>
-            <div style="width:580px" data-dojo-type="dijit/TitlePane" data-dojo-props="title: 'License',open: false">
-                <pre><jsp:include page="license/apache20_license.txt"/></pre>
             </div>
             <br/>
         </div>
@@ -257,8 +211,6 @@
         });
     });
 </script>
-<% request.setAttribute(PwmConstants.REQUEST_ATTR_SHOW_LOCALE,"false"); %>
-<% request.setAttribute(PwmConstants.REQUEST_ATTR_SHOW_IDLE,"false"); %>
 <%@ include file="/WEB-INF/jsp/fragment/footer.jsp" %>
 </body>
 </html>

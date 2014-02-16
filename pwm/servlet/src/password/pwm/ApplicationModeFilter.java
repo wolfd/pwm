@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,33 +39,25 @@ public class ApplicationModeFilter implements Filter {
 
     private static final PwmLogger LOGGER = PwmLogger.getLogger(ApplicationModeFilter.class.getName());
 
-    private ServletContext servletContext;
-
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
-        this.servletContext = filterConfig.getServletContext();
     }
 
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain)
             throws IOException, ServletException
     {
-        // add request url to request attribute
+        // check for valid config
         servletRequest.setAttribute(PwmConstants.REQUEST_ATTR_ORIGINAL_URI, ((HttpServletRequest) servletRequest).getRequestURI());
-
-        // ignore if resource request
-        if (!PwmServletURLHelper.isResourceURL((HttpServletRequest)servletRequest)) {
-            // check for valid config
-            try {
-                if (checkConfigModes((HttpServletRequest)servletRequest, (HttpServletResponse)servletResponse, servletContext)) {
-                    return;
-                }
-            } catch (PwmUnrecoverableException e) {
-                if (e.getError() == PwmError.ERROR_UNKNOWN) {
-                    try { LOGGER.error(e.getMessage()); } catch (Exception ignore) { /* noop */ }
-                }
-                throw new ServletException(e.getErrorInformation().toDebugStr());
+        try {
+            if (checkConfigModes((HttpServletRequest)servletRequest, (HttpServletResponse)servletResponse)) {
+                return;
             }
+        } catch (PwmUnrecoverableException e) {
+            if (e.getError() == PwmError.ERROR_UNKNOWN) {
+                try { LOGGER.error(e.getMessage()); } catch (Exception ignore) { /* noop */ }
+            }
+            throw new ServletException(e.getErrorInformation().toDebugStr());
         }
 
         filterChain.doFilter(servletRequest,servletResponse);
@@ -77,12 +69,13 @@ public class ApplicationModeFilter implements Filter {
 
     private static boolean checkConfigModes(
             final HttpServletRequest req,
-            final HttpServletResponse resp,
-            final ServletContext servletContext
+            final HttpServletResponse resp
     )
             throws IOException, ServletException, PwmUnrecoverableException
     {
-        final PwmApplication theManager = ContextManager.getPwmApplication(servletContext);
+        final PwmSession pwmSession = PwmSession.getPwmSession(req.getSession());
+        final SessionStateBean ssBean = pwmSession.getSessionStateBean();
+        final PwmApplication theManager = ContextManager.getPwmApplication(req.getSession());
 
         if (theManager == null) {
             throw new PwmUnrecoverableException(new ErrorInformation(PwmError.ERROR_SERVICE_NOT_AVAILABLE,"unable to load PwmApplication instance"));
@@ -100,11 +93,9 @@ public class ApplicationModeFilter implements Filter {
                 return false;
             }
 
-            if (PwmServletURLHelper.isConfigGuideURL(req)) {
-                return false;
-            } else {
-                LOGGER.debug("unable to find a valid configuration, redirecting " + req.getRequestURI() + " to ConfigGuide");
-                resp.sendRedirect(req.getContextPath() + "/private/config/" + PwmConstants.URL_SERVLET_CONFIG_GUIDE);
+            if (!PwmServletURLHelper.isConfigGuideURL(req)) {
+                LOGGER.debug(pwmSession, "unable to find a valid configuration, redirecting " + req.getRequestURI() + " to ConfigGuide");
+                resp.sendRedirect(req.getContextPath() + "/config/" + PwmConstants.URL_SERVLET_CONFIG_GUIDE);
                 return true;
             }
         }
@@ -112,10 +103,8 @@ public class ApplicationModeFilter implements Filter {
         if (mode == PwmApplication.MODE.ERROR) {
             ErrorInformation rootError = ContextManager.getContextManager(req.getSession()).getStartupErrorInformation();
             if (rootError == null) {
-                rootError = new ErrorInformation(PwmError.ERROR_APP_UNAVAILABLE, "Application startup failed.");
+                rootError = new ErrorInformation(PwmError.ERROR_PWM_UNAVAILABLE, "Application startup failed.");
             }
-            final PwmSession pwmSession = PwmSession.getPwmSession(req.getSession());
-            final SessionStateBean ssBean = pwmSession.getSessionStateBean();
             ssBean.setSessionError(rootError);
             ServletHelper.forwardToErrorPage(req, resp, true);
             return true;

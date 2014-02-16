@@ -3,7 +3,7 @@
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 <%@ taglib uri="pwm" prefix="pwm" %>
 <html dir="<pwm:LocaleOrientation/>">
 <%@ include file="fragment/header.jsp" %>
-<body class="nihilo">
+<body class="nihilo" onload="pwmPageLoadHandler();">
 <script type="text/javascript" src="<%=request.getContextPath()%><pwm:url url="/public/resources/js/configmanager.js"/>"></script>
 <div id="wrapper">
     <div id="header">
@@ -41,7 +41,7 @@
     <div id="centerbody">
         <%@ include file="/WEB-INF/jsp/fragment/message.jsp" %>
         <form action="<pwm:url url='ConfigManager'/>" method="post" name="configLogin" enctype="application/x-www-form-urlencoded"
-              onsubmit="return PWM_MAIN.handleFormSubmit('submitBtn',this)">
+              onsubmit="return handleFormSubmit('submitBtn',this)">
 
             <h1>Configuration Password</h1>
             <br class="clear"/>
@@ -51,8 +51,14 @@
                        name="button"
                        value="<pwm:Display key="Button_Login"/>"
                        id="submitBtn"/>
-                <button type="button" style="visibility:hidden;" name="button" class="btn" id="button_cancel"
-                        onclick="document.location='<%=request.getContextPath()%>';return false">
+                <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_RESET_BUTTON)) { %>
+                <input type="reset" class="btn"
+                       name="reset"
+                       value="<pwm:Display key="Button_Reset"/>"/>
+                <% } %>
+                <input type="hidden" name="processAction" value="startEditing">
+                <button style="visibility:hidden;" name="button" class="btn" id="button_cancel"
+                        onclick="document.location='<%=request.getContextPath()%>/private/admin';return false">
                     <pwm:Display key="Button_Cancel"/>
                 </button>
                 <input type="hidden" id="pwmFormID" name="pwmFormID" value="<pwm:FormID/>"/>
@@ -63,10 +69,9 @@
 </div>
 <script type="text/javascript">
     PWM_GLOBAL['startupFunctions'].push(function(){
-        PWM_MAIN.getObject('password').focus();
+        getObject('password').focus();
     });
 </script>
-<% request.setAttribute(PwmConstants.REQUEST_ATTR_SHOW_LOCALE,"false"); %>
 <%@ include file="fragment/footer.jsp" %>
 </body>
 </html>

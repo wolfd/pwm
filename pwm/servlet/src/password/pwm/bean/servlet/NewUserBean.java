@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,8 @@ import password.pwm.bean.PwmSessionBean;
 import java.util.Map;
 
 public class NewUserBean implements PwmSessionBean {
-    private String tokenDisplayText;
+    private String tokenEmailAddress;
+    private String tokenSmsNumber;
     private Map<String,String> formData;
 
     private boolean agreementPassed;
@@ -57,14 +58,20 @@ public class NewUserBean implements PwmSessionBean {
         this.smsTokenIssued = smsTokenIssued;
     }
 
-    public String getTokenDisplayText()
-    {
-        return tokenDisplayText;
+    public String getTokenEmailAddress() {
+        return tokenEmailAddress;
     }
 
-    public void setTokenDisplayText(String tokenDisplayText)
-    {
-        this.tokenDisplayText = tokenDisplayText;
+    public void setTokenEmailAddress(String tokenEmailAddress) {
+        this.tokenEmailAddress = tokenEmailAddress;
+    }
+
+    public String getTokenSmsNumber() {
+        return tokenSmsNumber;
+    }
+
+    public void setTokenSmsNumber(String tokenSmsNumber) {
+        this.tokenSmsNumber = tokenSmsNumber;
     }
 
     public Map<String, String> getFormData() {

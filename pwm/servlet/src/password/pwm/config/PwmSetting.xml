@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--
-  ~ Password Management Servlets (PWM)
-  ~ http://code.google.com/p/pwm/
-  ~
-  ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
-  ~
-  ~ This program is free software; you can redistribute it and/or modify
-  ~ it under the terms of the GNU General Public License as published by
-  ~ the Free Software Foundation; either version 2 of the License, or
-  ~ (at your option) any later version.
-  ~
-  ~ This program is distributed in the hope that it will be useful,
-  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  ~ GNU General Public License for more details.
-  ~
-  ~ You should have received a copy of the GNU General Public License
-  ~ along with this program; if not, write to the Free Software
-  ~ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-  -->
+~ Password Management Servlets (PWM)
+~ http://code.google.com/p/pwm/
+~
+~ Copyright (c) 2006-2009 Novell, Inc.
+~ Copyright (c) 2009-2012 The PWM Project
+~
+~ This program is free software; you can redistribute it and/or modify
+~ it under the terms of the GNU General Public License as published by
+~ the Free Software Foundation; either version 2 of the License, or
+~ (at your option) any later version.
+~
+~ This program is distributed in the hope that it will be useful,
+~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+~ GNU General Public License for more details.
+~
+~ You should have received a copy of the GNU General Public License
+~ along with this program; if not, write to the Free Software
+~ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+-->
 
 <!--
   This file contains metadata about the PwmSetting java enum.  This file is not intended to be
@@ -153,6 +153,13 @@
             <value>true</value>
         </default>
     </setting>
+    <setting key="display.password.guideText" level="0">
+        <label>Password Guide Text</label>
+        <description><![CDATA[<p>Text (with HTML tags/formatting) to show user on password guide page.  This will show up as a "password guide" link and pop-up dialog.  Leave blank to not show the password guide link.</p><p>This setting may use Macros.  See the "View" menu "Show Macro Help" for more information about Macros.</p>]]></description>
+        <default>
+            <value />
+        </default>
+    </setting>
     <setting key="display.showHidePasswordFields" level="0" required="true">
         <label>Show Show/Hide Password Button</label>
         <description><![CDATA[Where available, allow the user to toggle the show/hide password field option.]]></description>
@@ -227,26 +234,26 @@
         <label>Custom CSS Stylesheet Location</label>
         <description><![CDATA[URL Location (and name) of the custom <i>style.css</i> resource.  The setting <i>User Interface -> Theme</i> must be set to Embed for this setting for this setting to be useful.  If this URL is relative, it will be appended to the context path.]]></description>
         <default>
-            <value><![CDATA[]]></value>
+            <value><![CDATA[/public/resources/custom/style.css]]></value>
         </default>
     </setting>
     <setting key="display.css.customMobileStyleLocation" level="1">
         <label>Custom Mobile CSS Stylesheet Location</label>
         <description><![CDATA[URL Location (and name) of the custom <i>mobileStyle.css</i> resource.  The setting <i>User Interface -> Theme</i> must be set to Embed for this setting for this setting to be useful.  If this URL is relative, it will be appended to the context path.]]></description>
         <default>
-            <value><![CDATA[]]></value>
+            <value><![CDATA[/public/resources/custom/mobileStyle.css]]></value>
         </default>
     </setting>
     <setting key="display.css.customStyle" level="1">
         <label>Embedded CSS Stylesheet</label>
-        <description><![CDATA[Contents of the custom CSS Stylesheet.  The setting <i>User Interface -> Theme</i> must be set to Embed for this setting to be useful.  The contents of this setting will be served from the url of <b>/public/resources/themes/embed/style.css</b>.]]></description>
+        <description><![CDATA[Contents of the custom CSS Stylesheet.  The setting <i>User Interface -> Theme</i> must be set to Embed for this setting to be useful.  The contents of this setting will be served from the url of <b>/public/resources/themes/embed/pwmStyle.css</b>.]]></description>
         <default>
             <value />
         </default>
     </setting>
     <setting key="display.css.customMobileStyle" level="1">
         <label>Embedded Mobile CSS Stylesheet</label>
-        <description><![CDATA[Contents of the custom mobile CSS Stylesheet.  The setting <i>User Interface -> Theme</i> must be set to Embed for this setting to be useful.  The contents of this setting will be served from the url of <b>/public/resources/themes/embed/mobileStyle.css</b>.]]></description>
+        <description><![CDATA[Contents of the custom mobile CSS Stylesheet.  The setting <i>User Interface -> Theme</i> must be set to Embed for this setting to be useful.  The contents of this setting will be served from the url of <b>/public/resources/themes/embed/pwmMobileStyle.css</b>.]]></description>
         <default>
             <value />
         </default>
@@ -254,6 +261,13 @@
     <setting key="display.js.custom" level="1">
         <label>Embedded JavaScript</label>
         <description><![CDATA[Contents of this setting will be injected into all pages inside a <script></script> html tag near the bottom of the page.]]></description>
+        <default>
+            <value />
+        </default>
+    </setting>
+    <setting key="display.custom.logoImage" level="1">
+        <label>Custom Logo Image</label>
+        <description><![CDATA[URL of custom logo.]]></description>
         <default>
             <value />
         </default>
@@ -297,32 +311,6 @@
         <default>
             <value />
         </default>
-    </setting>
-    <setting key="display.password.completeMessage" level="0">
-        <label>Password Change Completion Message</label>
-        <description><![CDATA[<p>Message to display to user when password change is completed.  If blank, the change password completion page will not be displayed to the user. This message may include HTML tags.</p> <p>This setting may use Macros.  See the "View" menu "Show Macro Help" for more information about Macros.</p>]]></description>
-        <default>
-            <value />
-        </default>
-    </setting>
-    <setting key="display.password.guideText" level="0">
-        <label>Password Guide Text</label>
-        <description><![CDATA[<p>Text (with HTML tags/formatting) to show user on password guide page.  This will show up as a "password guide" link and pop-up dialog.  Leave blank to not show the password guide link.</p><p>This setting may use Macros.  See the "View" menu "Show Macro Help" for more information about Macros.</p>]]></description>
-        <default>
-            <value />
-        </default>
-    </setting>
-    <setting key="passwordSync.enableReplicaCheck" level="1">
-        <label>Password Sync Enable Replication Checking</label>
-        <description><![CDATA[Check for the password to be updated on all configured replicas (for a user's LDAP Profile).  When enabled, replica sync checking will poll all of the configured replicas on the user's LDAP Profile to determine if the password change time has been updated.  The particular method to determine the last password change time varies per LDAP vendor type.]]></description>
-        <default>
-            <value>ENABLED</value>
-        </default>
-        <options>
-            <option value="DISABLED">DISABLED - Do not perform replica sync checking</option>
-            <option value="ENABLED">ENABLED - Enabled, but do not display individual progress to user</option>
-            <option value="ENABLED_SHOW">ENABLED and Display - Enable replica sync checking and display progress to user</option>
-        </options>
     </setting>
     <setting key="passwordSyncMinWaitTime" level="1" required="true">
         <label>Password Change Minimum Wait Time</label>
@@ -371,14 +359,6 @@
         <description><![CDATA[Actions to take when after a user change password event occurs.  These actions will be invoked just after writing the password.  Macros can be used within the action and will be expanded based on the loged in user.]]></description>
         <default />
     </setting>
-    <setting key="ldap.profile.list" level="0" hidden="true">
-        <label>LDAP Directory Profiles</label>
-        <description><![CDATA[List of LDAP profiles.  Each ldap profile should define a unique LDAP data environment.  Depending on the directory type and configuration, this could mean a unique domain, forest, tree or possibly server.  Each profile can have multiple redundant servers defined, however those servers should share the same data.<br/><br/>Be careful when renaming or removing values in this list, if a profile name is removed or renamed the associated settings will be removed as well.<br/><br/>Authentication will search the Default profile first, then any other profiles in the order shown here.<p>Profile names have the following requirements:</p><ul><li>Start with a letter (a-Z)</li><li>Contain only letters, numbers and hyphens</li><li>Length between 2 and 15 characters</li></ul>]]></description>
-        <regex>^[a-zA-Z][a-zA-Z0-9-]{2,15}$</regex>
-        <default>
-            <value><![CDATA[]]></value>
-        </default>
-    </setting>
     <setting key="ldap.serverUrls" level="0" required="true">
         <label>LDAP URLs</label>
         <description><![CDATA[List of ldap servers in URL format.  Each of these these servers will be used in a fail-over configuration.  The servers are used in order of appearance in this list.  If the first server is unavailable the next available server in the list will be used.  The first server will periodically be checked to see if it has become available.<ul><li>For secure SSL, use the "<i>ldaps://servername:636</i>" format</li><li>For plain-text servers, use "<i>ldap://serverame:389</i>" format (not recommended)</li></ul><p>When using secure connections, the Java virtual machine must trust the directory server, either because you have manually added the public key certificate from the tree to the Java keystore or the certificate is imported into the setting <i>LDAP Server Certificates</i>.</p> <p><b>WARNING</b>: Avoid using non-secure connections for all but the most basic testing purposes.  Many LDAP servers will reject password operations on non-secure connections.</p><ul><li>Do not use a load-balancing device for LDAP high availability, instead use the built in LDAP server fail-over functionality.</li><li>Do not use a DNS round-robin address</li></ul>]]></description>
@@ -389,11 +369,21 @@
         <default template="AD">
             <value><![CDATA[ldaps://dc1.site.example.net:636]]></value>
         </default>
+        <default template="ADDB">
+            <value><![CDATA[ldaps://dc1.site.example.net:636]]></value>
+        </default>
     </setting>
-    <setting key="ldap.serverCerts" level="0" required="true">
+    <setting key="ldap.serverCerts" level="2" required="true">
         <label>LDAP Certificates</label>
         <description><![CDATA[LDAP Server Certificates.  These certificates have are stored in the configuration file and used to validate the identity of your LDAP server.]]></description>
         <default/>
+    </setting>
+    <setting key="ldap.promiscuousSSL" level="1" required="true">
+        <label>LDAP Promiscuous SSL</label>
+        <description><![CDATA[If true any LDAP SSL certificate will be blindly trusted without any verification.  Thus, with this setting set to true, it is not required to import the LDAP server's SSL certificate into the Java keystore.<br/><br/><b>WARNING:</b> using promiscuous SSL is a security risk and should never be used in a production system.]]></description>
+        <default>
+            <value>false</value>
+        </default>
     </setting>
     <setting key="ldap.proxy.username" level="0" required="true">
         <label>LDAP Proxy User</label>
@@ -402,6 +392,9 @@
             <value><![CDATA[cn=admin,o=example]]></value>
         </default>
         <default template="AD">
+            <value><![CDATA[cn=administrator,cn=users,dc=site,dc=example,dc=net]]></value>
+        </default>
+        <default template="ADDB">
             <value><![CDATA[cn=administrator,cn=users,dc=site,dc=example,dc=net]]></value>
         </default>
     </setting>
@@ -416,6 +409,9 @@
             <value><![CDATA[ou=users,o=example]]></value>
         </default>
         <default template="AD">
+            <value><![CDATA[cn=users,dc=site,dc=example,dc=net]]></value>
+        </default>
+        <default template="ADDB">
             <value><![CDATA[cn=users,dc=site,dc=example,dc=net]]></value>
         </default>
     </setting>
@@ -441,8 +437,11 @@
         <default template="AD">
             <value><![CDATA[(memberOf=CN=Administrators,CN=Builtin,DC=site,DC=example,DC=net)]]></value>
         </default>
+        <default template="ADDB">
+            <value><![CDATA[(memberOf=CN=Administrators,CN=Builtin,DC=site,DC=example,DC=net)]]></value>
+        </default>
     </setting>
-    <setting key="ldap.usernameSearchFilter" level="0" required="true">
+    <setting key="ldap.usernameSearchFilter" level="1" required="true">
         <label>Username Search Filter</label>
         <description><![CDATA[Used to for contextless login and other functions to find users in ldap using usernames.  The value <i>%USERNAME%</i> is replaced with the actual username value.]]></description>
         <default>
@@ -450,6 +449,16 @@
         </default>
         <default template="AD">
             <value><![CDATA[(&(objectClass=person)(|(sAMAccountName=%USERNAME%)(cn=%USERNAME%)(mail=%USERNAME%)))]]></value>
+        </default>
+        <default template="ADDB">
+            <value><![CDATA[(&(objectClass=person)(|(sAMAccountName=%USERNAME%)(cn=%USERNAME%)(mail=%USERNAME%)))]]></value>
+        </default>
+    </setting>
+    <setting key="ldap.readPasswordPolicies" level="1" required="true">
+        <label>Read Password Policies</label>
+        <description><![CDATA[If this setting is true, will attempt to read the password policy for the user from the ldap directory.  Support for this functionality varies based on directory vendor and directory configuration settings. <br/><br/>After successfully reading a user password policy.]]></description>
+        <default>
+            <value>true</value>
         </default>
     </setting>
     <setting key="ldap.addObjectClasses" level="1">
@@ -459,6 +468,9 @@
         <default>
             <value><![CDATA[pwmUser]]></value>
         </default>
+        <default template="ADDB">
+            <value />
+        </default>
     </setting>
     <setting key="passwordLastUpdateAttribute" level="1">
         <label>Last Password Update Attribute</label>
@@ -467,16 +479,11 @@
         <default>
             <value><![CDATA[pwmLastPwdUpdate]]></value>
         </default>
-    </setting>
-    <setting key="ldap.guidAttribute" level="0" required="true">
-        <label>LDAP GUID Attribute</label>
-        <description><![CDATA[This attribute is used to identity and reference unique users in the LDAP directory.  If set to the default value of <i>VENDORGUID</i>, the system will attempt to read the vendor specific ldap GUID.  Alternatively, you can set any string readable attribute as the GUID as long as the directory can be trusted to enforce the uniqueness.  Lastly, you can use a custom attribute, and configure the "Auto-Add GUID Value" option to true.]]></description>
-        <regex>^[a-zA-Z][a-zA-Z0-9-]*$</regex>
-        <default>
-            <value><![CDATA[VENDORGUID]]></value>
+        <default template="ADDB">
+            <value />
         </default>
     </setting>
-    <setting key="ldap.namingAttribute" level="0" required="true">
+    <setting key="ldap.namingAttribute" level="1" required="true">
         <label>LDAP Naming Attribute</label>
         <description><![CDATA[Attribute name used as the naming attribute on ldap user entries. This value is also the first part of the distinguished name of a user.  This name is constant depending on directory vendor type, even if a different attribute is used for the login search filter.  Typically the naming attribute is <i>cn</i> or <i>uid</i>.]]></description>
         <regex>^[a-zA-Z][a-zA-Z0-9-]*$</regex>
@@ -484,11 +491,19 @@
             <value><![CDATA[cn]]></value>
         </default>
     </setting>
-    <setting key="ldap.idleTimeout" level="0" required="true">
+    <setting key="ldap.idleTimeout" level="1" required="true">
         <label>LDAP Idle Timeout</label>
         <description><![CDATA[Amount of seconds the LDAP connection for a given session can remain idle before closing. If zero, then an ldap connection will be maintained throughout the lifetime of the http session.]]></description>
         <default>
             <value>30</value>
+        </default>
+    </setting>
+    <setting key="ldap.guidAttribute" level="1" required="true">
+        <label>LDAP GUID Attribute</label>
+        <description><![CDATA[This attribute is used to identity and reference unique users in the LDAP directory.  If set to the default value of <i>VENDORGUID</i>, the system will attempt to read the vendor specific ldap GUID.  Alternatively, you can set any string readable attribute as the GUID as long as the directory can be trusted to enforce the uniqueness.  Lastly, you can use a custom attribute, and configure the "Auto-Add GUID Value" option to true.]]></description>
+        <regex>^[a-zA-Z][a-zA-Z0-9-]*$</regex>
+        <default>
+            <value><![CDATA[VENDORGUID]]></value>
         </default>
     </setting>
     <setting key="ldap.guid.autoAddValue" level="1" required="true">
@@ -506,62 +521,17 @@
             <value />
         </default>
     </setting>
-    <setting key="ldap.duplicateMode" level="1">
-        <label>LDAP Duplicate Mode</label>
-        <description><![CDATA[Control how the application will handle the situation when multiple user matches are found for a search, such as during authentication.]]></description>
-        <default>
-            <value>NONE</value>
-        </default>
-        <options>
-            <option value="FIRST_ALL">Match first user - Use first user discovered in any context or profile, ignore any duplicates</option>
-            <option value="FIRST_PROFILE">Match first ldap profile - Use the first user discovered in the first profile that has only a single match</option>
-            <option value="NONE">No duplicates Permitted - Fail whenever duplicate users are found in any context or profile</option>
-        </options>
-    </setting>
-    <setting key="ldap.selectableContextMode" level="1">
-        <label>User Selectable LDAP Context/Profile</label>
-        <description><![CDATA[]]></description>
-        <default>
-            <value>NONE</value>
-        </default>
-        <options>
-            <option value="SHOW_PROFILE">Show the ldap profile</option>
-            <option value="SHOW_CONTEXTS">Show the available ldap contexts</option>
-            <option value="NONE">Do not show </option>
-        </options>
-    </setting>
-    <setting key="ldap.ignoreUnreachableProfiles" level="1">
-        <label>Ignore Unreachable LDAP Profiles</label>
-        <description><![CDATA[When multiple LDAP profiles exist, ignore unreachable profiles.  A Directory Unavailble error will only be thrown during a user search when there is anly a single LDAP Profile configured or all LDAP Profiles are unrechable.]]></description>
-        <default>
-            <value>true</value>
-        </default>
-    </setting>
-    <setting key="ldap.profile.displayName" level="1">
-        <label>LDAP Profile Display Name</label>
-        <description><![CDATA[Display name used for this LDAP Profile.]]></description>
-        <default>
-            <value />
-        </default>
-    </setting>
-    <setting key="ldap.profile.enabled" level="1">
-        <label>LDAP Profile Enabled</label>
-        <description><![CDATA[Indicate if this ldap profile should be in use.  For maintenance reasons, it may be helpful to remove an LDAP Profile from use instead of deleting the profile's configuration entirely.]]></description>
-        <default>
-            <value>true</value>
-        </default>
-        <options>
-            <option value="HideForDefaultProfile">true</option>
-        </options>
-    </setting>
     <setting key="ldap.username.attr" level="1">
         <label>Attribute to use for Username</label>
-        <description><![CDATA[If blank, the LDAP Naming Attribute will be used.  This option allows fields that display or store the <i>Username</i> or <i>UserID</i> of a user to show something other then the LDAP Naming Attribute if appropriate.  It is desirable that this value be unique for this system.]]></description>
+        <description><![CDATA[If blank, the LDAP Naming Attribute will be used.  This configuration option allows screens that display the "Username" of a user to show something other then the LDAP Naming Attribute if appropriate.]]></description>
         <regex>^[a-zA-Z][a-zA-Z0-9-]*$</regex>
         <default>
             <value />
         </default>
         <default template="AD">
+            <value><![CDATA[sAMAccountName]]></value>
+        </default>
+        <default template="ADDB">
             <value><![CDATA[sAMAccountName]]></value>
         </default>
     </setting>
@@ -583,6 +553,9 @@
         <default template="AD">
             <value><![CDATA[User]]></value>
         </default>
+        <default template="ADDB">
+            <value><![CDATA[User]]></value>
+        </default>
     </setting>
     <setting key="email.smtp.address" level="0">
         <label>SMTP Email Server Address</label>
@@ -590,13 +563,6 @@
         <regex>^[a-zA-Z0-9.-]*$</regex>
         <default>
             <value />
-        </default>
-    </setting>
-    <setting key="email.smtp.port" level="0">
-        <label>SMTP Email Server Port</label>
-        <description><![CDATA[Port Number for SMTP server]]></description>
-        <default>
-            <value>25</value>
         </default>
     </setting>
     <setting key="email.smtp.username" level="1">
@@ -625,88 +591,95 @@
             <value>3600</value>
         </default>
     </setting>
+    <setting key="email.adminAlert.toAddress" level="0">
+        <label>Admin Alert To Address</label>
+        <description><![CDATA[During certain events, email notifications are sent.  Leave this setting blank to disable the alerts.]]></description>
+        <default>
+            <value><![CDATA[admin@example.com]]></value>
+        </default>
+    </setting>
+    <setting key="email.adminAlert.fromAddress" level="1">
+        <label>Admin Alert From Address</label>
+        <description><![CDATA[Admin alert "From" email address.]]></description>
+        <default>
+            <value><![CDATA[Alert Notification <noreply@@SiteHost@>]]></value>
+        </default>
+    </setting>
     <setting key="email.changePassword" level="0">
         <label>Change Password Email</label>
         <description><![CDATA[Email sent to user when a password change occurs.  This email is only sent when the user changes their own password.]]></description>
         <default>
-            <value>{"to":"@User:Email@","from":"Change Password Notice \u003cnoreply@@SiteHost@\u003e","subject":"Password Change Notification","bodyPlain":"You have changed your password.  If you did not initiate a password change please contact your help desk immediately.","bodyHtml":"\u003cb\u003eYou have changed your password.\u003c/b\u003e  If you have changed your password, then no action is required.  If you did not initiate a password change please contact your help desk."}</value>
+            <value>{"from":"Change Password Notice \u003cnoreply@@SiteHost@\u003e","subject":"Password Change Notification","bodyPlain":"You have changed your password.  If you did not initiate a password change please contact your help desk immediately.","bodyHtml":"\u003cb\u003eYou have changed your password.\u003c/b\u003e  If you have changed your password, then no action is required.  If you did not initiate a password change please contact your help desk."}</value>
         </default>
     </setting>
     <setting key="email.changePassword.helpdesk" level="0">
         <label>Helpdesk Change Password Email</label>
         <description><![CDATA[Email sent to user when the helpdesk changes the user's password.  Macros used for this setting will be expanded based on the user who's password is being changed, not the helpdesk user.]]></description>
         <default>
-            <value>{"to":"@User:Email@","from":"Change Password Notice \u003cnoreply@@SiteHost@\u003e","subject":"Password Change Notification","bodyPlain":"Your password has been changed by the heldesk.   You should set a new password immediately.  If you did not initiate a password change please contact your helpdesk.","bodyHtml":"\u003cb\u003eYour password has been changed by the helpdesk.\u003c/b\u003e  You should set a new password immediately.  If you did not initiate a password change please contact your helpdesk."}</value>
+            <value>{"from":"Change Password Notice \u003cnoreply@@SiteHost@\u003e","subject":"Password Change Notification","bodyPlain":"Your password has been changed by the heldesk.   You should set a new password immediately.  If you did not initiate a password change please contact your helpdesk.","bodyHtml":"\u003cb\u003eYour password has been changed by the helpdesk.\u003c/b\u003e  You should set a new password immediately.  If you did not initiate a password change please contact your helpdesk."}</value>
         </default>
     </setting>
     <setting key="email.updateProfile" level="0">
         <label>Update Profile Email</label>
         <description><![CDATA[Email sent to users after a profile update.]]></description>
         <default>
-            <value>{"to":"@User:Email@","from":"Profile Update \u003cnoreply@@SiteHost@\u003e","subject":"Profile Update","bodyPlain":"Thank you for updating your profile information, @LDAP:givenName@.","bodyHtml":"\u003cb\u003eThank you for updating your profile information, \u003c/b\u003e\u003cb\u003e@LDAP:givenName@.\u003c/b\u003e"}</value>
+            <value>{"from":"Profile Update \u003cnoreply@@SiteHost@\u003e","subject":"Profile Update","bodyPlain":"Thank you for updating your profile information, @LDAP:givenName@.","bodyHtml":"\u003cb\u003eThank you for updating your profile information, \u003c/b\u003e\u003cb\u003e@LDAP:givenName@.\u003c/b\u003e"}</value>
         </default>
     </setting>
     <setting key="email.newUser" level="0">
         <label>New User Email</label>
         <description><![CDATA[Email sent to newly created users.]]></description>
         <default>
-            <value>{"to":"@User:Email@","from":"New User Registration \u003cnoreply@@SiteHost@\u003e","subject":"Welcome","bodyPlain":"Thank you for registering your account, @LDAP:givenName@.","bodyHtml":"\u003cb\u003eThank you for registering your account, \u003c/b\u003e\u003cb\u003e@LDAP:givenName@.\u003c/b\u003e"}</value>
+            <value>{"from":"New User Registration \u003cnoreply@@SiteHost@\u003e","subject":"Welcome","bodyPlain":"Thank you for registering your account, @LDAP:givenName@.","bodyHtml":"\u003cb\u003eThank you for registering your account, \u003c/b\u003e\u003cb\u003e@LDAP:givenName@.\u003c/b\u003e"}</value>
         </default>
     </setting>
     <setting key="email.newUser.token" level="0">
         <label>New User Verification Email</label>
         <description><![CDATA[Email sent during new user verification process.  %TOKEN% can be used to insert the token value into the email.]]></description>
         <default>
-            <value>{"to":"@User:Email@","from":"New User Registration \u003cnoreply@@SiteHost@\u003e","subject":"New User Verification","bodyPlain":"Thank you for requesting a new account. To continue with your account registration, please copy and paste the following code on the registration form:\n\n%TOKEN%\n\nIf you did not request to create a new account, you do not need to take any action.","bodyHtml":"Thank you for requesting a new account.  To continue with your account registration, please \u003ca href\u003d\"@SiteURL@/public/NewUser/%TOKEN%\"\u003eclick here\u003c/a\u003e to continue.\u003cbr /\u003e\u003cbr /\u003eIf for some reason this link does not work, you can copy and paste the following code on the registration form:\u003cbr /\u003e\u003cbr /\u003e\u003cb\u003e\u003cpre\u003e%TOKEN%\u003c/pre\u003e\u003c/b\u003e\u003cbr /\u003eIf you did not request to create a new account, you do not need to take any action."}</value>
+            <value>{"from":"New User Registration \u003cnoreply@@SiteHost@\u003e","subject":"New User Verification","bodyPlain":"Thank you for requesting a new account. To continue with your account registration, please copy and paste the following code on the registration form:\n\n%TOKEN%\n\nIf you did not request to create a new account, you do not need to take any action.","bodyHtml":"Thank you for requesting a new account.  To continue with your account registration, please \u003ca href\u003d\"@SiteURL@/public/NewUser/%TOKEN%\"\u003eclick here\u003c/a\u003e to continue.\u003cbr /\u003e\u003cbr /\u003eIf for some reason this link does not work, you can copy and paste the following code on the registration form:\u003cbr /\u003e\u003cbr /\u003e\u003cb\u003e\u003cpre\u003e%TOKEN%\u003c/pre\u003e\u003c/b\u003e\u003cbr /\u003eIf you did not request to create a new account, you do not need to take any action."}</value>
         </default>
     </setting>
     <setting key="email.activation" level="0">
         <label>Activation Email</label>
         <description><![CDATA[Email sent to a user just after a successful activation.]]></description>
         <default>
-            <value>{"to":"@User:Email@","from":"Activation Notification \u003cnoreply@@SiteHost@\u003e","subject":"Account Activated","bodyPlain":"Thank you for activating your account, @LDAP:givenName@.","bodyHtml":"\u003cb\u003eThank you for activating your account, @LDAP:givenName@.\u003c/b\u003e"}</value>
+            <value>{"from":"Activation Notification \u003cnoreply@@SiteHost@\u003e","subject":"Account Activated","bodyPlain":"Thank you for activating your account, @LDAP:givenName@.","bodyHtml":"\u003cb\u003eThank you for activating your account, @LDAP:givenName@.\u003c/b\u003e"}</value>
         </default>
     </setting>
     <setting key="email.activation.token" level="0">
         <label>Activation Verification Email</label>
         <description><![CDATA[Email sent during activation verification process.  %TOKEN% can be used to insert the token value into the email.]]></description>
         <default>
-            <value>{"to":"@User:Email@","from":"Activation Verification \u003cnoreply@@SiteHost@\u003e","subject":"Account Verification","bodyPlain":"Thank you for requesting your account activation. To continue with your account activation, please copy and paste the following code onto the activation form:\n\n%TOKEN%\n\nIf you did not request to create a new account, you do not need to take any action.","bodyHtml":"Thank you for requesting your account activation.  To continue with your account activation, please \u003ca href\u003d\"@SiteURL@/public/ActivateUser/%TOKEN%\"\u003eclick here\u003c/a\u003e to continue.\u003cbr /\u003e\u003cbr /\u003eIf for some reason this link doesn\u0027t work, you can copy and paste the following code onto the activation form:\u003cbr /\u003e\u003cbr /\u003e\u003cb\u003e\u003cpre\u003e%TOKEN%\u003c/pre\u003e\u003c/b\u003e\u003cbr /\u003eIf you did not request to create a new account, you do not need to take any action."}</value>
+            <value>{"from":"Activation Verification \u003cnoreply@@SiteHost@\u003e","subject":"Account Verification","bodyPlain":"Thank you for requesting your account activation. To continue with your account activation, please copy and paste the following code onto the activation form:\n\n%TOKEN%\n\nIf you did not request to create a new account, you do not need to take any action.","bodyHtml":"Thank you for requesting your account activation.  To continue with your account activation, please \u003ca href\u003d\"@SiteURL@/public/ActivateUser/%TOKEN%\"\u003eclick here\u003c/a\u003e to continue.\u003cbr /\u003e\u003cbr /\u003eIf for some reason this link doesn\u0027t work, you can copy and paste the following code onto the activation form:\u003cbr /\u003e\u003cbr /\u003e\u003cb\u003e\u003cpre\u003e%TOKEN%\u003c/pre\u003e\u003c/b\u003e\u003cbr /\u003eIf you did not request to create a new account, you do not need to take any action."}</value>
         </default>
     </setting>
     <setting key="email.challenge.token" level="0">
         <label>Forgotten Password Verification Email</label>
         <description><![CDATA[Email sent during forgotten password verification process.  %TOKEN% can be used to insert the token value into the email.]]></description>
         <default>
-            <value>{"to":"@User:Email@","from":"Forgotten Password \u003cnoreply@@SiteHost@\u003e","subject":"Forgotten Password Verification","bodyPlain":"Thank you for requesting a password reset. To continue with your password reset, please copy and paste the following code onto the password reset form:\n\n%TOKEN%\n\nIf you do not wish to change your password at this time, you do not need to take any action.","bodyHtml":"Thank you for requesting a password reset.  To continue with your password reset, please \u003ca href\u003d\"@SiteURL@/public/ForgottenPassword/%TOKEN%\"\u003eclick here\u003c/a\u003e to continue.\u003cbr /\u003e\u003cbr /\u003eIf for some reason this link doesn\u0027t work, you can copy and paste the following code onto the password reset form:\u003cbr /\u003e\u003cbr /\u003e%TOKEN%\u003cbr /\u003e\u003cbr /\u003eIf you do not wish to change your password at this time, you do not need to take any action."}</value>
+            <value>{"from":"Forgotten Password \u003cnoreply@@SiteHost@\u003e","subject":"Forgotten Password Verification","bodyPlain":"Thank you for requesting a password reset. To continue with your password reset, please copy and paste the following code onto the password reset form:\n\n%TOKEN%\n\nIf you do not wish to change your password at this time, you do not need to take any action.","bodyHtml":"Thank you for requesting a password reset.  To continue with your password reset, please \u003ca href\u003d\"@SiteURL@/public/ForgottenPassword/%TOKEN%\"\u003eclick here\u003c/a\u003e to continue.\u003cbr /\u003e\u003cbr /\u003eIf for some reason this link doesn\u0027t work, you can copy and paste the following code onto the password reset form:\u003cbr /\u003e\u003cbr /\u003e%TOKEN%\u003cbr /\u003e\u003cbr /\u003eIf you do not wish to change your password at this time, you do not need to take any action."}</value>
         </default>
     </setting>
     <setting key="email.guest" level="1">
         <label>Guest Registration Email</label>
         <description><![CDATA[Email sent to newly created guest users.]]></description>
         <default>
-            <value>{"to":"@User:Email@","from":"Guest Registration Agent \u003cnoreply@@SiteHost@\u003e","subject":"Welcome","bodyPlain":"Your account has been created.\n\nYour username is: @User:ID@\nYour password is: @User:Password@","bodyHtml":"\u003cb\u003eYour account has been created.\u003c/b\u003e\u003cp\u003eYour username is:@User:ID@\u003cbr /\u003eYour password is: \u003cb\u003e@User:Password@\u003c/b\u003e\u003c/p\u003e"}</value>
+            <value>{"from":"Guest Registration Agent \u003cnoreply@@SiteHost@\u003e","subject":"Welcome","bodyPlain":"Your account has been created.\n\nYour username is: @User:ID@\nYour password is: @User:Password@","bodyHtml":"\u003cb\u003eYour account has been created.\u003c/b\u003e\u003cp\u003eYour username is:@User:ID@\u003cbr /\u003eYour password is: \u003cb\u003e@User:Password@\u003c/b\u003e\u003c/p\u003e"}</value>
         </default>
     </setting>
     <setting key="email.updateguest" level="1">
         <label>Guest Registration Update Email</label>
         <description><![CDATA[Email sent to newly created guest users.]]></description>
         <default>
-            <value>{"to":"@User:Email@","from":"Guest Registration Agent \u003cnoreply@@SiteHost@\u003e","subject":"Account update notification","bodyPlain":"Your account has been updated.","bodyHtml":"\u003cb\u003eYour account has been created.\u003c/b\u003e"}</value>
+            <value>{"from":"Guest Registration Agent \u003cnoreply@@SiteHost@\u003e","subject":"Account update notification","bodyPlain":"Your account has been updated.","bodyHtml":"\u003cb\u003eYour account has been created.\u003c/b\u003e"}</value>
         </default>
     </setting>
     <setting key="email.sendpassword" level="1">
-        <label>Send Password Email</label>
+        <label>Send Password Email Subject</label>
         <description><![CDATA[Email sent during forgotten password reset process if send password functionality is enabled.]]></description>
         <default>
-            <value>{"to":"@User:Email@","from":"Password Notifier \u003cnoreply@@SiteHost@\u003e","subject":"Password Information","bodyPlain":"Your new password is:\n\n@User:Password@\n\nPlease change your password as soon as possible.","bodyHtml":"Thank you for requesting a password reset.  Your new password is:\u003cbr /\u003e\u003cbr /\u003e\u003cfont face\u003d\"\u0027Courier New\u0027\"\u003e\u003cb\u003e@User:Password@\u003cbr /\u003e\u003cbr /\u003e\u003c/b\u003e\u003c/font\u003e"}</value>
-        </default>
-    </setting>
-    <setting key="email.intruderNotice" level="0">
-        <label>Intruder Notice Email </label>
-        <description><![CDATA[Email sent when a userDN intruder lockout occurs]]></description>
-        <default>
-            <value>{"to":"@User:Email@","from":"Intruder Notifier \u003cnoreply@@SiteHost@\u003e","subject":"Password Information","bodyPlain":"Your account has been temporarily disabled due to several incorrect login/password reset attempts.  If this activity was not caused by you, please contact your administrator.","bodyHtml":"Your account has been temporarily disabled due to several incorrect login/password reset attempts.  If this activity was not caused by you, please contact your administrator."}</value>
+            <value>{"from":"Password Notifier \u003cnoreply@@SiteHost@\u003e","subject":"Password Information","bodyPlain":"Your new password is:\n\n@User:Password@\n\nPlease change your password as soon as possible.","bodyHtml":"Thank you for requesting a password reset.  Your new password is:\u003cbr /\u003e\u003cbr /\u003e\u003cfont face\u003d\"\u0027Courier New\u0027\"\u003e\u003cb\u003e@User:Password@\u003cbr /\u003e\u003cbr /\u003e\u003c/b\u003e\u003c/font\u003e"}</value>
         </default>
     </setting>
     <setting key="email.smtp.advancedSettings" level="1">
@@ -727,7 +700,7 @@
     </setting>
     <setting key="sms.queueMaxAge" level="1" required="true">
         <label>Maximum SMS Queue Age</label>
-        <description><![CDATA[Maximum age (in seconds) an sms can wait in the local send queue.  If an sms is in the send queue longer than this time, it will be discarded.  SMS messages only persist in the send queue if there is an IO or network error to the sms gateway server while sending the message.]]></description>
+        <description><![CDATA[Maximum age (in seconds) an sms can wait in the send queue.  If an sms is in the send queue longer than this time, it will be discarded.  SMS messages only persist in the send queue if there is an IO or network error to the sms gateway server while sending the message.]]></description>
         <default>
             <value>300</value>
         </default>
@@ -823,7 +796,7 @@
     </setting>
     <setting key="sms.responseOkRegex" level="1">
         <label>Response Regular Expressions</label>
-        <description><![CDATA[Regular expressions that can be used to determine whether the SMS has been sent successfully. If the response matches any of the expressions, the transmission is considered succesful. If no expressions are entered, all transmissions are assumed successful. NOTE: the string must match an entire line. Use <tt>.*</tt> to match anything after the required texts.]]></description>
+        <description><![CDATA[Regular expressions that can be used to determine whether the SMS has been sent succesfully. If the response matches any of the expressions, the transmission is considered succesful. If no expressions are entered, all transmissions are assumed successful. NOTE: the string must match an entire line. Use <tt>.*</tt> to match anything after the required texts.]]></description>
         <default>
             <value />
         </default>
@@ -911,27 +884,9 @@
             <value>false</value>
         </default>
     </setting>
-    <setting key="password.profile.list" level="0" hidden="true">
-        <label>Password Policy Profiles</label>
-        <description><![CDATA[List of Password Policy Profiles.  When multiple password policy profiles are configured, all profiles except for the default are evaluated in order to check if the <i>Password Policy Profile Query Match</i> during user authentication matches the user.  If no profiles match, then the Default profile will be used.<p>Profile names have the following requirements:</p><ul><li>Start with a letter (a-Z)</li><li>Contain only letters, numbers and hyphens</li><li>Length between 2 and 15 characters</li></ul>]]></description>
-        <regex>^[a-zA-Z][a-zA-Z0-9-]{2,15}$</regex>
-        <default>
-            <value><![CDATA[]]></value>
-        </default>
-    </setting>
-    <setting key="password.policy.queryMatch">
-        <label>Password Policy Profile Query Match</label>
-        <description><![CDATA[Password Policy Query Match]]></description>
-        <default>
-            <value><![CDATA[]]></value>
-        </default>
-        <options>
-            <option value="HideForDefaultProfile">true</option>
-        </options>
-    </setting>
     <setting key="password.policy.source" level="1" required="true">
         <label>Password Policy Source</label>
-        <description><![CDATA[This setting determines where password policy settings should be read from.  If <b>LDAP</b> is selected, an attempt to read the policy out of the ldap directory will be made, and many of the following settings could be ignored.  If <b>Local Config</b> is selected, the policy settings on this page are used, and any policy settings in the LDAP directory are ignored.  If <b>Merge</b> is selected, both policies are read, and where there is any conflict, The application will chose the <i>most restrictive</i> value of the policy.<br/><br/>The capability to read policy from LDAP is only available with some LDAP implementations.  <p>Additionally, the password policy used is only the "local" policy used by this application.  Upon a password set operation, the ldap directory will typically enforce whatever policies are configured in the directory itself.]]></description>
+        <description><![CDATA[This setting determines where password policy settings should be read from.  If <b>LDAP</b> is selected, an attempt to read the policy out of the ldap directory will be made, and many of the following settings are ignored.  If <b>Local Config</b> is selected, the policy settings on this page are used, and any policy settings in the LDAP directory are ignored.  If <b>Merge</b> is selected, both policies are read, and where there is any conflict, The application will chose the <i>most restrictive</i> value of the policy.<br/><br/>The capability to read policy from LDAP is only available with some LDAP implementations.]]></description>
         <default>
             <value><![CDATA[MERGE]]></value>
         </default>
@@ -1144,17 +1099,20 @@
         <default template="AD">
             <value>true</value>
         </default>
+        <default template="ADDB">
+            <value>true</value>
+        </default>
     </setting>
     <setting key="password.policy.regExMatch" level="1">
         <label>Required Regular Expression Matches</label>
-        <description><![CDATA[A Regular Expression pattern the password must match in order to be allowed.  Multiple patterns can be listed.  A pattern must match the <i>entire</i> password to be applied.  A partial match is ignored.]]></description>
+        <description><![CDATA[A Regular Expression pattern the password must match in order to be allowed.  Multiple patterns can be listed.   Patterns must follow the rules listed for <a href=http://java.sun.com/j2se/1.5.0/docs/api/java/util/regex/Pattern.html">Pattern</a>.  A pattern must match the <i>entire</i> password to be applied.  A partial match is ignored.]]></description>
         <default>
             <value />
         </default>
     </setting>
     <setting key="password.policy.regExNoMatch" level="1">
         <label>Disallowed Regular Expression Matches</label>
-        <description><![CDATA[A Regular Expression pattern the password must <b>not</b> match in order to be allowed.  Multiple patterns can be listed.  A pattern must match the <i>entire</i> password to be applied.  A partial match is ignored.]]></description>
+        <description><![CDATA[A Regular Expression pattern the password must <b>not</b> match in order to be allowed.  Multiple patterns can be listed.   Patterns must follow the rules listed for <a href=http://java.sun.com/j2se/1.5.0/docs/api/java/util/regex/Pattern.html">Pattern</a>. A pattern must match the <i>entire</i> password to be applied.  A partial match is ignored.]]></description>
         <default>
             <value />
         </default>
@@ -1287,32 +1245,6 @@
             <value>300</value>
         </default>
     </setting>
-    <setting key="intruder.address.checkTime" level="0" required="true">
-        <label>Intruder Address Check Time</label>
-        <description><![CDATA[The maximum time period between each intruder attempt.  When this time period is exceeded, the intruder attempt count will be reset to zero.  A value of zero disables the address lockout functionality.]]></description>
-        <default>
-            <value>300</value>
-        </default>
-    </setting>
-    <setting key="intruder.storageMethod" level="1" required="true">
-        <label>Intruder Record Storage Location</label>
-        <description><![CDATA[Data store used for Intruder Records.  If <i>Database</i> is used, all application instances will share a common view of intruder status.]]></description>
-        <default>
-            <value><![CDATA[AUTO]]></value>
-        </default>
-        <options>
-            <option value="AUTO">Auto Configure - Database if configured, LocalDB otherwise</option>
-            <option value="DATABASE">Remote Database</option>
-            <option value="LOCALDB">LocalDB</option>
-        </options>
-    </setting>
-    <setting key="intruder.session.maxAttempts" level="1" required="true">
-        <label>Maximum intruder attempts per session</label>
-        <description><![CDATA[The maximum amount of intruder attempts per session.  When this limit is exceeded, the session will be "locked", and no other requests using that session will succeed.  A value of zero disables the session lockout functionality.]]></description>
-        <default>
-            <value>8</value>
-        </default>
-    </setting>
     <setting key="security.ldap.simulateBadPassword" level="0">
         <label>Enable Bad Password Simulation</label>
         <description><![CDATA[This feature will enable Bad Password simulation activity when a forgotten password field is entered.  When an identified user attempts to recover a forgotten password but uses incorrect data, the application will attempt to authenticate to the directory using a known bad password value.  This is done to allow the ldap directory to trigger it's own defense mechanisms against intruders.]]></description>
@@ -1346,8 +1278,8 @@
         </default>
     </setting>
     <setting key="security.page.enableRequestSequence" level="1" required="true">
-        <label>Enable Back Button Detection</label>
-        <description><![CDATA[Enable detection of the use of back button or other browser navigation iregularities.  Enabling this option prevents duplicate HTTP form submissions but can sometimes have side effects.]]></description>
+        <label>Enable Back Button / Multiple Browser-Tab Detection</label>
+        <description><![CDATA[Enable detection of the use of back button or multiple browser windows/tabs.]]></description>
         <default>
             <value>false</value>
         </default>
@@ -1359,7 +1291,7 @@
             <value>true</value>
         </default>
     </setting>
-    <setting key="allowUrlSessions" level="2" required="true">
+    <setting key="allowUrlSessions" level="1" required="true">
         <label>Allow URL Sessions</label>
         <description><![CDATA[If true, allow sessions to be managed via parameter on URL when cookies are not enabled.  This allows browsers (such as some mobile devices) that do not support cookies.]]></description>
         <default>
@@ -1368,15 +1300,10 @@
     </setting>
     <setting key="enableSessionVerification" level="1" required="true">
         <label>Enable Session Verification</label>
-        <description><![CDATA[If enabled, browser sessions will be verified using an HTTP redirect and verification code.  This verification proves that the browser can correctly establish a session with the server.  Verification proves the browser either supports cookies or URL sessions (if enabled) and the communication channel between browser and application server is 'sticky' when their are multiple server instances.  Additionally it helps prevent some types of XSS attacks.<br/><br/>The pre-load browser cache will show a "please wait" screen to the user during the verification.  This has the added benefit that many of the HTTP resources (javascript, css, images, etc) will be "pre-cached" by the browser before any actual pages are loaded.]]></description>
+        <description><![CDATA[If true, sessions will be verified using a session verification key and a redirect.  This verification proves that the browser can correctly establish a session with the server.  Verification proves the browser either supports cookies or URL sessions (if enabled) and the communication channel between browser and application server is 'sticky' when their are multiple server instances.  Additionally it helps prevent some types of XSS attacks.]]></description>
         <default>
-            <value>VERIFY</value>
+            <value>true</value>
         </default>
-        <options>
-            <option value="OFF">Disabled</option>
-            <option value="VERIFY">Enabled</option>
-            <option value="VERIFY_AND_CACHE">Enabled - And pre-load browser cache</option>
-        </options>
     </setting>
     <setting key="disallowedInputs" level="1">
         <label>Disallowed HTTP Inputs</label>
@@ -1439,7 +1366,7 @@
             <value/>
         </default>
     </setting>
-    <setting key="security.page.leaveNoticeTimeout" level="2" required="true">
+    <setting key="security.page.leaveNoticeTimeout" level="1" required="true">
         <label>Page Leave Notice Timeout</label>
         <description><![CDATA[When a user navigates away from any page, a notice is sent to the server.   The next time a page is requested, the timeout is checked to determine if the last page leave time was greater then the timeout, and if so, the user's session will be invalidated.  This has the effect of logging out users that navigate away from the application without explicitly logging out.If set to zero, this feature is disabled.]]></description>
         <default>
@@ -1467,23 +1394,9 @@
             <value>28800</value>
         </default>
     </setting>
-    <setting key="email.adminAlert.toAddress" level="0">
-        <label>System Audit Event Email Alerts</label>
-        <description><![CDATA[Send an email when System Audit events occur to these email addresses.]]></description>
-        <default>
-            <value><![CDATA[admin@example.com]]></value>
-        </default>
-    </setting>
-    <setting key="audit.userEvent.toAddress" level="0">
-        <label>User Audit Event Email Alerts</label>
-        <description><![CDATA[Send an email User Audit events occur to these email addresses.]]></description>
-        <default>
-            <value><![CDATA[]]></value>
-        </default>
-    </setting>
     <setting key="audit.syslog.servers" level="0" required="false">
         <label>Syslog Audit Servers</label>
-        <description><![CDATA[Syslog audit server.  When configured, all audit events will be forwarded to the specified syslog server.  The format is <b>&lt;protocol&gt;</b>,<b>&lt;address&gt;</b>,<b>&lt;port&gt;</b>.  The value for <b>&lt;protocol&gt;</b> can be either <i>udp</i> or <i>tcp</i>.<br/><br/>Examples:<table><tr><td>Protocol</td><td>Address</td><td>Port</td><td>Setting</td><tr><tr><td>UDP</td><td>127.0.0.1</td><td>514</td><td>udp,127.0.0.1,514</td><tr><tr><td>TCP</td><td>central-syslog.example.com</td><td>514</td><td>tcp,central-syslog.example.com,514</td><tr></table>]]></description>
+        <description><![CDATA[Syslog audit servers.  When configured, all audit events will be forwarded to the specified syslog servers.  The format is <b>&lt;protocol&gt;</b>,<b>&lt;address&gt;</b>,<b>&lt;port&gt;</b>.  The value for <b>&lt;protocol&gt;</b> can be either <i>udp</i> or <i>tcp</i>.<br/><br/>Examples:<table><tr><td>Protocol</td><td>Address</td><td>Port</td><td>Setting</td><tr><tr><td>UDP</td><td>127.0.0.1</td><td>514</td><td>udp,127.0.0.1,514</td><tr><tr><td>TCP</td><td>central-syslog.example.com</td><td>514</td><td>tcp,central-syslog.example.com,514</td><tr></table>]]></description>
         <default>
             <value/>
         </default>
@@ -1497,7 +1410,7 @@
         </default>
         <options>
             <option value="STORE_LOCALDB">LocalDB</option>
-            <option value="STORE_DB">Database</option>
+            <option value="STORE_DB">DB</option>
             <option value="STORE_CRYPTO">Crypto</option>
             <option value="STORE_LDAP">LDAP</option>
         </options>
@@ -1531,92 +1444,6 @@
             <value><![CDATA[pwmToken]]></value>
         </default>
     </setting>
-    <setting key="otp.enabled" level="0" required="true">
-        <label>Enable One Time Passwords</label>
-        <description><![CDATA[Set to true to enable the configuration and use of one time password.]]></description>
-        <default>
-            <value>false</value>
-        </default>
-    </setting>
-    <setting key="otp.forceSetup" level="0" required="true">
-        <label>Force Setup of One Time Passwords</label>
-        <description><![CDATA[If true and one time passwords are enabled, the user will be directed to configure a one time password secret when logging in.  The user is forced to configure one time password if they do not have a current valid secret stored.]]></description>
-        <default>
-            <value>true</value>
-        </default>
-    </setting>
-    <setting key="otp.secret.readPreference" level="0" required="true">
-        <label>OTP Secret Read Location</label>
-        <description><![CDATA[Location to read the OTP secret from. If an option with multiple values are selected, each location will be read in turn until a stored response is found.]]></description>
-        <default>
-            <value><![CDATA[LDAP]]></value>
-        </default>
-        <options>
-            <option value="LDAP">LDAP</option>
-            <option value="LDAP-DB">LDAP, Database</option>
-            <option value="LDAP-DB-LOCALDB">LDAP, Database, LocalDB</option>
-            <option value="LDAP-LOCALDB">LDAP, LocalDB</option>
-            <option value="LDAP-LOCALDB-DB">LDAP, LocalDB, Database</option>
-            <option value="DB">Database</option>
-            <option value="DB-LDAP">Database, LDAP</option>
-            <option value="DB-LDAP-LOCALDB">Database, LDAP, LocalDB</option>
-            <option value="DB-LOCALDB">Database, LocalDB</option>
-            <option value="DB-LOCALDB-LDAP">Database, LocalDB, LDAP</option>
-            <option value="LOCALDB">LocalDB</option>
-            <option value="LOCALDB-DB">LocalDB, Database</option>
-            <option value="LOCALDB-DB-LDAP">LocalDB, Database, LDAP</option>
-            <option value="LOCALDB-LDAP">LocalDB, LDAP</option>
-            <option value="LOCALDB-LDAP-DB">LocalDB, LDAP, Database</option>
-        </options>
-    </setting>
-    <setting key="otp.secret.writePreference" level="0" required="true">
-        <label>OTP Secret Write Location</label>
-        <description><![CDATA[Location to write the OTP secret to.  All storage methods will be written to when the user configures their response answers.]]></description>
-        <default>
-            <value><![CDATA[LDAP]]></value>
-        </default>
-        <options>
-            <option value="LDAP">LDAP</option>
-            <option value="LDAP-DB">LDAP, Database</option>
-            <option value="LDAP-LOCALDB">LDAP, LocalDB</option>
-            <option value="LDAP-DB-LOCALDB">LDAP, Database, LocalDB</option>
-            <option value="DB">Database</option>
-            <option value="DB-LOCALDB">Database, LocalDB</option>
-            <option value="LOCALDB">LocalDB</option>
-        </options>
-    </setting>
-    <setting key="otp.secret.storageFormat" level="0" required="true" hidden="true">
-        <!--unhide when more options-->
-        <label>Token Storage Method</label>
-        <description><![CDATA[Storage format used to save one time password secrets.<table style="width: 400px"><tr><td>Format</td><td>Description</td></tr><tr><td>PWM</td><td>Store the secret in PWM native format.</td></tr></table>]]></description>
-        <default>
-            <value><![CDATA[PWM]]></value>
-        </default>
-        <options>
-            <option value="PWM">PWM</option>
-        </options>
-    </setting>
-    <setting key="otp.secret.encrypt" level="0" required="true">
-        <label>Encrypt OTP secret</label>
-        <description><![CDATA[If enabled, the configured encryption key is used to encrypt and decrypt token information, to make sure it is not readable as plain text.  Multiple instances of PWM must use the same encryption key.]]></description>
-        <default>
-            <value>true</value>
-        </default>
-    </setting>
-    <setting key="otp.secret.ldap.attribute" level="0" required="false">
-        <label>OTP Secret LDAP Attribute</label>
-        <description><![CDATA[LDAP attribute for storing the OTP secret.  This setting is used only when the storage method is set to LDAP.]]></description>
-        <default>
-            <value/>
-        </default>
-    </setting>
-    <setting key="otp.secret.allowSetup.queryMatch" level="0" required="true">
-        <label>OTP Secret Setup Query Match</label>
-        <description><![CDATA[Query string used to detect if a user is a permitted to setup an OTP secret.  The user must be returned during this ldap query or else the user will not be permitted to setup the secret.]]></description>
-        <default>
-            <value><![CDATA[(objectClass=*)]]></value>
-        </default>
-    </setting>
     <setting key="events.healthCheck.minInterval" level="1">
         <label>Health Check Frequency</label>
         <description><![CDATA[Frequency (in seconds) at which a self-health check is performed.  Default is two minutes.Health Checks only occur when the health check results are being viewed.]]></description>
@@ -1624,20 +1451,20 @@
             <value>120</value>
         </default>
     </setting>
-    <setting key="events.java.stdoutLevel" level="1">
+    <setting key="events.java.stdoutLevel" level="0">
         <label>Java StdOut Log Level</label>
         <description><![CDATA[Default Log level for stdout.  Most servlet containers will redirect stdout to a log file.  For example, tomcat logs stdout output to the <i>tomcat/logs/catalina.out</i> file by default.]]></description>
         <default>
             <value><![CDATA[INFO]]></value>
         </default>
         <options>
-            <option value="TRACE">6 - Trace</option>
-            <option value="DEBUG">5 - Debug</option>
-            <option value="INFO">4 - Info</option>
-            <option value="WARN">3 - Warn</option>
-            <option value="ERROR">2 - Error</option>
-            <option value="FATAL">1 - Fatal</option>
-            <option value="Off">0 - Off</option>
+            <option value="TRACE">Trace</option>
+            <option value="DEBUG">Debug</option>
+            <option value="INFO">Info</option>
+            <option value="WARN">Warn</option>
+            <option value="ERROR">Error</option>
+            <option value="FATAL">Fatal</option>
+            <option value="Off">Off - no logging to stdout</option>
         </options>
     </setting>
     <setting key="events.java.log4jconfigFile" level="1">
@@ -1668,41 +1495,29 @@
             <value><![CDATA[INFO]]></value>
         </default>
         <options>
-            <option value="TRACE">6 - Trace</option>
-            <option value="DEBUG">5 - Debug</option>
-            <option value="INFO">4 - Info</option>
-            <option value="WARN">3 - Warn</option>
-            <option value="ERROR">2 - Error</option>
-            <option value="FATAL">1 - Fatal</option>
-            <option value="Off">0 - Off</option>
+            <option value="TRACE">Trace</option>
+            <option value="DEBUG">Debug</option>
+            <option value="INFO">Info</option>
+            <option value="WARN">Warn</option>
+            <option value="ERROR">Error</option>
+            <option value="FATAL">Fatal</option>
+            <option value="Off">Off - no logging to stdout</option>
         </options>
     </setting>
     <setting key="events.fileAppender.level" level="0" required="true">
         <label>File Log Level</label>
-        <description><![CDATA[Level at which to log events to the local File Log.  Log files are written to the servlet's WEB-INF/logs directory.]]></description>
+        <description><![CDATA[Level at which to log events to the local File Log.]]></description>
         <default>
             <value><![CDATA[INFO]]></value>
         </default>
         <options>
-            <option value="TRACE">6 - Trace</option>
-            <option value="DEBUG">5 - Debug</option>
-            <option value="INFO">4 - Info</option>
-            <option value="WARN">3 - Warn</option>
-            <option value="ERROR">2 - Error</option>
-            <option value="FATAL">1 - Fatal</option>
-            <option value="Off">0 - Off</option>
-        </options>
-    </setting>
-    <setting key="events.user.storageMethod" level="1" required="true">
-        <label>User History Storage Location</label>
-        <description><![CDATA[Data store used for user-specific audit history.]]></description>
-        <default>
-            <value><![CDATA[AUTO]]></value>
-        </default>
-        <options>
-            <option value="AUTO">Auto Configure - Database if configured, LDAP otherwise</option>
-            <option value="DATABASE">Remote Database</option>
-            <option value="LDAP">LDAP</option>
+            <option value="TRACE">Trace</option>
+            <option value="DEBUG">Debug</option>
+            <option value="INFO">Info</option>
+            <option value="WARN">Warn</option>
+            <option value="ERROR">Error</option>
+            <option value="FATAL">Fatal</option>
+            <option value="Off">Off - no logging to stdout</option>
         </options>
     </setting>
     <setting key="events.ldap.attribute" level="1">
@@ -1711,6 +1526,9 @@
         <regex>^[a-zA-Z][a-zA-Z0-9-]*$</regex>
         <default>
             <value><![CDATA[pwmEventLog]]></value>
+        </default>
+        <default template="ADDB">
+            <value />
         </default>
     </setting>
     <setting key="events.ldap.maxEvents" level="1" required="true">
@@ -1725,6 +1543,41 @@
         <description><![CDATA[If true, all ldap traffic will be output to the TRACE logging level.<br/><br/><b>WARNING:</b> enabling this option may allow user passwords and other sensitive data to be written to the log files.]]></description>
         <default>
             <value>false</value>
+        </default>
+    </setting>
+    <setting key="events.alert.startup.enable" level="0" required="true">
+        <label>Startup Alerts</label>
+        <description><![CDATA[If true, send an alert during application startup.]]></description>
+        <default>
+            <value>true</value>
+        </default>
+    </setting>
+    <setting key="events.alert.shutdown.enable" level="0" required="true">
+        <label>Shutdown Alerts</label>
+        <description><![CDATA[If true, send an alert when application is shutdown.]]></description>
+        <default>
+            <value>true</value>
+        </default>
+    </setting>
+    <setting key="events.alert.intruder.enable" level="0" required="true">
+        <label>Intruder Alerts</label>
+        <description><![CDATA[If true, send an alert to when an intruder is detected.]]></description>
+        <default>
+            <value>true</value>
+        </default>
+    </setting>
+    <setting key="events.alert.fatalEvent.enable" level="0" required="true">
+        <label>Fatal Event Alerts</label>
+        <description><![CDATA[If true, send an alert when a fatal event occurs.]]></description>
+        <default>
+            <value>true</value>
+        </default>
+    </setting>
+    <setting key="events.alert.configModify.enable" level="0" required="true">
+        <label>Configuration Modification Alerts</label>
+        <description><![CDATA[If true, send an email when the configuration has been modified.]]></description>
+        <default>
+            <value>true</value>
         </default>
     </setting>
     <setting key="events.alert.dailySummary.enable" level="0" required="true">
@@ -1758,60 +1611,62 @@
     <setting key="challenge.randomChallenges" level="0">
         <label>Random Questions</label>
         <description><![CDATA[Random Questions for Challenge/Response.   Some of these questions will be presented to the user during forgotten password - the number set in the "Minimum Password Required" setting.  The user may be required to supply answers to all or some of these questions when setting up their responses, this is controlled by the "Minimum Random Challenges Required During Setup" setting.  Use <i>%user%</i> as the question text to indicate a user-supplied question.<br/><br/>Format: <b>question::minimumLength::maximumLength</b><table style="width: 400px"><tr><td>question</td><td>The text of the challenge question</td></tr><tr><td>minimumLength</td><td>Minimum Field Length</td></tr><tr><td>maximumLength</td><td>Maximum Field Length</td></tr></table>Examples:<ul><li>%user%::5::200</li><li>What is your maiden name?::5::200</li><li>What is your fathers middle name?::5::200</li></ul>]]></description>
+        <regex>^.+::[0-9]+::[0-9]+$</regex>
         <default>
-            <value><![CDATA[{"text":"What is the name of the main character in your favorite book?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value><![CDATA[{"text":"What is the name of your favorite teacher?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value><![CDATA[{"text":"What is the name of your favorite pet?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value><![CDATA[{"text":"What was the name of your childhood best friend?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value><![CDATA[{"text":"What was your favorite show as a child?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value><![CDATA[{"text":"Who is your favorite author?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value><![CDATA[{"text":"What is your favorite food?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value><![CDATA[{"text":"What is your partner's nickname?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value><![CDATA[{"text":"What is your favorite team?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value><![CDATA[{"text":"What street did you grow up on?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value><![CDATA[{"text":"What city / town were you born in?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value><![CDATA[{"text":"What is your favorite vehicle?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value><![CDATA[{"text":"If you could meet someone from history, who would it be?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value><![CDATA[{"text":"What is your least favorite film of all time?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value><![CDATA[{"text":"Who was your least favorite teacher?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value><![CDATA[{"text":"What food do you dislike the most?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="fr"><![CDATA[{"text":"Quel est le nom du personnage principal de votre livre préféré?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="fr"><![CDATA[{"text":"Quel est le nom de votre professeur préféré?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="fr"><![CDATA[{"text":"Quel est le nom de votre animal préféré?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="fr"><![CDATA[{"text":"Quel était le nom de votre meilleur ami d'enfance?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="fr"><![CDATA[{"text":"Quel a été votre émission préférée comme un enfant?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="fr"><![CDATA[{"text":"Qui est votre auteur préféré?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="fr"><![CDATA[{"text":"Quel est votre plat préféré?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="fr"><![CDATA[{"text":"Quel est le surnom de votre partenaire?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="fr"><![CDATA[{"text":"Quelle est votre équipe préférée?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="fr"><![CDATA[{"text":"Dans quelle rue avez-vous grandi?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="fr"><![CDATA[{"text":"Dans quelle ville / ville êtes-vous né?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="fr"><![CDATA[{"text":"Quel est votre véhicule préféré?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="fr"><![CDATA[{"text":"Si vous pouviez rencontrer quelqu'un de l'histoire, ce serait qui?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="fr"><![CDATA[{"text":"Quel est ton film préféré moins de tous les temps?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="fr"><![CDATA[{"text":"Qui était votre professeur préféré moins?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="fr"><![CDATA[{"text":"Quels sont les aliments que vous aimez le plus?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="nl"><![CDATA[{"text":"Hoe heet de hoofdpersoon in uw favoriete boek?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="nl"><![CDATA[{"text":"Hoe heet uw favoriete leraar?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="nl"><![CDATA[{"text":"Hoe heet uw favoriete huisdier?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="nl"><![CDATA[{"text":"Hoe heette uw beste vriend(in) uit uw jeugd?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="nl"><![CDATA[{"text":"Wat was uw favoriete TV-programma in uw jeugd?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="nl"><![CDATA[{"text":"Wie is uw favoriete schrijver?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="nl"><![CDATA[{"text":"Wat is uw lievelingseten?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="nl"><![CDATA[{"text":"Wat is de bijnaam van uw partner?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="nl"><![CDATA[{"text":"Wat is uw favoriete team?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="nl"><![CDATA[{"text":"In welke straat bent u opgegroeid?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="nl"><![CDATA[{"text":"In welke stad of plaats bent u geboren?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="nl"><![CDATA[{"text":"Wat is uw favoriete voertuig?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="nl"><![CDATA[{"text":"Als u een historisch persoon zou kunnen ontmoeten, wie zou dat zijn?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="nl"><![CDATA[{"text":"Wat is uw favoriete film aller tijden?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="nl"><![CDATA[{"text":"Wie was uw minst geliefde leraar?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
-            <value locale="nl"><![CDATA[{"text":"Van welk eten houdt u het minst?","minLength":4,"maxLength":200,"adminDefined":true}]]></value>
+            <value><![CDATA[What is the name of the main character in your favorite book?::4::200]]></value>
+            <value><![CDATA[What is the name of your favorite teacher?::4::200]]></value>
+            <value><![CDATA[What is the name of your favorite pet?::4::200]]></value>
+            <value><![CDATA[What was the name of your childhood best friend?::4::200]]></value>
+            <value><![CDATA[What was your favorite show as a child?::4::200]]></value>
+            <value><![CDATA[Who is your favorite author?::4::200]]></value>
+            <value><![CDATA[What is your favorite food?::4::200]]></value>
+            <value><![CDATA[What is your partner's nickname?::4::200]]></value>
+            <value><![CDATA[What is your favorite team?::4::200]]></value>
+            <value><![CDATA[What street did you grow up on?::4::200]]></value>
+            <value><![CDATA[What city / town were you born in?::4::200]]></value>
+            <value><![CDATA[What is your favorite vehicle?::4::200]]></value>
+            <value><![CDATA[If you could meet someone from history, who would it be?::4::200]]></value>
+            <value><![CDATA[What is your least favorite film of all time?::4::200]]></value>
+            <value><![CDATA[Who was your least favorite teacher?::4::200]]></value>
+            <value><![CDATA[What food do you dislike the most?::4::200]]></value>
+            <value locale="fr"><![CDATA[Quel est le nom du personnage principal de votre livre préféré?::4::200]]></value>
+            <value locale="fr"><![CDATA[Quel est le nom de votre professeur préféré?::4::200]]></value>
+            <value locale="fr"><![CDATA[Quel est le nom de votre animal préféré?::4::200]]></value>
+            <value locale="fr"><![CDATA[Quel était le nom de votre meilleur ami d'enfance?::4::200]]></value>
+            <value locale="fr"><![CDATA[Quel a été votre émission préférée comme un enfant?::4::200]]></value>
+            <value locale="fr"><![CDATA[Qui est votre auteur préféré?::4::200]]></value>
+            <value locale="fr"><![CDATA[Quel est votre plat préféré?::4::200]]></value>
+            <value locale="fr"><![CDATA[Quel est le surnom de votre partenaire?::4::200]]></value>
+            <value locale="fr"><![CDATA[Quelle est votre équipe préférée?::4::200]]></value>
+            <value locale="fr"><![CDATA[Dans quelle rue avez-vous grandi?::4::200]]></value>
+            <value locale="fr"><![CDATA[Dans quelle ville / ville êtes-vous né?::4::200]]></value>
+            <value locale="fr"><![CDATA[Quel est votre véhicule préféré?::4::200]]></value>
+            <value locale="fr"><![CDATA[Si vous pouviez rencontrer quelqu'un de l'histoire, ce serait qui?::4::200]]></value>
+            <value locale="fr"><![CDATA[Quel est ton film préféré moins de tous les temps?::4::200]]></value>
+            <value locale="fr"><![CDATA[Qui était votre professeur préféré moins?::4::200]]></value>
+            <value locale="fr"><![CDATA[Quels sont les aliments que vous aimez le plus?::4::200]]></value>
+            <value locale="nl"><![CDATA[Hoe heet de hoofdpersoon in uw favoriete boek?::4::200]]></value>
+            <value locale="nl"><![CDATA[Hoe heet uw favoriete leraar?::4::200]]></value>
+            <value locale="nl"><![CDATA[Hoe heet uw favoriete huisdier?::4::200]]></value>
+            <value locale="nl"><![CDATA[Hoe heette uw beste vriend(in) uit uw jeugd?::4::200]]></value>
+            <value locale="nl"><![CDATA[Wat was uw favoriete TV-programma in uw jeugd?::4::200]]></value>
+            <value locale="nl"><![CDATA[Wie is uw favoriete schrijver?::4::200]]></value>
+            <value locale="nl"><![CDATA[Wat is uw lievelingseten?::4::200]]></value>
+            <value locale="nl"><![CDATA[Wat is de bijnaam van uw partner?::4::200]]></value>
+            <value locale="nl"><![CDATA[Wat is uw favoriete team?::4::200]]></value>
+            <value locale="nl"><![CDATA[In welke straat bent u opgegroeid?::4::200]]></value>
+            <value locale="nl"><![CDATA[In welke stad of plaats bent u geboren?::4::200]]></value>
+            <value locale="nl"><![CDATA[Wat is uw favoriete voertuig?::4::200]]></value>
+            <value locale="nl"><![CDATA[Als u een historisch persoon zou kunnen ontmoeten, wie zou dat zijn?::4::200]]></value>
+            <value locale="nl"><![CDATA[Wat is uw favoriete film aller tijden?::4::200]]></value>
+            <value locale="nl"><![CDATA[Wie was uw minst geliefde leraar?::4::200]]></value>
+            <value locale="nl"><![CDATA[Van welk eten houdt u het minst?::4::200]]></value>
         </default>
     </setting>
     <setting key="challenge.requiredChallenges" level="0">
         <label>Required Questions</label>
         <description><![CDATA[Required Questions for Challenge/Response.  The user must supply answers for all of these questions when setting up their responses.  Additionally, answers to these questions must be suppled during forgotten password.  Use <i>%user%</i> as the question text to indicate a user-supplied question.<br/><br/>Format: <b>question::minimumLength::maximumLength</b><table style="width: 400px"><tr><td>question</td><td>The text of the challenge question</td></tr><tr><td>minimumLength</td><td>Minimum Field Length</td></tr><tr><td>maximumLength</td><td>Maximum Field Length</td></tr></table>Examples:<ul><li>%user%::5::200</li><li>What is your favorite cartoon?</li><li>What is your favorite food?::5::200</li></ul>]]></description>
+        <regex>^.+::[0-9]+::[0-9]+$</regex>
         <default>
             <value />
         </default>
@@ -1868,6 +1723,7 @@
     <setting key="challenge.helpdesk.randomChallenges" level="0">
         <label>Helpdesk Random Questions</label>
         <description><![CDATA[The user may be required to supply answers to all or some of these questions when setting up their responses, as controlled by the "Minimum Helpdesk Random Challenges Required During Setup" setting.  The questions and answers will be visible to helpdesk users, but are not used for forgotten password recovery.  Use <i>%user%</i> as the question text to indicate a user-supplied question.<br/><br/>Format: <b>question::minimumLength::maximumLength</b><table style="width: 400px"><tr><td>question</td><td>The text of the challenge question</td></tr><tr><td>minimumLength</td><td>Minimum Field Length</td></tr><tr><td>maximumLength</td><td>Maximum Field Length</td></tr></table>Examples:<ul><li>%user%::5::200</li><li>What is your maiden name?::5::200</li><li>What is your fathers middle name?::5::200</li></ul>]]></description>
+        <regex>^.+::[0-9]+::[0-9]+$</regex>
         <default>
             <value />
         </default>
@@ -1875,6 +1731,7 @@
     <setting key="challenge.helpdesk.requiredChallenges" level="0">
         <label>Helpdesk Required Questions</label>
         <description><![CDATA[The user must supply answers for all of these questions when setting up their responses.  The questions and answers will be visible to helpdesk users, but are not used for forgotten password recovery.  Use <i>%user%</i> as the question text to indicate a user-supplied question.<br/><br/>Format: <b>question::minimumLength::maximumLength</b><table style="width: 400px"><tr><td>question</td><td>The text of the challenge question</td></tr><tr><td>minimumLength</td><td>Minimum Field Length</td></tr><tr><td>maximumLength</td><td>Maximum Field Length</td></tr></table>Examples:<ul><li>%user%::5::200</li><li>What is your favorite cartoon?</li><li>What is your favorite food?::5::200</li></ul>]]></description>
+        <regex>^.+::[0-9]+::[0-9]+$</regex>
         <default>
             <value />
         </default>
@@ -1907,24 +1764,6 @@
             <value>false</value>
         </default>
     </setting>
-    <setting key="challenge.profile.list" level="0" hidden="true">
-        <label>Challenge Profile</label>
-        <description><![CDATA[List of Challenge Profiles.  When multiple challenge policies are configured, all profiles except for the default are evaluated in order to check if the <i>Challenge Profile Query Match</i> during user authentication matches the user.  If no profiles match, then the Default profile will be used.<p>Profile names have the following requirements:</p><ul><li>Start with a letter (a-Z)</li><li>Contain only letters, numbers and hyphens</li><li>Length between 2 and 15 characters</li></ul>]]></description>
-        <regex>^[a-zA-Z][a-zA-Z0-9-]{2,15}$</regex>
-        <default>
-            <value><![CDATA[]]></value>
-        </default>
-    </setting>
-    <setting key="challenge.policy.queryMatch">
-        <label>Challenge Profile Query Match</label>
-        <description><![CDATA[Challenge Profile Query Match]]></description>
-        <default>
-            <value><![CDATA[]]></value>
-        </default>
-        <options>
-            <option value="HideForDefaultProfile">true</option>
-        </options>
-    </setting>
     <setting key="recovery.enable" level="0">
         <label>Enable Forgotten Password</label>
         <description><![CDATA[If enabled, forgotten password recovery will be available to users.]]></description>
@@ -1953,6 +1792,9 @@
         <default>
             <value><![CDATA[LDAP]]></value>
         </default>
+        <default template="ADDB">
+            <value><![CDATA[DB]]></value>
+        </default>
         <options>
             <option value="LDAP">LDAP</option>
             <option value="LDAP-DB">LDAP, Database</option>
@@ -1973,9 +1815,12 @@
     </setting>
     <setting key="recovery.response.writePreference" level="0" required="true">
         <label>Response Write Location</label>
-        <description><![CDATA[<p>Location to write the responses to.  All storage methods will be written to when the user configures their response answers.</p><p><b>WARNING: </b>The LocalDB should never be used to store responses in a production system as there are no methods to make the LocalDB storage redundant, nor are optimal backup methods available for the LocalDB.</p]]></description>
+        <description><![CDATA[Location to write the responses to.  All storage methods will be written to when the user configures their response answers.]]></description>
         <default>
             <value><![CDATA[LDAP]]></value>
+        </default>
+        <default template="ADDB">
+            <value><![CDATA[DB]]></value>
         </default>
         <options>
             <option value="LDAP">LDAP</option>
@@ -1994,6 +1839,9 @@
         <default>
             <value><![CDATA[pwmResponseSet]]></value>
         </default>
+        <default template="ADDB">
+            <value />
+        </default>
     </setting>
     <setting key="challenge.allowUnlock" level="0" required="true">
         <label>Allow Unlock</label>
@@ -2010,14 +1858,9 @@
         </default>
         <options>
             <option value="TEXT">None (Plaintext)</option>
-            <option value="MD5">MD5</option>
             <option value="SHA1">SHA1</option>
-            <option value="SHA1_SALT">SHA-1 with Salt</option>
-            <option value="SHA256_SALT">SHA-256 with Salt</option>
-            <option value="SHA512_SALT">SHA-512 with Salt</option>
-            <option value="PBKDF2">PBKDF2WithHmacSHA1</option>
+            <option value="SHA1_SALT">SHA1 with Salt</option>
             <option value="BCRYPT">BCrypt</option>
-            <option value="SCRYPT">SCrypt</option>
         </options>
     </setting>
     <setting key="challenge.requiredAttributes" level="0">
@@ -2034,7 +1877,7 @@
     </setting>
     <setting key="challenge.token.enable" level="0" required="true">
         <label>Require Email Token</label>
-        <description><![CDATA[If enabled, a token will be emailed to the user during the forgotten password process.  The user will be required to type the email token in order to proceed to recover their password.  If this setting is disabled, then at least one other recovery method must be set to true for forgotten password recovery to operate.]]></description>
+        <description><![CDATA[If enabled, a token will be emailed to the user during the forgotten password process.  The user will be required to type the email token in order to proceed to recover their password.  If this setting is disabled, then 'Require Responses' must be set to true for forgotten password recovery to operate.]]></description>
         <default>
             <value>false</value>
         </default>
@@ -2054,15 +1897,8 @@
             <option value="SMSFIRST">SMS First - Try to send token via SMS; if no SMS number is available, send via email</option>
         </options>
     </setting>
-    <setting key="recovery.require.otp" level="0" required="true">
-        <label>Require One Time Password</label>
-        <description><![CDATA[If enabled, a one time password will be required during the forgotten password process.  The user will be required to type the generated token in order to proceed to recover their password.  If this setting is disabled, then at least one other recovery method must be set to true for forgotten password recovery to operate.]]></description>
-        <default>
-            <value>false</value>
-        </default>
-    </setting>
     <setting key="recovery.action" level="0" required="true">
-        <label>Forgotten Password Recovery Mode</label>
+        <label>Forgotten Password Success Action</label>
         <description><![CDATA[Action to take when the user completes the forgotten password process.]]></description>
         <default>
             <value><![CDATA[RESETPW]]></value>
@@ -2085,13 +1921,6 @@
             <option value="EMAILFIRST">Email First - Try to send token via email; if no email address is available, send via SMS</option>
             <option value="SMSFIRST">SMS First - Try to send token via SMS; if no SMS number is available, send via email</option>
         </options>
-    </setting>
-    <setting key="recovery.postActions" level="1">
-        <label>Forgotten Password Post Actions</label>
-        <description><![CDATA[Actions to execute after a user has successfully completed the forgotten password sequence and the user's password has been modified.  Macros may be used.]]></description>
-        <default>
-            <value/>
-        </default>
     </setting>
     <setting key="forgottenUsername.enable" level="0" required="true">
         <label>Enable Forgotten Username</label>
@@ -2123,6 +1952,9 @@
             <value><![CDATA[cn]]></value>
         </default>
         <default template="AD">
+            <value>sAMAccountName</value>
+        </default>
+        <default template="ADDB">
             <value>sAMAccountName</value>
         </default>
     </setting>
@@ -2356,6 +2188,9 @@
             <value><![CDATA[(&(objectclass=person)(!(loginDisabled=TRUE))(!(loginTime=*)))]]></value>
         </default>
         <default template="AD">
+            <value><![CDATA[(&(objectclass=person)(!(userAccountControl:1.2.840.113556.1.4.803:=2))(|(lastLogon=0)(!(lastLogonTimestamp=*))))]]></value>
+        </default>
+        <default template="ADDB">
             <value><![CDATA[(&(objectclass=person)(!(userAccountControl:1.2.840.113556.1.4.803:=2))(|(lastLogon=0)(!(lastLogonTimestamp=*))))]]></value>
         </default>
     </setting>
@@ -2609,6 +2444,9 @@
         <default template="AD">
             <value>true</value>
         </default>
+        <default template="ADDB">
+            <value>true</value>
+        </default>
     </setting>
     <setting key="ldap.ad.allowAuth.requireNewPassword" level="0" required="true">
         <label>Allow Authentication When "Must Change Password On Next Login" Is Set</label>
@@ -2620,13 +2458,6 @@
     <setting key="ldap.ad.allowAuth.expired" level="0" required="true">
         <label>Allow Authentication When Password Expired</label>
         <description><![CDATA[Active Directory will fail an ldap login attempt when the current date is after the user's password expiration date.  If this option is enabled, the system will allow login even though the ldap bind has failed.  The user will only be able to set a new password when this condition occurs.  No other functions will be available until the password has been set (and this flag is cleared).]]></description>
-        <default>
-            <value>false</value>
-        </default>
-    </setting>
-    <setting key="ldap.ad.enforcePwHistoryOnSet" level="0" required="true">
-        <label>Enforce Password Policy During Forgotten Password</label>
-        <description><![CDATA[Enforce password policy during forgotten password when <i>Use Proxy When Password Forgotten</i> is also set to true.  This setting requires that the AD servers be at <b>Windows 2008 Server R2 SP1 or later</b>.  More specifically, it requires that the AD servers support the LDAP_SERVER_POLICY_HINTS_OID (1.2.840.113556.1.4.2066) LDAP modification control.]]></description>
         <default>
             <value>false</value>
         </default>
@@ -2647,6 +2478,9 @@
         <default template="AD">
             <value><![CDATA[(memberOf=cn=Domain Admins,cn=Users,DC=site,DC=example,DC=net)]]></value>
         </default>
+        <default template="ADDB">
+            <value><![CDATA[(memberOf=cn=Domain Admins,cn=Users,DC=site,DC=example,DC=net)]]></value>
+        </default>
     </setting>
     <setting key="helpdesk.filter" level="0">
         <label>Helpdesk Search Filter</label>
@@ -2655,6 +2489,9 @@
             <value><![CDATA[(&(objectClass=Person)(|((cn=*%USERNAME%*)(uid=*%USERNAME%*)(givenName=*%USERNAME%*)(sn=*%USERNAME%*))))]]></value>
         </default>
         <default template="AD">
+            <value><![CDATA[(&(objectClass=Person)(|((cn=*%USERNAME%*)(uid=*%USERNAME%*)(sAMAccountName=*%USERNAME%*)(userprincipalname=*%USERNAME%*)(givenName=*%USERNAME%*)(sn=*%USERNAME%*))))]]></value>
+        </default>
+        <default template="AADDB">
             <value><![CDATA[(&(objectClass=Person)(|((cn=*%USERNAME%*)(uid=*%USERNAME%*)(sAMAccountName=*%USERNAME%*)(userprincipalname=*%USERNAME%*)(givenName=*%USERNAME%*)(sn=*%USERNAME%*))))]]></value>
         </default>
     </setting>
@@ -2669,6 +2506,13 @@
             <value>{"name":"WorkforceID","minimumLength":1,"maximumLength":64,"type":"text","required":true,"confirmationRequired":false,"readonly":false,"labels":{"":"Workforce ID"},"regexErrors":{"":""},"description":{"":""},"selectOptions":{}}</value>
         </default>
         <default template="AD">
+            <value>{"name":"sAMAccountName","minimumLength":1,"maximumLength":64,"type":"text","required":true,"confirmationRequired":false,"readonly":false,"labels":{"":"sAMAccountName"},"regexErrors":{"":""},"description":{"":""},"selectOptions":{}}</value>
+            <value>{"name":"givenName","minimumLength":1,"maximumLength":64,"type":"text","required":true,"confirmationRequired":false,"readonly":false,"labels":{"":"First Name"},"regexErrors":{"":""},"description":{"":""},"selectOptions":{}}</value>
+            <value>{"name":"sn","minimumLength":1,"maximumLength":64,"type":"text","required":true,"confirmationRequired":false,"readonly":false,"labels":{"":"Last Name"},"regexErrors":{"":""},"description":{"":""},"selectOptions":{}}</value>
+            <value>{"name":"mail","minimumLength":1,"maximumLength":64,"type":"email","required":true,"confirmationRequired":false,"readonly":false,"labels":{"":"Email"},"regexErrors":{"":""},"description":{"":""},"selectOptions":{}}</value>
+            <value>{"name":"userPrincipalName","minimumLength":1,"maximumLength":64,"type":"text","required":true,"confirmationRequired":false,"readonly":false,"labels":{"":"UPN"},"regexErrors":{"":""},"description":{"":""},"selectOptions":{}}</value>
+        </default>
+        <default template="ADDB">
             <value>{"name":"sAMAccountName","minimumLength":1,"maximumLength":64,"type":"text","required":true,"confirmationRequired":false,"readonly":false,"labels":{"":"sAMAccountName"},"regexErrors":{"":""},"description":{"":""},"selectOptions":{}}</value>
             <value>{"name":"givenName","minimumLength":1,"maximumLength":64,"type":"text","required":true,"confirmationRequired":false,"readonly":false,"labels":{"":"First Name"},"regexErrors":{"":""},"description":{"":""},"selectOptions":{}}</value>
             <value>{"name":"sn","minimumLength":1,"maximumLength":64,"type":"text","required":true,"confirmationRequired":false,"readonly":false,"labels":{"":"Last Name"},"regexErrors":{"":""},"description":{"":""},"selectOptions":{}}</value>
@@ -2725,20 +2569,13 @@
             <option value="type">Type new password</option>
             <option value="autogen">Auto generate a list of random passwords to choose from</option>
             <option value="both">Auto generate a list of random passwords and allow typing of new password</option>
-            <option value="random">Set the password to a random value unknown to the helpdesk operator</option>
+            <option value="sendpassword">Send a random password to the user</option>
         </options>
     </setting>
     <setting key="helpdesk.setPassword.writeAttributes" level="1">
         <label>Post Set Password Actions</label>
         <description><![CDATA[Actions to execute after a helpdesk actor modifies the user's password.  Macros may be used.]]></description>
         <default />
-    </setting>
-    <setting key="helpdesk.sendPassword" level="0" required="true">
-        <label>Send Password to User</label>
-        <description><![CDATA[If true, send the password to the user using the method selected under Forgotten Password -> New Password Send Method.]]></description>
-        <default>
-            <value>false</value>
-        </default>
     </setting>
     <setting key="helpdesk.actions" level="1">
         <label>Helpdesk Actor Actions</label>
@@ -2766,13 +2603,6 @@
             <value>3600</value>
         </default>
     </setting>
-    <setting key="helpdesk.clearResponses.button" level="0">
-        <label>Enable Clear Responses Button</label>
-        <description><![CDATA[Allow the helpdesk operator to clear out a user's stored responses by clicking a button.]]></description>
-        <default>
-            <value>false</value>
-        </default>
-    </setting>
     <setting key="helpdesk.clearResponses" level="0">
         <label>Clear Responses on Password Set</label>
         <description><![CDATA[Allow the helpdesk operator to clear out a user's stored responses after changing the user's password.]]></description>
@@ -2785,25 +2615,27 @@
             <option value="no">False</option>
         </options>
     </setting>
-    <setting key="helpdesk.clearOtp.button" level="1" hidden="false">
-        <label>Enable Clear One Time Password Settings Button</label>
-        <description><![CDATA[Allow the helpdesk operator to clear out a user's stored one time password settings by clicking a button.]]></description>
-        <default>
-            <value>false</value>
-        </default>
-    </setting>
-    <setting key="helpdesk.useProxy" level="1">
-        <label>Use Proxy Connection</label>
-        <description><![CDATA[Use the application proxy connection for all actions initiated in the helpdesk module.  When disabled, actions are initiated using the logged in user's ldap connection, requiring that the user have appropriate privileges in the ldap directory.]]></description>
-        <default>
-            <value>false</value>
-        </default>
-    </setting>
     <setting key="pwmDb.location" level="1" required="true">
         <label>LocalDB Location</label>
         <description><![CDATA[Location of the LocalDB directory. If the specified path is relative, the path will be considered relative to the servlet's <i>WEB-INF</i> directory.]]></description>
         <default>
             <value><![CDATA[LocalDB]]></value>
+        </default>
+    </setting>
+    <setting key="pwmDb.implementation" level="1" required="true">
+        <label>LocalDB Implementation Class</label>
+        <description><![CDATA[Java class implementation used by LocalDB.  Default is the embedded BerkeleyDB Java Edition.  Several default implementations are available.<table><tr><td><b>Implementation Class</b></td><td><b>Description</b></td></tr><tr><td>password.pwm.util.localdb.Berkeley_LocalDB</td><td>Default Implementation based on BerekelyDB Java Edition</td></tr><tr><td>password.pwm.util.localdb.Derby_LocalDB</td><td>Based on Apache Derby java embedded SQL database</td></tr><tr><td>password.pwm.util.localdb.MapDB_LocalDB</td><td>Uses JDBM2 as the embedded key store</td></tr><tr><td>password.pwm.util.localdb.Memory_LocalDB</td><td>In-Memory implementation, Super fast but not persistent and you will need a lot of memory</td><tr></table>]]></description>
+        <default>
+            <value><![CDATA[password.pwm.util.localdb.Berkeley_LocalDB]]></value>
+        </default>
+    </setting>
+    <setting key="pwmDb.initParameters" level="1">
+        <label>LocalDB Initialization String</label>
+        <description><![CDATA[Value passed to the LocalDB Implementation class during initialization.  Value format is specific to the implementation.]]></description>
+        <default>
+            <value><![CDATA[je.maxMemory=10000000]]></value>
+            <value><![CDATA[je.log.fileMax=10000000]]></value>
+            <value><![CDATA[je.cleaner.minUtilization=70]]></value>
         </default>
     </setting>
     <setting key="db.classname" level="0">
@@ -2845,60 +2677,11 @@
             <value>TEXT</value>
         </default>
     </setting>
-    <setting key="db.debugTrace.enable" level="1" required="true">
-        <label>Database Trace Logging</label>
-        <description><![CDATA[When enabled, database read/write activity and data is logged to the TRACE debug output.  Warning!  Enabling this option can cause security-sensitive information to be sent to the debug output, including passwords.]]></description>
-        <default>
-            <value>false</value>
-        </default>
-    </setting>
-    <setting key="reporting.enable" level="0">
-        <label>Enable Directory Reporting</label>
-        <description><![CDATA[]]></description>
-        <default>
-            <value/>
-        </default>
-    </setting>
-    <setting key="reporting.ldap.searchFilter" level="0">
-        <label>Reporting Search Filter</label>
-        <description><![CDATA[LDAP search filter to be used when running a reporting job.  If blank a filter based on the login query setting will be auto-generated.]]></description>
+    <setting key="externalChangeMethod" level="0">
+        <label>External Change Method</label>
+        <description><![CDATA[Java classes to call after a successful password change.  These classes may take such actions as updating passwords in other systems or updating eDirectory.  External password classes must implement the interface <i>password.pwm.ExternalChangeMethod</i>.<br/><br/>Unless your adding custom Java code to this system, you should leave this blank.]]></description>
         <default>
             <value />
-        </default>
-    </setting>
-    <setting key="reporting.maxCacheAge" level="0">
-        <label>Maximum Cache Age</label>
-        <description><![CDATA[Seconds]]></description>
-        <default>
-            <value>7776000</value>
-        </default>
-    </setting>
-    <setting key="reporting.minCacheAge" level="0">
-        <label>Minimum Cache Age</label>
-        <description><![CDATA[Seconds]]></description>
-        <default>
-            <value>86400</value>
-        </default>
-    </setting>
-    <setting key="reporting.reportRestTimeMS" level="0">
-        <label>Engine User Search Rest Time</label>
-        <description><![CDATA[Milliseconds.  Time between each user read interval.  Having this rest interval will prevent slow performing systems from being overloaded when the report engine runs.  If the default of value of <i>-1</i> is used, the system will compute a value that will result in roughly a 50% slowdown in speed.]]></description>
-        <default>
-            <value>-1</value>
-        </default>
-    </setting>
-    <setting key="reporting.ldap.maxQuerySize" level="1">
-        <label>Maximum LDAP Query Size</label>
-        <description><![CDATA[Maximum number of records read during a reporting query search.  Setting this value to larger sizes will require more Java heap memory.]]></description>
-        <default>
-            <value>100000</value>
-        </default>
-    </setting>
-    <setting key="reporting.job.timeOffset" level="1">
-        <label>Reporting Job Time Offset</label>
-        <description><![CDATA[Number of seconds past midnight (GMT) when the update job is processed.  Setting to -1 will disable the nightly job processor.]]></description>
-        <default>
-            <value>0</value>
         </default>
     </setting>
     <setting key="externalJudgeMethod" level="0">
@@ -2906,6 +2689,13 @@
         <description><![CDATA[Java classes to call to determine the strength of a given password.  External judge methods must implement the interface <i>password.pwm.ExternalJudgeMethod</i>. During password judge checks, all listed classes will be invoked.  If multiple results are returned, the lowest returned value will be used as the result.]]></description>
         <default>
             <value><![CDATA[password.pwm.PwmPasswordJudge]]></value>
+        </default>
+    </setting>
+    <setting key="externalRuleMethod" level="0">
+        <label>External Rule Method</label>
+        <description><![CDATA[Java classes to call to determine any rule violations of a given password.  External rule methods must implement the interface <i>password.pwm.ExternalRuleMethod</i>.<br/><br/>Unless your adding custom Java code, you should leave this blank.]]></description>
+        <default>
+            <value />
         </default>
     </setting>
     <setting key="http.proxy.url" level="0">
@@ -2952,26 +2742,22 @@
         </default>
     </setting>
     <setting key="webservices.enableReadAnswers" level="0">
-        <label>Allow Web Services Read Answers</label>
+        <label>Allow WebServices Read Answers</label>
         <description><![CDATA[Allow web services to be used to read stored challenge/response answers of users.  The read responses will be available in whatever hashing method format is being used.]]></description>
         <default>
             <value>false</value>
         </default>
     </setting>
-    <setting key="webservices.healthStats.makePublic" level="0">
-        <label>Enable Public Health and Statistics Web Services</label>
-        <description><![CDATA[Allow the Health and Statistics web services to be enabled publicly.  Normally these require authentication as there may be security sensitive data available.  Enabling this option allows the web services to be used without authentication.  This is setting is required to be enabled for the public (non-authenticated) page at <i>/public/health.jsp</i> to be functional.]]></description>
-        <default>
-            <value>false</value>
-        </default>
-    </setting>
     <setting key="webservices.thirdParty.queryMatch" level="0">
-        <label>Web Services Third Party Query String</label>
+        <label>WebServices Third Party Query String</label>
         <description><![CDATA[Users permitted to execute REST web services and specify a third party via the 'username' parameter.]]></description>
         <default>
             <value><![CDATA[(groupMembership=cn=RestUsers,ou=Groups,o=example)]]></value>
         </default>
         <default template="AD">
+            <value><![CDATA[(memberOf=cn=RestUsers,cn=Users,DC=site,DC=example,DC=net)]]></value>
+        </default>
+        <default template="ADDB">
             <value><![CDATA[(memberOf=cn=RestUsers,cn=Users,DC=site,DC=example,DC=net)]]></value>
         </default>
     </setting>
@@ -2980,69 +2766,12 @@
         <description><![CDATA[External Web Auth Methods]]></description>
         <default />
     </setting>
-    <setting key="external.macros.urls" level="1">
-        <label>External Macro REST Server URLs</label>
-        <description><![CDATA[]]></description>
-        <default />
-    </setting>
-    <setting key="external.destToken.urls" level="1">
-        <label>External Token Destination Server URLs</label>
-        <description><![CDATA[]]></description>
-        <default />
-    </setting>
-    <setting key="external.pwrules.urls" level="1">
-        <label>External Rules REST Server URLs</label>
-        <description><![CDATA[]]></description>
-        <default />
-    </setting>
-    <setting key="webservice.userAttributes" level="1">
-        <label>Web Service User Attributes</label>
-        <description><![CDATA[User attributes that are used by various web services and are presented as part of the user's data set.]]></description>
-        <default />
-    </setting>
-    <setting key="oauth.idserver.loginUrl" level="0">
-        <label>OAuth Login URL</label>
-        <description><![CDATA[]]></description>
-        <placeholder>https://oauthserver.example.com/osp/a/idm/auth/oauth2/grant</placeholder>
-        <default/>
-    </setting>
-    <setting key="oauth.idserver.codeResolveUrl" level="0">
-        <label>OAuth Code Resolve Service URL</label>
-        <description><![CDATA[]]></description>
-        <placeholder>https://oauthserver.example.com/osp/a/idm/auth/oauth2/authcoderesolve</placeholder>
-        <default/>
-    </setting>
-    <setting key="oauth.idserver.attributesUrl" level="0">
-        <label>OAuth Get Attributes Service URL</label>
-        <description><![CDATA[]]></description>
-        <placeholder>https://oauthserver.example.com/osp/a/idm/auth/oauth2/getattributes</placeholder>
-        <default/>
-    </setting>
-    <setting key="oauth.idserver.clientName" level="0">
-        <label>OAuth Client ID</label>
-        <description><![CDATA[]]></description>
-        <default/>
-    </setting>
-    <setting key="oauth.idserver.secret" level="0">
-        <label>OAuth Shared Secret</label>
-        <description><![CDATA[]]></description>
-        <default/>
-    </setting>
-    <setting key="oauth.idserver.dnAttributeName" level="0">
-        <label>OAuth Username/DN Login Attribute</label>
-        <description><![CDATA[]]></description>
-        <default/>
-    </setting>
-    <category key="LDAP_PROFILE">
-        <label>LDAP Profiles</label>
-        <description><![CDATA[Settings that control the interaction with an LDAP directory]]></description>
-    </category>
-    <category key="LDAP_GLOBAL">
-        <label>LDAP Settings</label>
+    <category key="LDAP">
+        <label>LDAP Directory</label>
         <description><![CDATA[Settings that control the interaction with an LDAP directory]]></description>
     </category>
     <category key="GENERAL">
-        <label>Application</label>
+        <label>General</label>
         <description><![CDATA[General settings for the application.  Settings here control the functionality and behavior of the system.]]></description>
     </category>
     <category key="USER_INTERFACE">
@@ -3050,16 +2779,12 @@
         <description><![CDATA[These settings control overall features and displays that are visible to the end user.]]></description>
     </category>
     <category key="PASSWORD_POLICY">
-        <label>Password Policy Profiles</label>
+        <label>Password Policy</label>
         <description><![CDATA[This password policy is applied to all users, regardless of any other password policy that may be configured in the directory.  If so configured, The password policy configured for the user in the directory is read and is <b>merges</b> the policy with the global policy configured here.  When policies are merged, the <b>most restrictive</b> setting is used.]]></description>
     </category>
     <category key="CHALLENGE">
-        <label>Challenge Settings</label>
+        <label>Challenge Policy</label>
         <description><![CDATA[Challenge Policy.  If a challenge policy is read from the directory, that policy will override the settings listed here.]]></description>
-    </category>
-    <category key="CHALLENGE_POLICY">
-        <label>Challenge Profiles</label>
-        <description><![CDATA[]]></description>
     </category>
     <category key="EMAIL">
         <label>Email</label>
@@ -3071,22 +2796,14 @@
     </category>
     <category key="SECURITY">
         <label>Security</label>
-        <description><![CDATA[Captcha functionality uses an implementation of reCAPTCHA to prevent non-human attacks.  reCAPTCHA info can be found at <a href="http://www.google.com/recaptcha">http://www.google.com/recaptcha/</a><br/><br/>Registration at the reCAPTCHA site will provide a public and private key which must be configured here for reCAPTCHA support.]]></description>
-    </category>
-    <category key="INTRUDER">
-        <label>Intruder Detection</label>
-        <description><![CDATA[This application has built in intruder detection independent of what a directory may provide.  Because this application may be exposed directly to the internet, this additional layer of detection helps protect against direct attacks.  The ldap directory's own internal intruder detection (if enabled) will always be honored as well.  The goal for this intruder detection system isn't to watch for human intruders, it is designed to stop robot or automatic attacks.]]></description>
+        <description><![CDATA[This application has built in intruder detection independent of what a directory may provide.  Because this application may be exposed directly to the internet, this additional layer of detection helps protect against direct attacks.  The ldap directory's own internal intruder detection (if enabled) will always be honored as well.  The goal for this intruder detection system isn't to watch for human intruders, it is designed to stop robot or automatic attacks.<br/><br/>Captcha functionality uses an implementation of reCAPTCHA to prevent non-human attacks.  reCAPTCHA info can be found at <a href="http://www.google.com/recaptcha">http://www.google.com/recaptcha/</a><br/><br/>Registration at the reCAPTCHA site will provide a public and private key which must be configured here for reCAPTCHA support.]]></description>
     </category>
     <category key="TOKEN">
         <label>Tokens</label>
         <description><![CDATA[Options for email and sms tokens sent to users.]]></description>
     </category>
-    <category key="OTP">
-        <label>One Time Password</label>
-        <description><![CDATA[Options for time based one time passwords.]]></description>
-    </category>
     <category key="LOGGING">
-        <label>Logging &amp; Auditing</label>
+        <label>Logging &amp; Alerts</label>
         <description><![CDATA[Alert and Logging settings.]]></description>
     </category>
     <category key="EDIRECTORY">
@@ -3098,20 +2815,12 @@
         <description><![CDATA[Active Directory settings]]></description>
     </category>
     <category key="DATABASE">
-        <label>Database (Remote)</label>
+        <label>Database</label>
         <description><![CDATA[Optional database configuration settings.  Two types of databases are used.<h2>LocalDB</h2>The LocalDB is a local, embedded database that is used for storage of local data.  In most cases, the LocalDB requires no administration or maintenance, and the defaults are sufficient. <h2>RDBMS Database</h2> If configured,  a traditional RDBMS database can be used to store data for certain functions.  Any standard RDBMS that supports a standard Java JDBC driver can work.  Upon startup, a database connection will be made and any necessary tables and schema will be created.  Multiple server instances can be configured for the same database instance.]]></description>
-    </category>
-    <category key="REPORTING">
-        <label>Reporting</label>
-        <description><![CDATA[]]></description>
     </category>
     <category key="MISC" level="1">
         <label>Integration / Developer</label>
         <description><![CDATA[Settings that are of interest to developers or component integrators.]]></description>
-    </category>
-    <category key="OAUTH" level="1">
-        <label>OAuth SSO</label>
-        <description><![CDATA[Integration with an OAuth server for SSO to this application.]]></description>
     </category>
     <category key="CHANGE_PASSWORD">
         <label>Change Password</label>
@@ -3154,10 +2863,13 @@
         <description><![CDATA[Configurations for administrative helpdesk.]]></description>
     </category>
     <template key="NOVL">
-        <label>NetIQ eDirectory</label>
+        <label>Novell eDirectory</label>
+    </template>
+    <template key="ADDB">
+        <label>Active Directory - Store responses in a database</label>
     </template>
     <template key="AD">
-        <label>Active Directory</label>
+        <label>Active Directory - Store responses in Active Directory</label>
     </template>
     <template key="DEFAULT">
         <label>OpenLDAP, DirectoryServer389, Others</label>

@@ -3,7 +3,7 @@
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -20,7 +20,7 @@
   ~ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
   --%>
 
-<%@ page import="password.pwm.event.UserAuditRecord" %>
+<%@ page import="password.pwm.event.AuditRecord" %>
 <%@ page import="java.text.DateFormat" %>
 <%@ page import="java.util.Collections" %>
 <%@ page import="java.util.List" %>
@@ -30,11 +30,11 @@
 <%@ taglib uri="pwm" prefix="pwm" %>
 <html dir="<pwm:LocaleOrientation/>">
 <%@ include file="/WEB-INF/jsp/fragment/header.jsp" %>
-<body class="nihilo">
+<body onload="pwmPageLoadHandler();" class="nihilo">
 <%
-    List<UserAuditRecord> auditRecords = Collections.emptyList();
+    List<AuditRecord> auditRecords = Collections.emptyList();
     try {
-        auditRecords = pwmApplicationHeader.getAuditManager().readUserHistory(pwmSessionHeader);
+        auditRecords = pwmApplicationHeader.getAuditManager().readUserAuditRecords(pwmSessionHeader);
     } catch (Exception e) {
     }
     final Locale userLocale = PwmSession.getPwmSession(session).getSessionStateBean().getLocale();
@@ -49,7 +49,7 @@
         <%@ include file="/WEB-INF/jsp/fragment/message.jsp" %>
 
         <table style="border-collapse:collapse;  border: 2px solid #D4D4D4; width:100%">
-            <% for (final UserAuditRecord record : auditRecords) { %>
+            <% for (final AuditRecord record : auditRecords) { %>
             <tr>
                 <td class="key" style="width: 200px">
                     <%= (DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, userLocale)).format(record.getTimestamp()) %>

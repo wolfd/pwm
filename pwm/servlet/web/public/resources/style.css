@@ -3,95 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
-/*
- * Password Management Servlets (PWM)
- * http://code.google.com/p/pwm/
- *
- * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
-/*
- * Password Management Servlets (PWM)
- * http://code.google.com/p/pwm/
- *
- * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
-/*
- * Password Management Servlets (PWM)
- * http://code.google.com/p/pwm/
- *
- * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
-
-/*
- * Password Management Servlets (PWM)
- * http://code.google.com/p/pwm/
- *
- * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -119,8 +31,7 @@ html, body {
 a {
     color: #2D2D2D;
     text-decoration: underline;
-    font-weight: bold;
-    cursor: pointer;
+    font-weight: bold
 }
 
 p {
@@ -224,24 +135,6 @@ table td.key {
     height: 18px;
 }
 
-.noticebar {
-    width: 100%;
-    font-size: smaller;
-    font-style: italic;
-    text-align: center;
-}
-
-/* disable ie password reveal */
-input[type=password]::-ms-reveal{display: none;}
-
-.tokenInput {
-    height: 130px;
-    width: 80%;
-    resize: none;
-    display: block;
-    margin-bottom: 30px;
-}
-
 .changepasswordfield {
     width: 90%;
     margin-right: 5px;
@@ -257,11 +150,11 @@ input[type=password]::-ms-reveal{display: none;}
     max-width: 150px;
     padding: 4px 11px;
     display: block;
+    white-space: nowrap;
     border-radius: 3px;
     border: 10px;
     color: black;
     margin: 0 5px;
-    cursor: pointer;
 }
 
 /* main body wrapper, all elements (except footer) should be within wrapper */
@@ -279,16 +172,10 @@ input[type=password]::-ms-reveal{display: none;}
     width: 600px;
     padding-left: 5px;
     padding-right: 5px;
-    margin-top: 20px;
     position: relative;
     margin-left: auto;
     margin-right: auto;
     clear: both;
-}
-
-#centerbody.wide {
-    width: 90%;
-    min-width: 600px;
 }
 
 /* all forms use a buttonbar div containing the action buttons */
@@ -307,7 +194,6 @@ input[type=password]::-ms-reveal{display: none;}
     text-decoration: none;
     color: white;
     background: #3e374c;
-    cursor: pointer;
 }
 
 
@@ -387,18 +273,6 @@ div.progress-container > div {
     padding-bottom: 4px
 }
 
-.header-error {
-    text-align: center;
-    white-space: normal;
-    max-width: 900px;
-    margin-left: auto;
-    margin-right: auto;
-    position: relative;
-    background-color: red;
-    border: 1px solid white;
-    border-radius: 4px;
-}
-
 .clear {
     clear: both;
 }
@@ -438,10 +312,10 @@ div.progress-container > div {
 }
 
 #footer-content {
-    position: absolute;
-    width: 100%;
-    bottom: 0;
-    padding-bottom: 5px;
+  position: absolute;
+  width: 100%;
+  bottom: 0;
+  padding-bottom: 5px;
 }
 
 
@@ -498,6 +372,10 @@ div.progress-container > div {
     max-height: 300px;
     overflow: auto;
     font-family: monospace;
+}
+
+.icon-eye {
+    font-size: larger;
 }
 
 /* recaptcha section */
@@ -638,15 +516,4 @@ div.progress-container > div {
 /* hide recaptcha iframe near footer */
 body > iframe[src="about:blank"] {
     display:none !important;
-}
-
-.qrcodeblock {
-    background-color: white;
-}
-
-img.qrcodeimage {
-    background-color: white;
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
 }

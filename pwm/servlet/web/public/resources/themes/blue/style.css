@@ -30,7 +30,7 @@
 #header-company-logo {
     position: relative;
     float: left;
-    background-image: url('logo.png');
+    background-image: url(logo.png);
     top: 10px;
     left: 10px;
     width: 50px;
@@ -59,8 +59,4 @@
 
 .message-success {
     background-color: #70c1f9;
-}
-
-.menubutton {
-    white-space: normal;
 }

@@ -3,7 +3,7 @@
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 <%@ taglib uri="pwm" prefix="pwm" %>
 <%@ include file="fragment/header.jsp" %>
 <html dir="<pwm:LocaleOrientation/>">
-<body class="nihilo">
+<body onload="pwmPageLoadHandler();" class="nihilo">
 <div id="wrapper">
     <jsp:include page="fragment/header-body.jsp">
         <jsp:param name="pwm.PageName" value="Title_ForgottenPassword"/>
@@ -39,19 +39,23 @@
         <p><pwm:Display key="Display_RecoverEnterCode" value1="<%=destination%>"/></p>
         <form action="<pwm:url url='../public/ForgottenPassword'/>" method="post"
               enctype="application/x-www-form-urlencoded" name="search"
-              onsubmit="PWM_MAIN.handleFormSubmit('submitBtn',this);return false">
+              onsubmit="handleFormSubmit('submitBtn',this);return false">
             <%@ include file="/WEB-INF/jsp/fragment/message.jsp" %>
             <h2><label for="<%=PwmConstants.PARAM_TOKEN%>"><pwm:Display key="Field_Code"/></label></h2>
-            <textarea id="<%=PwmConstants.PARAM_TOKEN%>" name="<%=PwmConstants.PARAM_TOKEN%>" class="tokenInput" required="required"></textarea>
+            <textarea style="height: 130px; width: 80%; resize: none" id="<%=PwmConstants.PARAM_TOKEN%>" name="<%=PwmConstants.PARAM_TOKEN%>" class="inputfield" required="required"></textarea>
             <div id="buttonbar">
                 <input type="submit" class="btn"
                        name="search"
                        value="<pwm:Display key="Button_CheckCode"/>"
                        id="submitBtn"/>
-                <%@ include file="/WEB-INF/jsp/fragment/button-reset.jsp" %>
+                <input type="reset" class="btn"
+                       name="reset"
+                       value="<pwm:Display key="Button_Reset"/>"/>
                 <input type="hidden" id="processAction" name="processAction" value="enterCode"/>
                 <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_CANCEL_BUTTON)) { %>
-                <%@ include file="/WEB-INF/jsp/fragment/button-cancel.jsp" %>
+                <button style="visibility:hidden;" name="button" class="btn" id="button_cancel" onclick="handleFormCancel();return false">
+                    <pwm:Display key="Button_Cancel"/>
+                </button>
                 <% } %>
                 <input type="hidden" id="pwmFormID" name="pwmFormID" value="<pwm:FormID/>"/>
             </div>
@@ -61,7 +65,7 @@
 </div>
 <script type="text/javascript">
     PWM_GLOBAL['startupFunctions'].push(function(){
-        PWM_MAIN.getObject('<%=PwmConstants.PARAM_TOKEN%>').focus();
+        getObject('<%=PwmConstants.PARAM_TOKEN%>').focus();
     });
 </script>
 <%@ include file="fragment/footer.jsp" %>

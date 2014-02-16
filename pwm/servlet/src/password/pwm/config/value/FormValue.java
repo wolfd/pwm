@@ -30,7 +30,6 @@ import password.pwm.config.PwmSetting;
 import password.pwm.config.PwmSettingSyntax;
 import password.pwm.config.StoredValue;
 import password.pwm.error.PwmOperationalException;
-import password.pwm.util.Helper;
 
 import java.util.*;
 
@@ -45,7 +44,7 @@ public class FormValue implements StoredValue {
         if (input == null) {
             return new FormValue(Collections.<FormConfiguration>emptyList());
         } else {
-            final Gson gson = Helper.getGson();
+            final Gson gson = new Gson();
             List<FormConfiguration> srcList = gson.fromJson(input, new TypeToken<List<FormConfiguration>>() {
             }.getType());
             srcList = srcList == null ? Collections.<FormConfiguration>emptyList() : srcList;
@@ -56,7 +55,7 @@ public class FormValue implements StoredValue {
 
     static FormValue fromXmlElement(Element settingElement) throws PwmOperationalException {
         final boolean oldType = PwmSettingSyntax.LOCALIZED_STRING_ARRAY.toString().equals(settingElement.getAttributeValue("syntax"));
-        final Gson gson = Helper.getGson();
+        final Gson gson = new Gson();
         final List valueElements = settingElement.getChildren("value");
         final List<FormConfiguration> values = new ArrayList<FormConfiguration>();
         for (final Object loopValue : valueElements) {
@@ -75,7 +74,7 @@ public class FormValue implements StoredValue {
 
     public List<Element> toXmlValues(final String valueElementName) {
         final List<Element> returnList = new ArrayList<Element>();
-        final Gson gson = Helper.getGson();
+        final Gson gson = new Gson();
         for (final FormConfiguration value : values) {
             final Element valueElement = new Element(valueElementName);
             valueElement.addContent(gson.toJson(value));
@@ -115,7 +114,7 @@ public class FormValue implements StoredValue {
     }
 
     public String toString() {
-        return Helper.getGson().toJson(values);
+        return new Gson().toJson(values);
     }
 
     public String toDebugString() {

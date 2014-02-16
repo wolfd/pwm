@@ -3,7 +3,7 @@
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@
 <%@ taglib uri="pwm" prefix="pwm" %>
 <html dir="<pwm:LocaleOrientation/>">
 <%@ include file="fragment/header.jsp" %>
-<body class="nihilo">
+<body class="nihilo" onload="pwmPageLoadHandler();">
 <script type="text/javascript" src="<%=request.getContextPath()%><pwm:url url="/public/resources/js/configguide.js"/>"></script>
 <script type="text/javascript" src="<%=request.getContextPath()%><pwm:url url="/public/resources/js/configmanager.js"/>"></script>
 <div id="wrapper">
@@ -47,7 +47,7 @@
         <table style="border:0">
             <tr style="border:0">
                 <td style="border:0" class="menubutton_key">
-                    <a class="menubutton" href="#" onclick="if (PWM_GLOBAL['setting-displayEula']) {PWM_MAIN.showEula(true,function(){gotoStep('TEMPLATE');}); } else {gotoStep('TEMPLATE');};"><pwm:Display key="MenuItem_StartConfigGuide" bundle="Config"/></a>
+                    <a class="menubutton" href="#" onclick="if (PWM_GLOBAL['setting-displayEula']) {showEula(true,function(){gotoStep('TEMPLATE');}); } else {gotoStep('TEMPLATE');};"><pwm:Display key="MenuItem_StartConfigGuide" bundle="Config"/></a>
                 </td>
                 <td style="border:0">
                     <p><pwm:Display key="MenuDisplay_StartConfigGuide" bundle="Config"/></p>
@@ -55,7 +55,7 @@
             </tr>
             <tr style="border:0">
                 <td style="border:0" class="menubutton_key">
-                    <a class="menubutton" href="#" onclick="if (PWM_GLOBAL['setting-displayEula']) {PWM_MAIN.showEula(true,function(){skipWizard();}); } else {skipWizard();}"><pwm:Display key="MenuItem_ManualConfig" bundle="Config"/></a>
+                    <a class="menubutton" href="#" onclick="if (PWM_GLOBAL['setting-displayEula']) {showEula(true,function(){skipWizard();}); } else {skipWizard();}"><pwm:Display key="MenuItem_ManualConfig" bundle="Config"/></a>
                 </td>
                 <td style="border:0">
                     <p><pwm:Display key="MenuDisplay_ManualConfig" bundle="Config"/></p>
@@ -63,7 +63,7 @@
             </tr>
             <tr style="border:0">
                 <td style="border:0" class="menubutton_key">
-                    <a class="menubutton" href="#" onclick="if (PWM_GLOBAL['setting-displayEula']) {PWM_MAIN.showEula(true,function(){PWM_CONFIG.uploadConfigDialog();}); } else {PWM_CONFIG.uploadConfigDialog();};"><pwm:Display key="MenuItem_UploadConfig" bundle="Config"/></a>
+                    <a class="menubutton" href="#" onclick="if (PWM_GLOBAL['setting-displayEula']) {showEula(true,function(){uploadConfigDialog();}); } else {uploadConfigDialog();};"><pwm:Display key="MenuItem_UploadConfig" bundle="Config"/></a>
                 </td>
                 <td style="border:0">
                     <p><pwm:Display key="MenuDisplay_UploadConfig" bundle="Config"/></p>
@@ -75,15 +75,15 @@
 </div>
 <script type="text/javascript">
     function skipWizard() {
-        PWM_MAIN.showConfirmDialog(null,'<pwm:Display key="Confirm_SkipGuide" bundle="Config"/>',function(){
+        showConfirmDialog(null,'<pwm:Display key="Confirm_SkipGuide" bundle="Config"/>',function(){
             gotoStep('FINISH');
         });
     }
+
     PWM_GLOBAL['startupFunctions'].push(function(){
-        PWM_MAIN.preloadResources();
+        getObject('localeSelectionMenu').style.display = 'none';
     });
 </script>
-<% request.setAttribute(PwmConstants.REQUEST_ATTR_SHOW_LOCALE,"false"); %>
 <%@ include file="fragment/footer.jsp" %>
 </body>
 </html>

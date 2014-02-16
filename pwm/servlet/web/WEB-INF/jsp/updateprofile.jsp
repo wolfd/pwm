@@ -3,7 +3,7 @@
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 <%@ taglib uri="pwm" prefix="pwm" %>
 <html dir="<pwm:LocaleOrientation/>">
 <%@ include file="fragment/header.jsp" %>
-<body class="nihilo">
+<body onload="pwmPageLoadHandler();" class="nihilo">
 <div id="wrapper">
     <jsp:include page="fragment/header-body.jsp">
         <jsp:param name="pwm.PageName" value="Title_UpdateProfile"/>
@@ -36,7 +36,7 @@
         <%@ include file="fragment/message.jsp" %>
         <br/>
         <form action="<pwm:url url='UpdateProfile'/>" method="post" name="updateProfile" enctype="application/x-www-form-urlencoded"
-              onsubmit="PWM_MAIN.handleFormSubmit('submitBtn',this);return false"
+              onsubmit="handleFormSubmit('submitBtn',this);return false"
               onchange="validateForm()" onkeyup="validateForm()">
 
             <% request.setAttribute("form",PwmSetting.UPDATE_PROFILE_FORM); %>
@@ -45,9 +45,15 @@
 
             <div id="buttonbar">
                 <input id="submitBtn" type="submit" class="btn" name="button" value="<pwm:Display key="Button_Update"/>"/>
-                <%@ include file="/WEB-INF/jsp/fragment/button-reset.jsp" %>
+                <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_RESET_BUTTON)) { %>
+                <input type="reset" class="btn" name="reset" value="<pwm:Display key="Button_Reset"/>"/>
+                <% } %>
                 <input type="hidden" name="processAction" value="updateProfile"/>
-                <%@ include file="/WEB-INF/jsp/fragment/button-cancel.jsp" %>
+                <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_CANCEL_BUTTON)) { %>
+                <button style="visibility:hidden;" name="button" class="btn" id="button_cancel" onclick="handleFormCancel();return false">
+                    <pwm:Display key="Button_Cancel"/>
+                </button>
+                <% } %>
                 <input type="hidden" name="pwmFormID" value="<pwm:FormID/>"/>
             </div>
         </form>
@@ -70,15 +76,15 @@
         };
         validationProps['processResultsFunction'] = function(data){
             if (data["success"] == "true") {
-                PWM_MAIN.getObject("submitBtn").disabled = false;
-                PWM_MAIN.showSuccess(data["message"]);
+                getObject("submitBtn").disabled = false;
+                showSuccess(data["message"]);
             } else {
-                PWM_MAIN.getObject("submitBtn").disabled = true;
-                PWM_MAIN.showError(data['message']);
+                getObject("submitBtn").disabled = true;
+                showError(data['message']);
             }
         };
 
-        PWM_MAIN.pwmFormValidator(validationProps);
+        pwmFormValidator(validationProps);
     }
 
     PWM_GLOBAL['startupFunctions'].push(function(){

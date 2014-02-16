@@ -6,7 +6,7 @@
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -32,11 +32,10 @@
 <%@ taglib uri="pwm" prefix="pwm" %>
 <html dir="<pwm:LocaleOrientation/>">
 <%@ include file="fragment/header.jsp" %>
-<body class="nihilo">
+<body class="nihilo" onload="pwmPageLoadHandler();">
 <link href="<%=request.getContextPath()%><pwm:url url='/public/resources/configStyle.css'/>" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="<%=request.getContextPath()%><pwm:url url="/public/resources/js/configguide.js"/>"></script>
 <script type="text/javascript" src="<%=request.getContextPath()%><pwm:url url="/public/resources/js/configeditor.js"/>"></script>
-<script type="text/javascript" src="<%=request.getContextPath()%><pwm:url url="/public/resources/js/admin.js"/>"></script>
 <div id="wrapper">
     <div id="header">
         <div id="header-company-logo"></div>
@@ -77,9 +76,6 @@
                                         onKeyUp: function() {
                                             handleFormActivity();
                                         },
-                                        onChange: function() {
-                                            handleFormActivity();
-                                        },
                                         value: '<%=configGuideBean.getFormData().get(ConfigGuideServlet.PARAM_LDAP2_TEST_USER)%>'
                                     }, "<%=ConfigGuideServlet.PARAM_LDAP2_TEST_USER%>");
                                 });
@@ -99,7 +95,7 @@
         <div id="buttonbar">
             <button class="btn" id="button_previous" onclick="gotoStep('LDAP2');"><pwm:Display key="Button_Previous" bundle="Config"/></button>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            <button class="btn" id="button_next" onclick="gotoStep('CR_STORAGE');"><pwm:Display key="Button_Next"  bundle="Config"/></button>
+            <button class="btn" id="button_next" onclick="gotoStep('PASSWORD');"><pwm:Display key="Button_Next"  bundle="Config"/></button>
         </div>
     </div>
     <div class="push"></div>
@@ -112,7 +108,7 @@
     }
 
     function clearHealthDiv() {
-        var healthBodyObj = PWM_MAIN.getObject('healthBody');
+        var healthBodyObj = getObject('healthBody');
         var newHtml = '<div style="text-align: center">';
         newHtml += '<a class="menubutton" style="max-width: 100px; margin-left: auto; margin-right: auto">Check Settings</a>';
         newHtml += '</div>';
@@ -120,15 +116,16 @@
     }
 
     PWM_GLOBAL['startupFunctions'].push(function(){
+        getObject('localeSelectionMenu').style.display = 'none';
         checkIfNextEnabled();
     });
 
     function checkIfNextEnabled() {
-        var fieldValue = PWM_MAIN.getObject('<%=ConfigGuideServlet.PARAM_LDAP2_TEST_USER%>').value;
-        PWM_MAIN.getObject('button_next').disabled = false;
+        var fieldValue = getObject('<%=ConfigGuideServlet.PARAM_LDAP2_TEST_USER%>').value;
+        getObject('button_next').disabled = false;
         if (fieldValue.length && fieldValue.length > 0) {
             if (PWM_GLOBAL['pwm-health'] !== 'GOOD' && PWM_GLOBAL['pwm-health'] !== 'CONFIG') {
-                PWM_MAIN.getObject('button_next').disabled = true;
+                getObject('button_next').disabled = true;
             }
         }
     }
@@ -139,14 +136,13 @@
         options['showRefresh'] = false;
         options['refreshTime'] = -1;
         options['finishFunction'] = function(){
-            PWM_MAIN.closeWaitDialog();
+            closeWaitDialog();
             checkIfNextEnabled();
         };
-        PWM_MAIN.showWaitDialog();
-        PWM_MAIN.showAppHealth('healthBody', options);
+        showWaitDialog();
+        showPwmHealth('healthBody', options);
     }
 </script>
-<% request.setAttribute(PwmConstants.REQUEST_ATTR_SHOW_LOCALE,"false"); %>
 <%@ include file="fragment/footer.jsp" %>
 </body>
 </html>

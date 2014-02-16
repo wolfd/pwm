@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,7 +22,9 @@
 
 package password.pwm.servlet;
 
+import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.novell.ldapchai.ChaiFactory;
 import com.novell.ldapchai.ChaiUser;
 import com.novell.ldapchai.exception.ChaiException;
 import com.novell.ldapchai.exception.ChaiOperationException;
@@ -31,9 +33,8 @@ import com.novell.ldapchai.provider.ChaiProvider;
 import password.pwm.*;
 import password.pwm.bean.EmailItemBean;
 import password.pwm.bean.SessionStateBean;
-import password.pwm.bean.UserIdentity;
-import password.pwm.bean.UserInfoBean;
 import password.pwm.bean.servlet.UpdateProfileBean;
+import password.pwm.bean.UserInfoBean;
 import password.pwm.config.ActionConfiguration;
 import password.pwm.config.Configuration;
 import password.pwm.config.FormConfiguration;
@@ -41,12 +42,12 @@ import password.pwm.config.PwmSetting;
 import password.pwm.error.*;
 import password.pwm.event.AuditEvent;
 import password.pwm.i18n.Message;
-import password.pwm.ldap.UserDataReader;
-import password.pwm.ldap.UserStatusReader;
 import password.pwm.util.Helper;
 import password.pwm.util.PwmLogger;
 import password.pwm.util.ServletHelper;
 import password.pwm.util.operations.ActionExecutor;
+import password.pwm.util.operations.UserDataReader;
+import password.pwm.util.operations.UserStatusHelper;
 import password.pwm.util.stats.Statistic;
 
 import javax.servlet.ServletException;
@@ -124,6 +125,7 @@ public class UpdateProfileServlet extends TopServlet {
     {
         boolean success = true;
         String userMessage = Message.getLocalizedMessage(pwmSession.getSessionStateBean().getLocale(), Message.SUCCESS_UPDATE_FORM, pwmApplication.getConfig());
+        final Locale userLocale = pwmSession.getSessionStateBean().getLocale();
         final Map<FormConfiguration, String> formValues = updateProfileBean.getFormData();
 
         try {
@@ -142,14 +144,14 @@ public class UpdateProfileServlet extends TopServlet {
         } catch (PwmOperationalException e) {
             success = false;
             userMessage = e.getErrorInformation().toUserStr(pwmSession, pwmApplication);
-        }
+	}
 
         final Map<String, String> outputMap = new HashMap<String, String>();
         outputMap.put("version", "1");
         outputMap.put("message", userMessage);
         outputMap.put("success", String.valueOf(success));
 
-        final String output = Helper.getGson().toJson(outputMap);
+        final String output = new Gson().toJson(outputMap);
 
         resp.setContentType("text/plain;charset=utf-8");
         resp.getWriter().print(output);
@@ -173,8 +175,8 @@ public class UpdateProfileServlet extends TopServlet {
     )
             throws IOException, ServletException, PwmUnrecoverableException, ChaiUnavailableException
     {
-        final String newUserAgreementText = pwmApplication.getConfig().readSettingAsLocalizedString(
-                PwmSetting.UPDATE_PROFILE_AGREEMENT_MESSAGE, pwmSession.getSessionStateBean().getLocale());
+        final String newUserAgreementText = pwmApplication.getConfig().readSettingAsLocalizedString(PwmSetting.UPDATE_PROFILE_AGREEMENT_MESSAGE, pwmSession.getSessionStateBean().getLocale());
+        final Locale userLocale = pwmSession.getSessionStateBean().getLocale();
         final Map<FormConfiguration, String> formValues = updateProfileBean.getFormData();
 
         if (newUserAgreementText != null && newUserAgreementText.length() > 0) {
@@ -187,7 +189,7 @@ public class UpdateProfileServlet extends TopServlet {
         if (!updateProfileBean.isFormSubmitted()) {
             final Map<FormConfiguration,String> formMap = updateProfileBean.getFormData();
             final List<FormConfiguration> formFields = pwmApplication.getConfig().readSettingAsForm(PwmSetting.UPDATE_PROFILE_FORM);
-            populateFormFromLdap(formFields, pwmSession, formMap, pwmSession.getSessionManager().getUserDataReader(pwmApplication));
+            populateFormFromLdap(formFields, pwmSession, formMap, pwmSession.getSessionManager().getUserDataReader());
             forwardToJSP(req,resp);
             return;
         }
@@ -225,9 +227,7 @@ public class UpdateProfileServlet extends TopServlet {
         }
 
         try {
-            // write the form values
-            final ChaiUser theUser = pwmSession.getSessionManager().getActor(pwmApplication);
-            doProfileUpdate(pwmApplication, pwmSession, formValues, theUser);
+            doProfileUpdate(pwmApplication, pwmSession, formValues);
             pwmSession.getSessionStateBean().setSessionSuccess(Message.SUCCESS_UPDATE_ATTRIBUTES, null);
             ServletHelper.forwardToSuccessPage(req, resp);
             return;
@@ -250,7 +250,7 @@ public class UpdateProfileServlet extends TopServlet {
             final Map<FormConfiguration, String> formMap,
             final UserDataReader userDataReader
     )
-            throws PwmUnrecoverableException, ChaiUnavailableException
+            throws PwmUnrecoverableException, ChaiUnavailableException, IOException, ServletException
     {
         final Map<String,String> userData = new LinkedHashMap<String,String>();
         try {
@@ -298,7 +298,7 @@ public class UpdateProfileServlet extends TopServlet {
         final Map<FormConfiguration,String> existingForm = updateProfileBean.getFormData();
 
         final String bodyString = ServletHelper.readRequestBody(req);
-        final Map<String, String> clientValues = Helper.getGson().fromJson(bodyString, new TypeToken<Map<String, String>>() {
+        final Map<String, String> clientValues = new Gson().fromJson(bodyString, new TypeToken<Map<String, String>>() {
         }.getType());
 
         if (clientValues != null) {
@@ -329,10 +329,9 @@ public class UpdateProfileServlet extends TopServlet {
     public static void doProfileUpdate(
             final PwmApplication pwmApplication,
             final PwmSession pwmSession,
-            final Map<FormConfiguration, String> formValues,
-            final ChaiUser theUser
+            final Map<FormConfiguration, String> formValues
     )
-            throws PwmUnrecoverableException, ChaiUnavailableException, PwmOperationalException
+            throws PwmUnrecoverableException, ChaiUnavailableException, IOException, ServletException, PwmOperationalException
     {
         final UserInfoBean uiBean = pwmSession.getUserInfoBean();
         final Locale userLocale = pwmSession.getSessionStateBean().getLocale();
@@ -345,43 +344,36 @@ public class UpdateProfileServlet extends TopServlet {
         );
 
         // write values.
-        LOGGER.info("updating profile for " + pwmSession.getUserInfoBean().getUserIdentity());
+        LOGGER.info("updating profile for " + pwmSession.getUserInfoBean().getUserDN());
 
-        pwmSession.getSessionManager().getChaiProvider(pwmApplication);
-
-        Helper.writeFormValuesToLdap(pwmApplication, pwmSession, theUser, formValues, false);
+        // write the form values
+        final ChaiProvider provider = pwmSession.getSessionManager().getChaiProvider();
+        final ChaiUser actor = ChaiFactory.createChaiUser(pwmSession.getUserInfoBean().getUserDN(), provider);
+        Helper.writeFormValuesToLdap(pwmApplication, pwmSession, actor, formValues, false);
 
         // re-populate the uiBean because we have changed some values.
-        final UserStatusReader userStatusReader = new UserStatusReader(pwmApplication);
-        userStatusReader.populateActorUserInfoBean(pwmSession, uiBean.getUserIdentity(), uiBean.getUserCurrentPassword());
+        UserStatusHelper.populateActorUserInfoBean(pwmSession, pwmApplication, uiBean.getUserDN(), uiBean.getUserCurrentPassword());
 
         // clear cached read attributes.
         pwmSession.getSessionManager().clearUserDataReader();
 
         {  // execute configured actions
-            final ChaiUser proxiedUser = pwmApplication.getProxiedChaiUser(
-                    new UserIdentity(
-                            theUser.getEntryDN(),
-                            pwmSession.getUserInfoBean().getUserIdentity().getLdapProfileID()
-                    ));
+            final ChaiUser proxiedUser = ChaiFactory.createChaiUser(actor.getEntryDN(), pwmApplication.getProxyChaiProvider());
             LOGGER.debug(pwmSession, "executing configured actions to user " + proxiedUser.getEntryDN());
             final List<ActionConfiguration> configValues = pwmApplication.getConfig().readSettingAsAction(PwmSetting.UPDATE_PROFILE_WRITE_ATTRIBUTES);
             final ActionExecutor.ActionExecutorSettings settings = new ActionExecutor.ActionExecutorSettings();
             settings.setExpandPwmMacros(true);
             settings.setUserInfoBean(pwmSession.getUserInfoBean());
+            settings.setUser(proxiedUser);
             final ActionExecutor actionExecutor = new ActionExecutor(pwmApplication);
             actionExecutor.executeActions(configValues, settings, pwmSession);
         }
 
         // send email
-        final UserDataReader userDataReader = UserDataReader.appProxiedReader(pwmApplication, new UserIdentity(
-                pwmSession.getUserInfoBean().getUserIdentity().getUserDN(),
-                pwmSession.getUserInfoBean().getUserIdentity().getLdapProfileID()
-        ));
-        sendProfileUpdateEmailNotice(userDataReader,pwmSession,pwmApplication);
+        sendProfileUpdateEmailNotice(new UserDataReader(pwmSession.getSessionManager().getProxiedActor()), pwmSession, pwmApplication);
 
         // mark the event log
-        pwmApplication.getAuditManager().submit(AuditEvent.UPDATE_PROFILE, pwmSession.getUserInfoBean(), pwmSession);
+        pwmApplication.getAuditManager().submitAuditRecord(AuditEvent.UPDATE_PROFILE, pwmSession.getUserInfoBean(), pwmSession);
 
         // mark the uiBean so we user isn't recycled to the update profile page by the CommandServlet
         uiBean.setRequiresUpdateProfile(false);
@@ -403,7 +395,7 @@ public class UpdateProfileServlet extends TopServlet {
         final Locale userLocale = pwmSession.getSessionStateBean().getLocale();
 
         //read current values from user.
-        final ChaiProvider provider = pwmSession.getSessionManager().getChaiProvider(pwmApplication);
+        final ChaiProvider provider = pwmSession.getSessionManager().getChaiProvider();
 
         // see if the values meet form requirements.
         Validator.validateParmValuesMeetRequirements(formValues, userLocale);
@@ -412,10 +404,11 @@ public class UpdateProfileServlet extends TopServlet {
         try {
             Validator.validateAttributeUniqueness(
                     pwmApplication,
+                    pwmApplication.getProxyChaiProvider(),
                     formValues,
                     userLocale,
                     pwmSession.getSessionManager(),
-                    Collections.singletonList(pwmSession.getUserInfoBean().getUserIdentity())
+                    Collections.singletonList(pwmSession.getUserInfoBean().getUserDN())
             );
         } catch (ChaiOperationException e) {
             final String userMessage = "unexpected ldap error checking attributes value uniqueness: " + e.getMessage();
@@ -459,12 +452,19 @@ public class UpdateProfileServlet extends TopServlet {
         final Locale locale = pwmSession.getSessionStateBean().getLocale();
         final EmailItemBean configuredEmailSetting = config.readSettingAsEmail(PwmSetting.EMAIL_UPDATEPROFILE, locale);
 
-        if (configuredEmailSetting == null) {
-            LOGGER.debug(pwmSession, "skipping send profile update email for '" + pwmSession.getUserInfoBean().getUserIdentity() + "' no email configured");
+        final String toAddress = pwmSession.getUserInfoBean().getUserEmailAddress();
+        if (toAddress == null || toAddress.length() < 1) {
+            LOGGER.debug(pwmSession, "unable to send profile update email for '" + pwmSession.getUserInfoBean().getUserDN() + "' no ' user email address available");
             return;
         }
 
-        pwmApplication.getEmailQueue().submit(configuredEmailSetting, pwmSession.getUserInfoBean(), userDataReader);
+        pwmApplication.sendEmailUsingQueue(new EmailItemBean(
+                toAddress,
+                configuredEmailSetting.getFrom(),
+                configuredEmailSetting.getSubject(),
+                configuredEmailSetting.getBodyPlain(),
+                configuredEmailSetting.getBodyHtml()
+        ), pwmSession.getUserInfoBean(),userDataReader);
     }
 
 }

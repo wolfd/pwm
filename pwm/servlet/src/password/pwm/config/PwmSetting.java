@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,11 +34,6 @@ import password.pwm.config.value.ValueFactory;
 import password.pwm.error.PwmOperationalException;
 import password.pwm.util.PwmLogger;
 
-import javax.xml.XMLConstants;
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Schema;
-import javax.xml.validation.SchemaFactory;
-import javax.xml.validation.Validator;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
@@ -52,7 +47,7 @@ import java.util.regex.PatternSyntaxException;
  * @author Jason D. Rivard
  */
 public enum PwmSetting {
-    // application settings
+    // general settings
     PWM_URL(
             "pwm.selfURL", PwmSettingSyntax.STRING, Category.GENERAL),
     VERSION_CHECK_ENABLE(
@@ -73,23 +68,6 @@ public enum PwmSetting {
             "display.hideConfigHealthWarnings", PwmSettingSyntax.BOOLEAN, Category.GENERAL),
     KNOWN_LOCALES(
             "knownLocales", PwmSettingSyntax.STRING_ARRAY, Category.GENERAL),
-    PWMDB_LOCATION(
-            "pwmDb.location", PwmSettingSyntax.STRING, Category.GENERAL),
-    WORDLIST_FILENAME(
-            "pwm.wordlist.location", PwmSettingSyntax.STRING, Category.GENERAL),
-    PASSWORD_SHAREDHISTORY_ENABLE(
-            "password.sharedHistory.enable", PwmSettingSyntax.BOOLEAN, Category.GENERAL),
-    PASSWORD_SHAREDHISTORY_MAX_AGE(
-            "password.sharedHistory.age", PwmSettingSyntax.NUMERIC, Category.GENERAL),
-    WORDLIST_CASE_SENSITIVE(
-            "wordlistCaseSensitive", PwmSettingSyntax.BOOLEAN, Category.GENERAL),
-    PASSWORD_WORDLIST_WORDSIZE(
-            "password.wordlist.wordSize", PwmSettingSyntax.NUMERIC, Category.GENERAL),
-    PASSWORD_POLICY_SOURCE(
-            "password.policy.source", PwmSettingSyntax.SELECT, Category.GENERAL),
-    PASSWORD_POLICY_CASE_SENSITIVITY(
-            "password.policy.caseSensitivity", PwmSettingSyntax.SELECT, Category.GENERAL),
-
 
     // user interface
     INTERFACE_THEME(
@@ -98,6 +76,8 @@ public enum PwmSetting {
             "password.showAutoGen", PwmSettingSyntax.BOOLEAN, Category.USER_INTERFACE),
     PASSWORD_SHOW_STRENGTH_METER(
             "password.showStrengthMeter", PwmSettingSyntax.BOOLEAN, Category.USER_INTERFACE),
+    DISPLAY_PASSWORD_GUIDE_TEXT(
+            "display.password.guideText", PwmSettingSyntax.LOCALIZED_TEXT_AREA, Category.USER_INTERFACE),
     DISPLAY_SHOW_HIDE_PASSWORD_FIELDS(
             "display.showHidePasswordFields", PwmSettingSyntax.BOOLEAN, Category.USER_INTERFACE),
     DISPLAY_CANCEL_BUTTON(
@@ -128,10 +108,12 @@ public enum PwmSetting {
             "display.css.customMobileStyle", PwmSettingSyntax.TEXT_AREA, Category.USER_INTERFACE),
     DISPLAY_CUSTOM_JAVASCRIPT(
             "display.js.custom", PwmSettingSyntax.TEXT_AREA, Category.USER_INTERFACE),
+    DISPLAY_CUSTOM_LOGO_IMAGE(
+            "display.custom.logoImage", PwmSettingSyntax.STRING, Category.USER_INTERFACE),
 
     // change password
     QUERY_MATCH_CHANGE_PASSWORD(
-            "password.allowChange.queryMatch", PwmSettingSyntax.USER_PERMISSION, Category.CHANGE_PASSWORD),
+            "password.allowChange.queryMatch", PwmSettingSyntax.STRING, Category.CHANGE_PASSWORD),
     LOGOUT_AFTER_PASSWORD_CHANGE(
             "logoutAfterPasswordChange", PwmSettingSyntax.BOOLEAN, Category.CHANGE_PASSWORD),
     PASSWORD_REQUIRE_FORM(
@@ -140,12 +122,6 @@ public enum PwmSetting {
             "password.change.requireCurrent", PwmSettingSyntax.SELECT, Category.CHANGE_PASSWORD),
     PASSWORD_CHANGE_AGREEMENT_MESSAGE(
             "display.password.changeAgreement", PwmSettingSyntax.LOCALIZED_TEXT_AREA, Category.CHANGE_PASSWORD),
-    PASSWORD_COMPLETE_MESSAGE(
-            "display.password.completeMessage", PwmSettingSyntax.LOCALIZED_TEXT_AREA, Category.CHANGE_PASSWORD),
-    DISPLAY_PASSWORD_GUIDE_TEXT(
-            "display.password.guideText", PwmSettingSyntax.LOCALIZED_TEXT_AREA, Category.CHANGE_PASSWORD),
-    PASSWORD_SYNC_ENABLE_REPLICA_CHECK(
-            "passwordSync.enableReplicaCheck", PwmSettingSyntax.SELECT, Category.CHANGE_PASSWORD),
     PASSWORD_SYNC_MIN_WAIT_TIME(
             "passwordSyncMinWaitTime", PwmSettingSyntax.NUMERIC, Category.CHANGE_PASSWORD),
     PASSWORD_SYNC_MAX_WAIT_TIME(
@@ -161,68 +137,53 @@ public enum PwmSetting {
     CHANGE_PASSWORD_WRITE_ATTRIBUTES(
             "changePassword.writeAttributes", PwmSettingSyntax.ACTION, Category.CHANGE_PASSWORD),
 
-    //ldap directories
+    //ldap directory
     LDAP_SERVER_URLS(
-            "ldap.serverUrls", PwmSettingSyntax.STRING_ARRAY, Category.LDAP_PROFILE),
+            "ldap.serverUrls", PwmSettingSyntax.STRING_ARRAY, Category.LDAP),
     LDAP_SERVER_CERTS(
-            "ldap.serverCerts", PwmSettingSyntax.X509CERT, Category.LDAP_PROFILE),
+            "ldap.serverCerts", PwmSettingSyntax.X509CERT, Category.LDAP),
+    LDAP_PROMISCUOUS_SSL(
+            "ldap.promiscuousSSL", PwmSettingSyntax.BOOLEAN, Category.LDAP),
     LDAP_PROXY_USER_DN(
-            "ldap.proxy.username", PwmSettingSyntax.STRING, Category.LDAP_PROFILE),
+            "ldap.proxy.username", PwmSettingSyntax.STRING, Category.LDAP),
     LDAP_PROXY_USER_PASSWORD(
-            "ldap.proxy.password", PwmSettingSyntax.PASSWORD, Category.LDAP_PROFILE),
+            "ldap.proxy.password", PwmSettingSyntax.PASSWORD, Category.LDAP),
     LDAP_CONTEXTLESS_ROOT(
-            "ldap.rootContexts", PwmSettingSyntax.STRING_ARRAY, Category.LDAP_PROFILE),
-    LDAP_TEST_USER_DN(
-            "ldap.testuser.username", PwmSettingSyntax.STRING, Category.LDAP_PROFILE),
-    AUTO_ADD_OBJECT_CLASSES(
-            "ldap.addObjectClasses", PwmSettingSyntax.STRING_ARRAY, Category.LDAP_PROFILE),
-    LDAP_CHAI_SETTINGS(
-            "ldapChaiSettings", PwmSettingSyntax.STRING_ARRAY, Category.LDAP_PROFILE),
-    LDAP_USERNAME_SEARCH_FILTER(
-            "ldap.usernameSearchFilter", PwmSettingSyntax.STRING, Category.LDAP_PROFILE),
-    LDAP_USERNAME_ATTRIBUTE(
-            "ldap.username.attr", PwmSettingSyntax.STRING, Category.LDAP_PROFILE),
-    LDAP_GUID_AUTO_ADD(
-            "ldap.guid.autoAddValue", PwmSettingSyntax.BOOLEAN, Category.LDAP_PROFILE),
-    LDAP_GUID_ATTRIBUTE(
-            "ldap.guidAttribute", PwmSettingSyntax.STRING, Category.LDAP_PROFILE),
+            "ldap.rootContexts", PwmSettingSyntax.STRING_ARRAY, Category.LDAP),
     LDAP_LOGIN_CONTEXTS(
-            "ldap.selectableContexts", PwmSettingSyntax.STRING_ARRAY, Category.LDAP_PROFILE),
-    LDAP_PROFILE_DISPLAY_NAME(
-            "ldap.profile.displayName", PwmSettingSyntax.LOCALIZED_STRING, Category.LDAP_PROFILE),
-    LDAP_PROFILE_ENABLED(
-            "ldap.profile.enabled", PwmSettingSyntax.BOOLEAN, Category.LDAP_PROFILE),
-
-
-
-    // ldap global settings
-    LDAP_PROFILE_LIST(
-            "ldap.profile.list", PwmSettingSyntax.PROFILE, Category.GENERAL),
-    LDAP_NAMING_ATTRIBUTE(
-            "ldap.namingAttribute", PwmSettingSyntax.STRING, Category.LDAP_GLOBAL),
-    PASSWORD_LAST_UPDATE_ATTRIBUTE(
-            "passwordLastUpdateAttribute", PwmSettingSyntax.STRING, Category.LDAP_GLOBAL),
-    LDAP_IDLE_TIMEOUT(
-            "ldap.idleTimeout", PwmSettingSyntax.NUMERIC, Category.LDAP_GLOBAL),
-    DEFAULT_OBJECT_CLASSES(
-            "ldap.defaultObjectClasses", PwmSettingSyntax.STRING_ARRAY, Category.LDAP_GLOBAL),
-    LDAP_FOLLOW_REFERRALS(
-            "ldap.followReferrals", PwmSettingSyntax.BOOLEAN, Category.LDAP_GLOBAL),
+            "ldap.selectableContexts", PwmSettingSyntax.STRING_ARRAY, Category.LDAP),
+    LDAP_TEST_USER_DN(
+            "ldap.testuser.username", PwmSettingSyntax.STRING, Category.LDAP),
     QUERY_MATCH_PWM_ADMIN(
-            "pwmAdmin.queryMatch", PwmSettingSyntax.USER_PERMISSION, Category.LDAP_GLOBAL),
-    LDAP_DUPLICATE_MODE(
-            "ldap.duplicateMode", PwmSettingSyntax.SELECT, Category.LDAP_GLOBAL),
-    LDAP_SELECTABLE_CONTEXT_MODE(
-            "ldap.selectableContextMode", PwmSettingSyntax.SELECT, Category.LDAP_GLOBAL),
-    LDAP_IGNORE_UNREACHABLE_PROFILES(
-            "ldap.ignoreUnreachableProfiles", PwmSettingSyntax.BOOLEAN, Category.LDAP_GLOBAL),
-
+            "pwmAdmin.queryMatch", PwmSettingSyntax.STRING, Category.LDAP),
+    LDAP_USERNAME_SEARCH_FILTER(
+            "ldap.usernameSearchFilter", PwmSettingSyntax.STRING, Category.LDAP),
+    LDAP_READ_PASSWORD_POLICY(
+            "ldap.readPasswordPolicies", PwmSettingSyntax.BOOLEAN, Category.LDAP),
+    AUTO_ADD_OBJECT_CLASSES(
+            "ldap.addObjectClasses", PwmSettingSyntax.STRING_ARRAY, Category.LDAP),
+    PASSWORD_LAST_UPDATE_ATTRIBUTE(
+            "passwordLastUpdateAttribute", PwmSettingSyntax.STRING, Category.LDAP),
+    LDAP_NAMING_ATTRIBUTE(
+            "ldap.namingAttribute", PwmSettingSyntax.STRING, Category.LDAP),
+    LDAP_IDLE_TIMEOUT(
+            "ldap.idleTimeout", PwmSettingSyntax.NUMERIC, Category.LDAP),
+    LDAP_GUID_ATTRIBUTE(
+            "ldap.guidAttribute", PwmSettingSyntax.STRING, Category.LDAP),
+    LDAP_GUID_AUTO_ADD(
+            "ldap.guid.autoAddValue", PwmSettingSyntax.BOOLEAN, Category.LDAP),
+    LDAP_CHAI_SETTINGS(
+            "ldapChaiSettings", PwmSettingSyntax.STRING_ARRAY, Category.LDAP),
+    LDAP_USERNAME_ATTRIBUTE(
+            "ldap.username.attr", PwmSettingSyntax.STRING, Category.LDAP),
+    LDAP_FOLLOW_REFERRALS(
+            "ldap.followReferrals", PwmSettingSyntax.BOOLEAN, Category.LDAP),
+    DEFAULT_OBJECT_CLASSES(
+            "ldap.defaultObjectClasses", PwmSettingSyntax.STRING_ARRAY, Category.LDAP),
 
     // email settings
     EMAIL_SERVER_ADDRESS(
             "email.smtp.address", PwmSettingSyntax.STRING, Category.EMAIL),
-    EMAIL_SERVER_PORT(
-            "email.smtp.port", PwmSettingSyntax.NUMERIC, Category.EMAIL),
     EMAIL_USERNAME(
             "email.smtp.username", PwmSettingSyntax.STRING, Category.EMAIL),
     EMAIL_PASSWORD(
@@ -231,6 +192,10 @@ public enum PwmSetting {
             "email.userMailAttribute", PwmSettingSyntax.STRING, Category.EMAIL),
     EMAIL_MAX_QUEUE_AGE(
             "email.queueMaxAge", PwmSettingSyntax.NUMERIC, Category.EMAIL),
+    EMAIL_ADMIN_ALERT_TO(
+            "email.adminAlert.toAddress", PwmSettingSyntax.STRING_ARRAY, Category.EMAIL),
+    EMAIL_ADMIN_ALERT_FROM(
+            "email.adminAlert.fromAddress", PwmSettingSyntax.STRING, Category.EMAIL),
     EMAIL_CHANGEPASSWORD(
             "email.changePassword", PwmSettingSyntax.EMAIL, Category.EMAIL),
     EMAIL_CHANGEPASSWORD_HELPDESK(
@@ -253,8 +218,6 @@ public enum PwmSetting {
             "email.updateguest", PwmSettingSyntax.EMAIL, Category.EMAIL),
     EMAIL_SENDPASSWORD(
             "email.sendpassword", PwmSettingSyntax.EMAIL, Category.EMAIL),
-    EMAIL_INTRUDERNOTICE(
-            "email.intruderNotice", PwmSettingSyntax.EMAIL, Category.EMAIL),
     EMAIL_ADVANCED_SETTINGS(
             "email.smtp.advancedSettings", PwmSettingSyntax.STRING_ARRAY, Category.EMAIL),
 
@@ -309,10 +272,8 @@ public enum PwmSetting {
             "sms.useUrlShortener", PwmSettingSyntax.BOOLEAN, Category.SMS),
 
     //global password policy settings
-    PASSWORD_PROFILE_LIST(
-            "password.profile.list", PwmSettingSyntax.PROFILE, Category.GENERAL),
-    PASSWORD_POLICY_QUERY_MATCH(
-            "password.policy.queryMatch", PwmSettingSyntax.USER_PERMISSION, Category.PASSWORD_POLICY),
+    PASSWORD_POLICY_SOURCE(
+            "password.policy.source", PwmSettingSyntax.SELECT, Category.PASSWORD_POLICY),
     PASSWORD_POLICY_MINIMUM_LENGTH(
             "password.policy.minimumLength", PwmSettingSyntax.NUMERIC, Category.PASSWORD_POLICY),
     PASSWORD_POLICY_MAXIMUM_LENGTH(
@@ -363,6 +324,8 @@ public enum PwmSetting {
             "password.policy.maximumOldPasswordChars", PwmSettingSyntax.NUMERIC, Category.PASSWORD_POLICY),
     PASSWORD_POLICY_MINIMUM_LIFETIME(
             "password.policy.minimumLifetime", PwmSettingSyntax.NUMERIC, Category.PASSWORD_POLICY),
+    PASSWORD_POLICY_CASE_SENSITIVITY(
+            "password.policy.caseSensitivity", PwmSettingSyntax.SELECT, Category.PASSWORD_POLICY),
     PASSWORD_POLICY_ENABLE_WORDLIST(
             "password.policy.checkWordlist", PwmSettingSyntax.BOOLEAN, Category.PASSWORD_POLICY),
     PASSWORD_POLICY_AD_COMPLEXITY(
@@ -375,12 +338,22 @@ public enum PwmSetting {
             "password.policy.disallowedValues", PwmSettingSyntax.STRING_ARRAY, Category.PASSWORD_POLICY),
     PASSWORD_POLICY_DISALLOWED_ATTRIBUTES(
             "password.policy.disallowedAttributes", PwmSettingSyntax.STRING_ARRAY, Category.PASSWORD_POLICY),
+    PASSWORD_SHAREDHISTORY_ENABLE(
+            "password.sharedHistory.enable", PwmSettingSyntax.BOOLEAN, Category.PASSWORD_POLICY),
+    PASSWORD_SHAREDHISTORY_MAX_AGE(
+            "password.sharedHistory.age", PwmSettingSyntax.NUMERIC, Category.PASSWORD_POLICY),
     PASSWORD_POLICY_MINIMUM_STRENGTH(
             "password.policy.minimumStrength", PwmSettingSyntax.NUMERIC, Category.PASSWORD_POLICY),
     PASSWORD_POLICY_CHANGE_MESSAGE(
             "password.policy.changeMessage", PwmSettingSyntax.LOCALIZED_TEXT_AREA, Category.PASSWORD_POLICY),
     PASSWORD_POLICY_RULE_TEXT(
             "password.policy.ruleText", PwmSettingSyntax.LOCALIZED_TEXT_AREA, Category.PASSWORD_POLICY),
+    WORDLIST_FILENAME(
+            "pwm.wordlist.location", PwmSettingSyntax.STRING, Category.PASSWORD_POLICY),
+    WORDLIST_CASE_SENSITIVE(
+            "wordlistCaseSensitive", PwmSettingSyntax.BOOLEAN, Category.PASSWORD_POLICY),
+    PASSWORD_WORDLIST_WORDSIZE(
+            "password.wordlist.wordSize", PwmSettingSyntax.NUMERIC, Category.PASSWORD_POLICY),
     PASSWORD_POLICY_DISALLOW_CURRENT(
             "password.policy.disallowCurrent", PwmSettingSyntax.BOOLEAN, Category.PASSWORD_POLICY),
 
@@ -388,6 +361,20 @@ public enum PwmSetting {
     // security settings
     PWM_SECURITY_KEY(
             "pwm.securityKey", PwmSettingSyntax.PASSWORD, Category.SECURITY),
+    INTRUDER_USER_RESET_TIME(
+            "intruder.user.resetTime", PwmSettingSyntax.NUMERIC, Category.SECURITY),
+    INTRUDER_USER_MAX_ATTEMPTS(
+            "intruder.user.maxAttempts", PwmSettingSyntax.NUMERIC, Category.SECURITY),
+    INTRUDER_USER_CHECK_TIME(
+            "intruder.user.checkTime", PwmSettingSyntax.NUMERIC, Category.SECURITY),
+    INTRUDER_ADDRESS_RESET_TIME(
+            "intruder.address.resetTime", PwmSettingSyntax.NUMERIC, Category.SECURITY),
+    INTRUDER_ADDRESS_MAX_ATTEMPTS(
+            "intruder.address.maxAttempts", PwmSettingSyntax.NUMERIC, Category.SECURITY),
+    INTRUDER_ADDRESS_CHECK_TIME(
+            "intruder.address.checkTime", PwmSettingSyntax.NUMERIC, Category.SECURITY),
+    SECURITY_SIMULATE_LDAP_BAD_PASSWORD(
+            "security.ldap.simulateBadPassword", PwmSettingSyntax.BOOLEAN, Category.SECURITY),
     RECAPTCHA_KEY_PUBLIC(
             "captcha.recaptcha.publicKey", PwmSettingSyntax.STRING, Category.SECURITY),
     RECAPTCHA_KEY_PRIVATE(
@@ -403,7 +390,7 @@ public enum PwmSetting {
     ALLOW_URL_SESSIONS(
             "allowUrlSessions", PwmSettingSyntax.BOOLEAN, Category.SECURITY),
     ENABLE_SESSION_VERIFICATION(
-            "enableSessionVerification", PwmSettingSyntax.SELECT, Category.SECURITY),
+            "enableSessionVerification", PwmSettingSyntax.BOOLEAN, Category.SECURITY),
     DISALLOWED_HTTP_INPUTS(
             "disallowedInputs", PwmSettingSyntax.STRING_ARRAY, Category.SECURITY),
     REQUIRE_HTTPS(
@@ -429,25 +416,6 @@ public enum PwmSetting {
     SESSION_MAX_SECONDS(
             "session.maxSeconds", PwmSettingSyntax.NUMERIC, Category.SECURITY),
 
-    // intruder detection
-    INTRUDER_USER_RESET_TIME(
-            "intruder.user.resetTime", PwmSettingSyntax.NUMERIC, Category.INTRUDER),
-    INTRUDER_USER_MAX_ATTEMPTS(
-            "intruder.user.maxAttempts", PwmSettingSyntax.NUMERIC, Category.INTRUDER),
-    INTRUDER_USER_CHECK_TIME(
-            "intruder.user.checkTime", PwmSettingSyntax.NUMERIC, Category.INTRUDER),
-    INTRUDER_ADDRESS_RESET_TIME(
-            "intruder.address.resetTime", PwmSettingSyntax.NUMERIC, Category.INTRUDER),
-    INTRUDER_ADDRESS_MAX_ATTEMPTS(
-            "intruder.address.maxAttempts", PwmSettingSyntax.NUMERIC, Category.INTRUDER),
-    INTRUDER_ADDRESS_CHECK_TIME(
-            "intruder.address.checkTime", PwmSettingSyntax.NUMERIC, Category.INTRUDER),
-    INTRUDER_STORAGE_METHOD(
-            "intruder.storageMethod", PwmSettingSyntax.SELECT, Category.INTRUDER),
-    INTRUDER_SESSION_MAX_ATTEMPTS(
-            "intruder.session.maxAttempts", PwmSettingSyntax.NUMERIC, Category.INTRUDER),
-    SECURITY_SIMULATE_LDAP_BAD_PASSWORD(
-            "security.ldap.simulateBadPassword", PwmSettingSyntax.BOOLEAN, Category.INTRUDER),
 
     // token settings
     TOKEN_STORAGEMETHOD(
@@ -460,24 +428,6 @@ public enum PwmSetting {
             "token.lifetime", PwmSettingSyntax.NUMERIC, Category.TOKEN),
     TOKEN_LDAP_ATTRIBUTE(
             "token.ldap.attribute", PwmSettingSyntax.STRING, Category.TOKEN),
-
-    // OTP
-    OTP_ENABLED(
-            "otp.enabled", PwmSettingSyntax.BOOLEAN, Category.OTP),
-    OTP_FORCE_SETUP(
-            "otp.forceSetup", PwmSettingSyntax.BOOLEAN, Category.OTP),
-    OTP_SECRET_READ_PREFERENCE(
-            "otp.secret.readPreference", PwmSettingSyntax.SELECT, Category.OTP),
-    OTP_SECRET_WRITE_PREFERENCE(
-            "otp.secret.writePreference", PwmSettingSyntax.SELECT, Category.OTP),
-    OTP_SECRET_STORAGEFORMAT(
-            "otp.secret.storageFormat", PwmSettingSyntax.SELECT, Category.OTP),
-    OTP_SECRET_ENCRYPT(
-            "otp.secret.encrypt", PwmSettingSyntax.BOOLEAN, Category.OTP),
-    OTP_SECRET_LDAP_ATTRIBUTE(
-            "otp.secret.ldap.attribute", PwmSettingSyntax.STRING, Category.OTP),
-    QUERY_MATCH_OTP_SETUP_RESPONSE(
-            "otp.secret.allowSetup.queryMatch", PwmSettingSyntax.USER_PERMISSION, Category.OTP),
 
     // logger settings
     EVENTS_HEALTH_CHECK_MIN_INTERVAL(
@@ -494,31 +444,43 @@ public enum PwmSetting {
             "events.pwmDB.logLevel", PwmSettingSyntax.SELECT, Category.LOGGING),
     EVENTS_FILE_LEVEL(
             "events.fileAppender.level", PwmSettingSyntax.SELECT, Category.LOGGING),
-    EVENTS_USER_STORAGE_METHOD(
-            "events.user.storageMethod", PwmSettingSyntax.SELECT, Category.LOGGING),
     EVENTS_LDAP_ATTRIBUTE(
             "events.ldap.attribute", PwmSettingSyntax.STRING, Category.LOGGING),
     EVENTS_LDAP_MAX_EVENTS(
             "events.ldap.maxEvents", PwmSettingSyntax.NUMERIC, Category.LOGGING),
     LDAP_ENABLE_WIRE_TRACE(
             "ldap.wireTrace.enable", PwmSettingSyntax.BOOLEAN, Category.LOGGING),
+    EVENTS_ALERT_STARTUP(
+            "events.alert.startup.enable", PwmSettingSyntax.BOOLEAN, Category.LOGGING),
+    EVENTS_ALERT_SHUTDOWN(
+            "events.alert.shutdown.enable", PwmSettingSyntax.BOOLEAN, Category.LOGGING),
+    EVENTS_ALERT_INTRUDER_LOCKOUT(
+            "events.alert.intruder.enable", PwmSettingSyntax.BOOLEAN, Category.LOGGING),
+    EVENTS_ALERT_FATAL_EVENT(
+            "events.alert.fatalEvent.enable", PwmSettingSyntax.BOOLEAN, Category.LOGGING),
+    EVENTS_ALERT_CONFIG_MODIFY(
+            "events.alert.configModify.enable", PwmSettingSyntax.BOOLEAN, Category.LOGGING),
     EVENTS_ALERT_DAILY_SUMMARY(
             "events.alert.dailySummary.enable", PwmSettingSyntax.BOOLEAN, Category.LOGGING),
     EVENTS_AUDIT_MAX_AGE(
             "events.audit.maxAge", PwmSettingSyntax.NUMERIC, Category.LOGGING),
-    AUDIT_EMAIL_SYSTEM_TO(
-            "email.adminAlert.toAddress", PwmSettingSyntax.STRING_ARRAY, Category.LOGGING),
-    AUDIT_EMAIL_USER_TO(
-            "audit.userEvent.toAddress", PwmSettingSyntax.STRING_ARRAY, Category.LOGGING),
     AUDIT_SYSLOG_SERVERS(
-            "audit.syslog.servers", PwmSettingSyntax.STRING, Category.LOGGING),
+            "audit.syslog.servers", PwmSettingSyntax.STRING_ARRAY, Category.LOGGING),
 
 
-    // challenge settings
+    // challenge policy
     CHALLENGE_ENABLE(
             "challenge.enable", PwmSettingSyntax.BOOLEAN, Category.CHALLENGE),
     CHALLENGE_FORCE_SETUP(
             "challenge.forceSetup", PwmSettingSyntax.BOOLEAN, Category.CHALLENGE),
+    CHALLENGE_RANDOM_CHALLENGES(
+            "challenge.randomChallenges", PwmSettingSyntax.LOCALIZED_STRING_ARRAY, Category.CHALLENGE),
+    CHALLENGE_REQUIRED_CHALLENGES(
+            "challenge.requiredChallenges", PwmSettingSyntax.LOCALIZED_STRING_ARRAY, Category.CHALLENGE),
+    CHALLENGE_MIN_RANDOM_REQUIRED(
+            "challenge.minRandomRequired", PwmSettingSyntax.NUMERIC, Category.CHALLENGE),
+    CHALLENGE_MIN_RANDOM_SETUP(
+            "challenge.minRandomsSetup", PwmSettingSyntax.NUMERIC, Category.CHALLENGE),
     CHALLENGE_SHOW_CONFIRMATION(
             "challenge.showConfirmation", PwmSettingSyntax.BOOLEAN, Category.CHALLENGE),
     CHALLENGE_CASE_INSENSITIVE(
@@ -529,32 +491,18 @@ public enum PwmSetting {
             "challenge.allowDuplicateResponses", PwmSettingSyntax.BOOLEAN, Category.CHALLENGE),
     CHALLENGE_APPLY_WORDLIST(
             "challenge.applyWorldlist", PwmSettingSyntax.BOOLEAN, Category.CHALLENGE),
+    CHALLENGE_HELPDESK_RANDOM_CHALLENGES(
+            "challenge.helpdesk.randomChallenges", PwmSettingSyntax.LOCALIZED_STRING_ARRAY, Category.CHALLENGE),
+    CHALLENGE_HELPDESK_REQUIRED_CHALLENGES(
+            "challenge.helpdesk.requiredChallenges", PwmSettingSyntax.LOCALIZED_STRING_ARRAY, Category.CHALLENGE),
+    CHALLENGE_HELPDESK_MIN_RANDOM_SETUP(
+            "challenge.helpdesk.minRandomsSetup", PwmSettingSyntax.NUMERIC, Category.CHALLENGE),
     QUERY_MATCH_SETUP_RESPONSE(
-            "challenge.allowSetup.queryMatch", PwmSettingSyntax.USER_PERMISSION, Category.CHALLENGE),
+            "challenge.allowSetup.queryMatch", PwmSettingSyntax.STRING, Category.CHALLENGE),
     QUERY_MATCH_CHECK_RESPONSES(
-            "command.checkResponses.queryMatch", PwmSettingSyntax.USER_PERMISSION, Category.CHALLENGE),
+            "command.checkResponses.queryMatch", PwmSettingSyntax.STRING, Category.CHALLENGE),
     CHALLENGE_ENFORCE_MINIMUM_PASSWORD_LIFETIME(
             "challenge.enforceMinimumPasswordLifetime", PwmSettingSyntax.BOOLEAN, Category.CHALLENGE),
-
-    // challenge policy profile
-    CHALLENGE_PROFILE_LIST(
-            "challenge.profile.list", PwmSettingSyntax.PROFILE, Category.GENERAL),
-    CHALLENGE_POLICY_QUERY_MATCH(
-            "challenge.policy.queryMatch", PwmSettingSyntax.USER_PERMISSION, Category.CHALLENGE_POLICY),
-    CHALLENGE_RANDOM_CHALLENGES(
-            "challenge.randomChallenges", PwmSettingSyntax.CHALLENGE, Category.CHALLENGE_POLICY),
-    CHALLENGE_REQUIRED_CHALLENGES(
-            "challenge.requiredChallenges", PwmSettingSyntax.CHALLENGE, Category.CHALLENGE_POLICY),
-    CHALLENGE_MIN_RANDOM_REQUIRED(
-            "challenge.minRandomRequired", PwmSettingSyntax.NUMERIC, Category.CHALLENGE_POLICY),
-    CHALLENGE_MIN_RANDOM_SETUP(
-            "challenge.minRandomsSetup", PwmSettingSyntax.NUMERIC, Category.CHALLENGE_POLICY),
-    CHALLENGE_HELPDESK_RANDOM_CHALLENGES(
-            "challenge.helpdesk.randomChallenges", PwmSettingSyntax.CHALLENGE, Category.CHALLENGE_POLICY),
-    CHALLENGE_HELPDESK_REQUIRED_CHALLENGES(
-            "challenge.helpdesk.requiredChallenges", PwmSettingSyntax.CHALLENGE, Category.CHALLENGE_POLICY),
-    CHALLENGE_HELPDESK_MIN_RANDOM_SETUP(
-            "challenge.helpdesk.minRandomsSetup", PwmSettingSyntax.NUMERIC, Category.CHALLENGE_POLICY),
 
 
     // recovery settings
@@ -580,15 +528,10 @@ public enum PwmSetting {
             "challenge.requireResponses", PwmSettingSyntax.BOOLEAN, Category.RECOVERY),
     CHALLENGE_TOKEN_SEND_METHOD(
             "challenge.token.sendMethod", PwmSettingSyntax.SELECT, Category.RECOVERY),
-    FORGOTTEN_PASSWORD_REQUIRE_OTP(
-            "recovery.require.otp", PwmSettingSyntax.BOOLEAN, Category.RECOVERY),
     FORGOTTEN_PASSWORD_ACTION(
             "recovery.action", PwmSettingSyntax.SELECT, Category.RECOVERY),
     CHALLENGE_SENDNEWPW_METHOD(
             "recovery.sendNewPassword.sendMethod", PwmSettingSyntax.SELECT, Category.RECOVERY),
-    FORGOTTEN_USER_POST_ACTIONS(
-            "recovery.postActions", PwmSettingSyntax.ACTION, Category.RECOVERY),
-
 
     // forgotten username
     FORGOTTEN_USERNAME_ENABLE(
@@ -663,7 +606,7 @@ public enum PwmSetting {
     ACTIVATE_USER_SEARCH_FILTER(
             "activateUser.searchFilter", PwmSettingSyntax.STRING, Category.ACTIVATION),
     ACTIVATE_USER_QUERY_MATCH(
-            "activateUser.queryMatch", PwmSettingSyntax.USER_PERMISSION, Category.ACTIVATION),
+            "activateUser.queryMatch", PwmSettingSyntax.STRING, Category.ACTIVATION),
     ACTIVATE_USER_PRE_WRITE_ATTRIBUTES(
             "activateUser.writePreAttributes", PwmSettingSyntax.ACTION, Category.ACTIVATION),
     ACTIVATE_USER_POST_WRITE_ATTRIBUTES(
@@ -677,13 +620,13 @@ public enum PwmSetting {
     UPDATE_PROFILE_AGREEMENT_MESSAGE(
             "display.updateAttributes.agreement", PwmSettingSyntax.LOCALIZED_TEXT_AREA, Category.UPDATE),
     UPDATE_PROFILE_QUERY_MATCH(
-            "updateAttributes.queryMatch", PwmSettingSyntax.USER_PERMISSION, Category.UPDATE),
+            "updateAttributes.queryMatch", PwmSettingSyntax.STRING, Category.UPDATE),
     UPDATE_PROFILE_WRITE_ATTRIBUTES(
             "updateAttributes.writeAttributes", PwmSettingSyntax.ACTION, Category.UPDATE),
     UPDATE_PROFILE_FORM(
             "updateAttributes.form", PwmSettingSyntax.FORM, Category.UPDATE),
     UPDATE_PROFILE_CHECK_QUERY_MATCH(
-            "updateAttributes.check.queryMatch", PwmSettingSyntax.USER_PERMISSION, Category.UPDATE),
+            "updateAttributes.check.queryMatch", PwmSettingSyntax.STRING, Category.UPDATE),
     UPDATE_PROFILE_SHOW_CONFIRMATION(
             "updateAttributes.showConfirmation", PwmSettingSyntax.BOOLEAN, Category.UPDATE),
 
@@ -699,7 +642,7 @@ public enum PwmSetting {
     PEOPLE_SEARCH_ENABLE(
             "peopleSearch.enable", PwmSettingSyntax.BOOLEAN, Category.PEOPLE_SEARCH),
     PEOPLE_SEARCH_QUERY_MATCH(
-            "peopleSearch.queryMatch", PwmSettingSyntax.USER_PERMISSION, Category.PEOPLE_SEARCH),
+            "peopleSearch.queryMatch", PwmSettingSyntax.STRING, Category.PEOPLE_SEARCH),
     PEOPLE_SEARCH_SEARCH_FILTER(
             "peopleSearch.searchFilter", PwmSettingSyntax.STRING, Category.PEOPLE_SEARCH),
     PEOPLE_SEARCH_SEARCH_BASE(
@@ -715,33 +658,31 @@ public enum PwmSetting {
 
     // edirectory settings
     EDIRECTORY_ENABLE_NMAS(
-            "ldap.edirectory.enableNmas", PwmSettingSyntax.BOOLEAN, Category.EDIRECTORY, Template.NOVL),
+            "ldap.edirectory.enableNmas", PwmSettingSyntax.BOOLEAN, Category.EDIRECTORY, new Template[]{Template.NOVL}),
     EDIRECTORY_STORE_NMAS_RESPONSES(
-            "ldap.edirectory.storeNmasResponses", PwmSettingSyntax.BOOLEAN, Category.EDIRECTORY, Template.NOVL),
+            "ldap.edirectory.storeNmasResponses", PwmSettingSyntax.BOOLEAN, Category.EDIRECTORY, new Template[]{Template.NOVL}),
     EDIRECTORY_USE_NMAS_RESPONSES(
-            "ldap.edirectory.useNmasResponses", PwmSettingSyntax.BOOLEAN, Category.EDIRECTORY, Template.NOVL),
+            "ldap.edirectory.useNmasResponses", PwmSettingSyntax.BOOLEAN, Category.EDIRECTORY, new Template[]{Template.NOVL}),
     EDIRECTORY_READ_USER_PWD(
-            "ldap.edirectory.readUserPwd", PwmSettingSyntax.BOOLEAN, Category.EDIRECTORY, Template.NOVL),
+            "ldap.edirectory.readUserPwd", PwmSettingSyntax.BOOLEAN, Category.EDIRECTORY, new Template[]{Template.NOVL}),
     EDIRECTORY_READ_CHALLENGE_SET(
-            "ldap.edirectory.readChallengeSets", PwmSettingSyntax.BOOLEAN, Category.EDIRECTORY, Template.NOVL),
+            "ldap.edirectory.readChallengeSets", PwmSettingSyntax.BOOLEAN, Category.EDIRECTORY, new Template[]{Template.NOVL}),
     EDIRECTORY_PWD_MGT_WEBSERVICE_URL(
-            "ldap.edirectory.ws.pwdMgtURL", PwmSettingSyntax.STRING, Category.EDIRECTORY, Template.NOVL),
+            "ldap.edirectory.ws.pwdMgtURL", PwmSettingSyntax.STRING, Category.EDIRECTORY, new Template[]{Template.NOVL}),
 
     // active directory
     AD_USE_PROXY_FOR_FORGOTTEN(
-            "ldap.ad.proxyForgotten", PwmSettingSyntax.BOOLEAN, Category.ACTIVE_DIRECTORY, Template.AD),
+            "ldap.ad.proxyForgotten", PwmSettingSyntax.BOOLEAN, Category.ACTIVE_DIRECTORY, new Template[]{Template.AD,Template.ADDB}),
     AD_ALLOW_AUTH_REQUIRE_NEW_PWD(
-            "ldap.ad.allowAuth.requireNewPassword", PwmSettingSyntax.BOOLEAN, Category.ACTIVE_DIRECTORY, Template.AD),
+            "ldap.ad.allowAuth.requireNewPassword", PwmSettingSyntax.BOOLEAN, Category.ACTIVE_DIRECTORY, new Template[]{Template.AD,Template.ADDB}),
     AD_ALLOW_AUTH_EXPIRED(
-            "ldap.ad.allowAuth.expired", PwmSettingSyntax.BOOLEAN, Category.ACTIVE_DIRECTORY, Template.AD),
-    AD_ENFORCE_PW_HISTORY_ON_SET(
-            "ldap.ad.enforcePwHistoryOnSet", PwmSettingSyntax.BOOLEAN, Category.ACTIVE_DIRECTORY, Template.AD),
+            "ldap.ad.allowAuth.expired", PwmSettingSyntax.BOOLEAN, Category.ACTIVE_DIRECTORY, new Template[]{Template.AD,Template.ADDB}),
 
     // helpdesk
     HELPDESK_ENABLE(
             "helpdesk.enable", PwmSettingSyntax.BOOLEAN, Category.HELPDESK),
     HELPDESK_QUERY_MATCH(
-            "helpdesk.queryMatch", PwmSettingSyntax.USER_PERMISSION, Category.HELPDESK),
+            "helpdesk.queryMatch", PwmSettingSyntax.STRING, Category.HELPDESK),
     HELPDESK_SEARCH_FILTER(
             "helpdesk.filter", PwmSettingSyntax.STRING, Category.HELPDESK),
     HELPDESK_SEARCH_FORM(
@@ -754,8 +695,6 @@ public enum PwmSetting {
             "helpdesk.result.limit", PwmSettingSyntax.NUMERIC, Category.HELPDESK),
     HELPDESK_SET_PASSWORD_MODE(
             "helpdesk.setPassword.mode", PwmSettingSyntax.SELECT, Category.HELPDESK),
-    HELPDESK_SEND_PASSWORD(
-            "helpdesk.sendPassword", PwmSettingSyntax.BOOLEAN, Category.HELPDESK),
     HELPDESK_POST_SET_PASSWORD_WRITE_ATTRIBUTES(
             "helpdesk.setPassword.writeAttributes", PwmSettingSyntax.ACTION, Category.HELPDESK),
     HELPDESK_ACTIONS(
@@ -768,14 +707,15 @@ public enum PwmSetting {
             "helpdesk.idleTimeout", PwmSettingSyntax.NUMERIC, Category.HELPDESK),
     HELPDESK_CLEAR_RESPONSES(
             "helpdesk.clearResponses", PwmSettingSyntax.SELECT, Category.HELPDESK),
-    HELPDESK_CLEAR_RESPONSES_BUTTON(
-            "helpdesk.clearResponses.button", PwmSettingSyntax.BOOLEAN, Category.HELPDESK),
-    HELPDESK_CLEAR_OTP_BUTTON(
-            "helpdesk.clearOtp.button", PwmSettingSyntax.BOOLEAN, Category.HELPDESK),
-    HELPDESK_USE_PROXY(
-            "helpdesk.useProxy",PwmSettingSyntax.BOOLEAN, Category.HELPDESK),
+
 
     // Database
+    PWMDB_LOCATION(
+            "pwmDb.location", PwmSettingSyntax.STRING, Category.DATABASE),
+    PWMDB_IMPLEMENTATION(
+            "pwmDb.implementation", PwmSettingSyntax.STRING, Category.DATABASE),
+    PWMDB_INIT_STRING(
+            "pwmDb.initParameters", PwmSettingSyntax.STRING_ARRAY, Category.DATABASE),
     DATABASE_CLASS(
             "db.classname", PwmSettingSyntax.STRING, Category.DATABASE),
     DATABASE_URL(
@@ -788,28 +728,14 @@ public enum PwmSetting {
             "db.columnType.key", PwmSettingSyntax.STRING, Category.DATABASE),
     DATABASE_COLUMN_TYPE_VALUE(
             "db.columnType.value", PwmSettingSyntax.STRING, Category.DATABASE),
-    DATABASE_DEBUG_TRACE(
-            "db.debugTrace.enable", PwmSettingSyntax.BOOLEAN, Category.DATABASE),
 
-    // reporting
-    REPORTING_ENABLE(
-            "reporting.enable", PwmSettingSyntax.BOOLEAN, Category.REPORTING),
-    REPORTING_SEARCH_FILTER(
-            "reporting.ldap.searchFilter", PwmSettingSyntax.STRING, Category.REPORTING),
-    REPORTING_MAX_CACHE_AGE(
-            "reporting.maxCacheAge", PwmSettingSyntax.NUMERIC, Category.REPORTING),
-    REPORTING_MIN_CACHE_AGE(
-            "reporting.minCacheAge", PwmSettingSyntax.NUMERIC, Category.REPORTING),
-    REPORTING_REST_TIME_MS(
-            "reporting.reportRestTimeMS", PwmSettingSyntax.NUMERIC, Category.REPORTING),
-    REPORTING_MAX_QUERY_SIZE(
-            "reporting.ldap.maxQuerySize", PwmSettingSyntax.NUMERIC, Category.REPORTING),
-    REPORTONG_JOB_TIME_OFFSET(
-            "reporting.job.timeOffset", PwmSettingSyntax.NUMERIC, Category.REPORTING),
-
-    // developer
+    // misc
+    EXTERNAL_CHANGE_METHODS(
+            "externalChangeMethod", PwmSettingSyntax.STRING_ARRAY, Category.MISC),
     EXTERNAL_JUDGE_METHODS(
             "externalJudgeMethod", PwmSettingSyntax.STRING_ARRAY, Category.MISC),
+    EXTERNAL_RULE_METHODS(
+            "externalRuleMethod", PwmSettingSyntax.STRING_ARRAY, Category.MISC),
     HTTP_PROXY_URL(
             "http.proxy.url", PwmSettingSyntax.STRING, Category.MISC),
     CAS_CLEAR_PASS_URL(
@@ -824,35 +750,10 @@ public enum PwmSetting {
             "external.webservices.enable", PwmSettingSyntax.BOOLEAN, Category.MISC),
     ENABLE_WEBSERVICES_READANSWERS(
             "webservices.enableReadAnswers", PwmSettingSyntax.BOOLEAN, Category.MISC),
-    PUBLIC_HEALTH_STATS_WEBSERVICES(
-            "webservices.healthStats.makePublic", PwmSettingSyntax.BOOLEAN, Category.MISC),
     WEBSERVICES_THIRDPARTY_QUERY_MATCH(
-            "webservices.thirdParty.queryMatch", PwmSettingSyntax.USER_PERMISSION, Category.MISC),
+            "webservices.thirdParty.queryMatch", PwmSettingSyntax.STRING, Category.MISC),
     EXTERNAL_WEB_AUTH_METHODS(
             "external.webAuth.methods", PwmSettingSyntax.STRING_ARRAY, Category.MISC),
-    EXTERNAL_MACROS_DEST_TOKEN_URLS(
-            "external.destToken.urls", PwmSettingSyntax.STRING, Category.MISC),
-    EXTERNAL_MACROS_REST_URLS(
-            "external.macros.urls", PwmSettingSyntax.STRING_ARRAY, Category.MISC),
-    EXTERNAL_PWRULES_REST_URLS(
-            "external.pwrules.urls", PwmSettingSyntax.STRING_ARRAY, Category.MISC),
-    CACHED_USER_ATTRIBUTES(
-            "webservice.userAttributes", PwmSettingSyntax.STRING_ARRAY, Category.MISC),
-
-
-    // OAuth
-    OAUTH_ID_LOGIN_URL(
-            "oauth.idserver.loginUrl", PwmSettingSyntax.STRING, Category.OAUTH),
-    OAUTH_ID_CODERESOLVE_URL(
-            "oauth.idserver.codeResolveUrl", PwmSettingSyntax.STRING, Category.OAUTH),
-    OAUTH_ID_ATTRIBUTES_URL(
-            "oauth.idserver.attributesUrl", PwmSettingSyntax.STRING, Category.OAUTH),
-    OAUTH_ID_CLIENTNAME(
-            "oauth.idserver.clientName", PwmSettingSyntax.STRING, Category.OAUTH),
-    OAUTH_ID_SECRET(
-            "oauth.idserver.secret", PwmSettingSyntax.PASSWORD, Category.OAUTH),
-    OAUTH_ID_DN_ATTRIBUTE_NAME(
-            "oauth.idserver.dnAttributeName", PwmSettingSyntax.STRING, Category.OAUTH),
 
     ;
 
@@ -887,7 +788,6 @@ public enum PwmSetting {
         this.templates = Collections.unmodifiableSet(new HashSet(Arrays.asList(temps)));
     }
 
-
 // --------------------- GETTER / SETTER METHODS ---------------------
 
 
@@ -911,12 +811,16 @@ public enum PwmSetting {
         return templates;
     }
 
-    public boolean showSetting(Category category, int level) {
+    public boolean showSetting(Category category, int level, boolean isModified) {
         if (category != this.getCategory()) {
             return false;
         }
 
-        if (getLevel() != level) {
+        if (isModified) {
+            return true;
+        }
+
+        if (getLevel() > level) {
             return false;
         }
 
@@ -925,26 +829,6 @@ public enum PwmSetting {
         }
 
         return true;
-    }
-
-    public static List<PwmSetting> getSettings(Category category) {
-        final List<PwmSetting> returnList = new ArrayList<PwmSetting>();
-        for (final PwmSetting setting : PwmSetting.values()) {
-            if (setting.getCategory() == category) {
-                returnList.add(setting);
-            }
-        }
-        return Collections.unmodifiableList(returnList);
-    }
-
-    public static List<PwmSetting> getSettings(Category category, int level) {
-        final List<PwmSetting> returnList = new ArrayList<PwmSetting>();
-        for (final PwmSetting setting : PwmSetting.values()) {
-            if (setting.showSetting(category, level)) {
-                returnList.add(setting);
-            }
-        }
-        return Collections.unmodifiableList(returnList);
     }
 
     // -------------------------- OTHER METHODS --------------------------
@@ -1004,12 +888,6 @@ public enum PwmSetting {
         return descriptionElement.getText();
     }
 
-    public String getPlaceholder(final Locale locale) {
-        Element placeHolderElement = readSettingXml(this);
-        Element placeholder = placeHolderElement.getChild("placeholder");
-        return placeholder != null ? placeholder.getText() : "";
-    }
-
     public boolean isRequired() {
         final Element settingElement = readSettingXml(this);
         final Attribute requiredAttribute = settingElement.getAttribute("required");
@@ -1044,75 +922,45 @@ public enum PwmSetting {
     }
 
     public enum Category {
-        GENERAL             (Type.SETTING),
-        LDAP_PROFILE        (Type.PROFILE),
-        LDAP_GLOBAL         (Type.SETTING),
-        USER_INTERFACE      (Type.SETTING),
-        PASSWORD_POLICY     (Type.PROFILE),
-        CHALLENGE           (Type.SETTING),
-        CHALLENGE_POLICY    (Type.PROFILE),
-        EMAIL               (Type.SETTING),
-        SMS                 (Type.SETTING),
-        SECURITY            (Type.SETTING),
-        INTRUDER            (Type.SETTING),
-        TOKEN               (Type.SETTING),
-        OTP                 (Type.SETTING),
-        LOGGING             (Type.SETTING),
-        EDIRECTORY          (Type.SETTING),
-        ACTIVE_DIRECTORY    (Type.SETTING),
-        DATABASE            (Type.SETTING),
-        REPORTING           (Type.SETTING),
-        MISC                (Type.SETTING),
-        OAUTH               (Type.SETTING),
-        CHANGE_PASSWORD     (Type.MODULE),
-        RECOVERY            (Type.MODULE),
-        FORGOTTEN_USERNAME  (Type.MODULE),
-        NEWUSER             (Type.MODULE),
-        GUEST               (Type.MODULE),
-        ACTIVATION          (Type.MODULE),
-        UPDATE              (Type.MODULE),
-        SHORTCUT            (Type.MODULE),
-        PEOPLE_SEARCH       (Type.MODULE),
-        HELPDESK            (Type.MODULE),
-
+        LDAP(Type.SETTING),
+        GENERAL(Type.SETTING),
+        USER_INTERFACE(Type.SETTING),
+        PASSWORD_POLICY(Type.SETTING),
+        CHALLENGE(Type.SETTING),
+        EMAIL(Type.SETTING),
+        SMS(Type.SETTING),
+        SECURITY(Type.SETTING),
+        TOKEN(Type.SETTING),
+        LOGGING(Type.SETTING),
+        EDIRECTORY(Type.SETTING),
+        ACTIVE_DIRECTORY(Type.SETTING),
+        DATABASE(Type.SETTING),
+        MISC(Type.SETTING),
+        CHANGE_PASSWORD(Type.MODULE),
+        RECOVERY(Type.MODULE),
+        FORGOTTEN_USERNAME(Type.MODULE),
+        NEWUSER(Type.MODULE),
+        GUEST(Type.MODULE),
+        ACTIVATION(Type.MODULE),
+        UPDATE(Type.MODULE),
+        SHORTCUT(Type.MODULE),
+        PEOPLE_SEARCH(Type.MODULE),
+        HELPDESK(Type.MODULE),
         ;
 
         public enum Type {
-            SETTING, MODULE, PROFILE
+            SETTING, MODULE
         }
 
-        private final Type type;
+        private Type type;
 
-        private Category(final Type type) {
+        private Category(Type type) {
             this.type = type;
         }
 
-        public String getKey() {
-            return this.toString();
-        }
-
-        public PwmSetting getProfileSetting()
-        {
-            switch (this) {
-                case LDAP_PROFILE:
-                    return LDAP_PROFILE_LIST;
-                case PASSWORD_POLICY:
-                    return PASSWORD_PROFILE_LIST;
-                case CHALLENGE_POLICY:
-                    return CHALLENGE_PROFILE_LIST;
-            }
-            throw new IllegalArgumentException("category " + this.toString() + " does not have a profileSetting value");
-        }
-
         public String getLabel(final Locale locale) {
-            final Element categoryElement = readCategoryXml(this);
-            if (categoryElement == null) {
-                throw new IllegalStateException("missing descriptor element for category " + this.toString());
-            }
-            final Element labelElement = categoryElement.getChild("label");
-            if (labelElement == null) {
-                throw new IllegalStateException("missing descriptor label for category " + this.toString());
-            }
+            Element categoryElement = readCategoryXml(this);
+            Element labelElement = categoryElement.getChild("label");
             return labelElement.getText();
         }
 
@@ -1139,8 +987,18 @@ public enum PwmSetting {
         }
     }
 
+    public enum MessageSendMethod {
+        NONE,
+        EMAILONLY,
+        BOTH,
+        EMAILFIRST,
+        SMSFIRST,
+        SMSONLY
+    }
+
     public enum Template {
         NOVL,
+        ADDB,
         AD,
         DEFAULT,
         ;
@@ -1214,7 +1072,6 @@ public enum PwmSetting {
     private static Document xmlDocCache = null;
     private static Document readXml() {
         if (xmlDocCache == null) {
-            //validateXmlSchema();
             InputStream inputStream = PwmSetting.class.getClassLoader().getResourceAsStream("password/pwm/config/PwmSetting.xml");
             final SAXBuilder builder = new SAXBuilder();
             try {
@@ -1226,19 +1083,6 @@ public enum PwmSetting {
             }
         }
         return xmlDocCache;
-    }
-
-    private static void validateXmlSchema() {
-        try {
-            final InputStream xsdInputStream = PwmSetting.class.getClassLoader().getResourceAsStream("password/pwm/config/PwmSetting.xsd");
-            final InputStream xmlInputStream = PwmSetting.class.getClassLoader().getResourceAsStream("password/pwm/config/PwmSetting.xml");
-            final SchemaFactory factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
-            final Schema schema = factory.newSchema(new StreamSource(xsdInputStream));
-            Validator validator = schema.newValidator();
-            validator.validate(new StreamSource(xmlInputStream));
-        } catch (Exception e) {
-            throw new IllegalStateException("error validating PwmSetting.xml schema using PwmSetting.xsd definition: " + e.getMessage());
-        }
     }
 }
 

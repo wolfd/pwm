@@ -22,8 +22,6 @@
 
 package password.pwm;
 
-import password.pwm.error.PwmUnrecoverableException;
-
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -36,39 +34,28 @@ import java.util.zip.GZIPOutputStream;
 
 public class GZIPFilter implements Filter {
 
-    private ServletContext servletContext;
-
     public void doFilter(ServletRequest req, ServletResponse res,
                          FilterChain chain) throws IOException, ServletException {
         if (req instanceof HttpServletRequest) {
             final HttpServletRequest request = (HttpServletRequest) req;
             final HttpServletResponse response = (HttpServletResponse) res;
-
-            boolean gzipEnabled = false;
-            try {
-                final PwmApplication pwmApplication = ContextManager.getPwmApplication(servletContext);
-                gzipEnabled = Boolean.parseBoolean(pwmApplication.getConfig().readAppProperty(AppProperty.HTTP_ENABLE_GZIP));
-            } catch (PwmUnrecoverableException e) { /* noop */ }
-
-            if (gzipEnabled) {
-                final String acceptEncodingHeader = request.getHeader("accept-encoding");
-                if (acceptEncodingHeader != null && acceptEncodingHeader.contains("gzip")) {
-                    final GZIPResponseWrapper wrappedResponse = new GZIPResponseWrapper(response);
-                    chain.doFilter(req, wrappedResponse);
-                    wrappedResponse.finishResponse();
-                    return;
-                }
+            final String acceptEncodingHeader = request.getHeader("accept-encoding");
+            if (PwmConstants.SERVLET_FILTER_ENABLE_GZIP && acceptEncodingHeader != null && acceptEncodingHeader.contains("gzip")) {
+                final GZIPResponseWrapper wrappedResponse = new GZIPResponseWrapper(response);
+                chain.doFilter(req, wrappedResponse);
+                wrappedResponse.finishResponse();
+                return;
             }
             chain.doFilter(req, res);
         }
     }
 
     public void init(FilterConfig filterConfig) {
-        this.servletContext = filterConfig.getServletContext();
+        // noop
     }
 
     public void destroy() {
-        this.servletContext = null;
+        // noop
     }
 
     public static class GZIPResponseWrapper extends HttpServletResponseWrapper {

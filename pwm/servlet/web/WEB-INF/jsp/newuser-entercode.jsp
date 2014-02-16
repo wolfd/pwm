@@ -1,11 +1,10 @@
 <%@ page import="password.pwm.bean.servlet.NewUserBean" %>
-
 <%--
   ~ Password Management Servlets (PWM)
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -22,38 +21,33 @@
   ~ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
   --%>
 
-<%
-    final NewUserBean newUserBean = PwmSession.getPwmSession(session).getNewUserBean();
-    String destination = newUserBean.getTokenDisplayText();
-%>
 <!DOCTYPE html>
 <%@ page language="java" session="true" isThreadSafe="true" contentType="text/html; charset=UTF-8" %>
 <%@ taglib uri="pwm" prefix="pwm" %>
 <html dir="<pwm:LocaleOrientation/>">
 <%@ include file="fragment/header.jsp" %>
-<body class="nihilo">
+<body onload="pwmPageLoadHandler()" class="nihilo">
 <div id="wrapper">
     <jsp:include page="fragment/header-body.jsp">
         <jsp:param name="pwm.PageName" value="Title_NewUser"/>
     </jsp:include>
     <div id="centerbody">
-        <% if (newUserBean.getVerificationPhase() == NewUserBean.NewUserVerificationPhase.EMAIL) { %>
-        <p><pwm:Display key="Display_RecoverEnterCode" value1="<%=destination%>"/></p>
-        <% } else if (newUserBean.getVerificationPhase() == NewUserBean.NewUserVerificationPhase.SMS) { %>
-        <p><pwm:Display key="Display_RecoverEnterCodeSMS" value1="<%=destination%>"/></p>
+        <% if (PwmSession.getPwmSession(session).getNewUserBean().getVerificationPhase() == NewUserBean.NewUserVerificationPhase.EMAIL) { %>
+        <p><pwm:Display key="Display_RecoverEnterCode"/></p>
+        <% } else if (PwmSession.getPwmSession(session).getNewUserBean().getVerificationPhase() == NewUserBean.NewUserVerificationPhase.SMS) { %>
+        <p><pwm:Display key="Display_RecoverEnterCodeSMS"/></p>
         <% } %>
         <form action="<pwm:url url='NewUser'/>" method="post"
               enctype="application/x-www-form-urlencoded" name="search"
-              onsubmit="PWM_MAIN.handleFormSubmit('submitBtn',this);return false">
+              onsubmit="handleFormSubmit('submitBtn',this);return false">
             <%@ include file="fragment/message.jsp" %>
             <h2><label for="<%=PwmConstants.PARAM_TOKEN%>"><pwm:Display key="Field_Code"/></label></h2>
-            <textarea id="<%=PwmConstants.PARAM_TOKEN%>" name="<%=PwmConstants.PARAM_TOKEN%>" class="tokenInput"></textarea>
+            <textarea style="height: 130px; width: 80%; resize: none" id="<%=PwmConstants.PARAM_TOKEN%>" name="<%=PwmConstants.PARAM_TOKEN%>" class="inputfield"></textarea>
             <div id="buttonbar">
                 <input type="submit" class="btn"
                        name="search"
                        value="<pwm:Display key="Button_CheckCode"/>"
                        id="submitBtn"/>
-                <%@ include file="/WEB-INF/jsp/fragment/button-reset.jsp" %>
                 <input type="hidden" id="processAction" name="processAction" value="enterCode"/>
                 <input type="hidden" id="pwmFormID" name="pwmFormID" value="<pwm:FormID/>"/>
             </div>
@@ -73,7 +67,7 @@
 </div>
 <script type="text/javascript">
     PWM_GLOBAL['startupFunctions'].push(function(){
-        PWM_MAIN.getObject('<%=PwmConstants.PARAM_TOKEN%>').focus();
+        getObject('<%=PwmConstants.PARAM_TOKEN%>').focus();
     });
 </script>
 <%@ include file="fragment/footer.jsp" %>

@@ -26,7 +26,6 @@ import password.pwm.PwmApplication;
 import password.pwm.PwmService;
 import password.pwm.config.Configuration;
 import password.pwm.config.PwmSetting;
-import password.pwm.config.option.DataStorageMethod;
 import password.pwm.error.PwmUnrecoverableException;
 import password.pwm.health.HealthRecord;
 
@@ -136,10 +135,5 @@ public class UrlShortenerService implements PwmService {
             LOGGER.error("Error compiling pattern: "+e.getMessage());
         }
         return text;
-    }
-
-    public ServiceInfo serviceInfo()
-    {
-        return new ServiceInfo(Collections.<DataStorageMethod>emptyList());
     }
 }

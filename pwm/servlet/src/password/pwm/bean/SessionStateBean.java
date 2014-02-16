@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,13 +22,13 @@
 
 package password.pwm.bean;
 
+import password.pwm.PwmConstants;
 import password.pwm.config.ShortcutItem;
 import password.pwm.error.ErrorInformation;
 import password.pwm.i18n.Message;
 import password.pwm.util.BasicAuthInfo;
 import password.pwm.util.FormMap;
 import password.pwm.util.PwmRandom;
-import password.pwm.util.TimeDuration;
 
 import java.util.Date;
 import java.util.Locale;
@@ -71,9 +71,7 @@ public class SessionStateBean implements PwmSessionBean {
     private BasicAuthInfo originalBasicAuthInfo;
 
     private int requestCounter = PwmRandom.getInstance().nextInt(Integer.MAX_VALUE);
-    private int formCounter = PwmRandom.getInstance().nextInt(Integer.MAX_VALUE);
-    private String sessionVerificationKey = "key";
-    private String restClientKey;
+    private String sessionVerificationKey;
 
     private boolean passedCaptcha;
     private boolean debugInitialized;
@@ -82,23 +80,15 @@ public class SessionStateBean implements PwmSessionBean {
     private Date pageLeaveNoticeTime;
     private Date sessionCreationTime;
     private Date sessionLastAccessedTime;
-    private TimeDuration sessionMaximumTimeout;
 
     private boolean passwordModified;
     private boolean privateUrlAccessed;
 
-    private int intruderAttempts;
-    private boolean oauthInProgress;
-
-    // settings
-    private int sessionVerificationKeyLength;
-
-
 
 // --------------------- GETTER / SETTER METHODS ---------------------
 
-    public SessionStateBean(final int sessionVerificationKeyLength) {
-        this.sessionVerificationKeyLength = sessionVerificationKeyLength;
+    public SessionStateBean() {
+        regenerateSessionVerificationKey();
     }
 
     public boolean isPasswordModified() {
@@ -271,7 +261,7 @@ public class SessionStateBean implements PwmSessionBean {
     }
 
     public void incrementRequestCounter() {
-        requestCounter++;
+        requestCounter = requestCounter++;
     }
 
     public String getTheme() {
@@ -314,60 +304,10 @@ public class SessionStateBean implements PwmSessionBean {
         this.lastRequestURL = lastRequestURL;
     }
 
-    public int getIntruderAttempts() {
-        return intruderAttempts;
-    }
-
-    public void incrementIntruderAttempts() {
-        intruderAttempts++;
-    }
-
-    public void clearIntruderAttempts() {
-        intruderAttempts = 0;
-    }
-
-    public boolean isOauthInProgress()
-    {
-        return oauthInProgress;
-    }
-
-    public void setOauthInProgress(boolean oauthInProgress)
-    {
-        this.oauthInProgress = oauthInProgress;
-    }
-
-    public String getRestClientKey() {
-        return restClientKey;
-    }
-
-    public void setRestClientKey(String restClientKey) {
-        this.restClientKey = restClientKey;
-    }
-
-    public TimeDuration getSessionMaximumTimeout()
-    {
-        return sessionMaximumTimeout;
-    }
-
-    public void setSessionMaximumTimeout(TimeDuration sessionMaximumTimeout)
-    {
-        this.sessionMaximumTimeout = sessionMaximumTimeout;
-    }
-
-    public int getFormCounter()
-    {
-        return formCounter;
-    }
-
-    public void setFormCounter(int formCounter)
-    {
-        this.formCounter = formCounter;
-    }
-
-// -------------------------- ENUMERATIONS --------------------------
+    // -------------------------- ENUMERATIONS --------------------------
 
     public void regenerateSessionVerificationKey() {
-        sessionVerificationKey = PwmRandom.getInstance().alphaNumericString(sessionVerificationKeyLength) + Long.toHexString(System.currentTimeMillis());
+        sessionVerificationKey = PwmRandom.getInstance().alphaNumericString(PwmConstants.HTTP_SESSION_VALIDATION_KEY_LENGTH) + Long.toHexString(System.currentTimeMillis());
     }
 }
 

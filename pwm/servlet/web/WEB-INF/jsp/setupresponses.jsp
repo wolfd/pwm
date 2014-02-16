@@ -3,7 +3,7 @@
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@
 <% final SetupResponsesBean responseBean = PwmSession.getPwmSession(session).getSetupResponseBean(); %>
 <html dir="<pwm:LocaleOrientation/>">
 <%@ include file="fragment/header.jsp" %>
-<body class="nihilo">
+<body class="nihilo" onload="pwmPageLoadHandler()">
 <script type="text/javascript" defer="defer" src="<%=request.getContextPath()%><pwm:url url='/public/resources/js/responses.js'/>"></script>
 <div id="wrapper">
     <jsp:include page="fragment/header-body.jsp">
@@ -38,7 +38,7 @@
         <p><pwm:Display key="Display_SetupResponses"/></p>
         <form action="<pwm:url url='SetupResponses'/>" method="post" name="setupResponses"
               enctype="application/x-www-form-urlencoded" onchange="" id="setupResponses"
-              onsubmit="PWM_MAIN.handleFormSubmit('setresponses_button',this);return false">
+              onsubmit="handleFormSubmit('setresponses_button',this);return false">
             <%@ include file="fragment/message.jsp" %>
             <% request.setAttribute("setupData",responseBean.getResponseData()); %>
             <script type="text/javascript">PWM_GLOBAL['responseMode'] = "user";</script>
@@ -47,8 +47,15 @@
                 <input type="hidden" name="processAction" value="setResponses"/>
                 <input type="submit" name="setResponses" class="btn" id="setresponses_button"
                        value="<pwm:Display key="Button_SetResponses"/>"/>
-                <%@ include file="/WEB-INF/jsp/fragment/button-reset.jsp" %>
-                <%@ include file="/WEB-INF/jsp/fragment/button-cancel.jsp" %>
+                <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_RESET_BUTTON)) { %>
+                <input type="reset" name="reset" class="btn"
+                       value="<pwm:Display key="Button_Reset"/>"/>
+                <% } %>
+                <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_CANCEL_BUTTON)) { %>
+                <button style="visibility:hidden;" name="button" class="btn" id="button_cancel" onclick="handleFormCancel();return false">
+                    <pwm:Display key="Button_Cancel"/>
+                </button>
+                <% } %>
                 <input type="hidden" id="pwmFormID" name="pwmFormID" value="<pwm:FormID/>"/>
             </div>
         </form>
@@ -57,7 +64,7 @@
 </div>
 <script type="text/javascript">
     PWM_GLOBAL['startupFunctions'].push(function(){
-        PWM_RESPONSES.startupResponsesPage();
+        startupResponsesPage();
         document.forms[0].elements[0].focus();
         ShowHidePasswordHandler.initAllForms();
     });

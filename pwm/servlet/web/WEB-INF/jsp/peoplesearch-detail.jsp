@@ -3,7 +3,7 @@
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -20,9 +20,8 @@
   ~ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
   --%>
 
-<%@ page import="password.pwm.bean.UserIdentity" %>
 <%@ page import="password.pwm.bean.servlet.PeopleSearchBean" %>
-<%@ page import="password.pwm.ldap.UserSearchEngine" %>
+<%@ page import="password.pwm.util.operations.UserSearchEngine" %>
 <!DOCTYPE html>
 <%@ page language="java" session="true" isThreadSafe="true" contentType="text/html; charset=UTF-8" %>
 <%@ taglib uri="pwm" prefix="pwm" %>
@@ -30,14 +29,14 @@
 <% final PeopleSearchBean peopleSearchBean = (PeopleSearchBean)pwmSession.getSessionBean(PeopleSearchBean.class); %>
 <html dir="<pwm:LocaleOrientation/>">
 <%@ include file="/WEB-INF/jsp/fragment/header.jsp" %>
-<body class="nihilo">
+<body onload="pwmPageLoadHandler();" class="nihilo">
 <div id="wrapper">
     <jsp:include page="/WEB-INF/jsp/fragment/header-body.jsp">
         <jsp:param name="pwm.PageName" value="Title_PeopleSearch"/>
     </jsp:include>
     <div id="centerbody">
         <form action="<pwm:url url='PeopleSearch'/>" method="post" enctype="application/x-www-form-urlencoded" name="search"
-              onsubmit="PWM_MAIN.handleFormSubmit('submitBtn');">
+              onsubmit="handleFormSubmit('submitBtn');">
             <%@ include file="fragment/message.jsp" %>
             <p>&nbsp;</p>
 
@@ -53,7 +52,7 @@
                    value="search"/>
             <input type="hidden" name="pwmFormID" value="<pwm:FormID/>"/>
             <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_CANCEL_BUTTON)) { %>
-            <button type="button" style="visibility:hidden;" name="button" class="btn" id="button_cancel"
+            <button style="visibility:hidden;" name="button" class="btn" id="button_cancel"
                     onclick="window.location='<%=request.getContextPath()%>/public/<pwm:url url='CommandServlet'/>?processAction=continue';return false">
                 <pwm:Display key="Button_Cancel"/>
             </button>
@@ -62,7 +61,7 @@
         <br class="clear"/>
         <% final UserSearchEngine.UserSearchResults searchDetails = peopleSearchBean.getSearchDetails(); %>
         <% if (searchDetails != null && !searchDetails.getResults().isEmpty()) { %>
-        <% final UserIdentity userDN = searchDetails.getResults().keySet().iterator().next(); %>
+        <% final String userDN = searchDetails.getResults().keySet().iterator().next(); %>
         <table>
             <% for (final String attribute : searchDetails.getHeaderAttributeMap().keySet()) { %>
             <% final String header = searchDetails.getHeaderAttributeMap().get(attribute); %>
@@ -84,7 +83,7 @@
 </div>
 <script type="text/javascript">
     PWM_GLOBAL['startupFunctions'].push(function(){
-        PWM_MAIN.getObject('username').focus();
+        getObject('username').focus();
     });
 </script>
 <%@ include file="fragment/footer.jsp" %>

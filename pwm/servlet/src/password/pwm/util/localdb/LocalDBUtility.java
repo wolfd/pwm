@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,10 +22,8 @@
 
 package password.pwm.util.localdb;
 
-import password.pwm.PwmConstants;
 import password.pwm.error.PwmError;
 import password.pwm.error.PwmOperationalException;
-import password.pwm.util.ProgressInfo;
 import password.pwm.util.TimeDuration;
 import password.pwm.util.TransactionSizeCalculator;
 import password.pwm.util.csv.CsvReader;
@@ -58,51 +56,46 @@ public class LocalDBUtility {
         this.localDB = localDB;
     }
 
-    public void exportLocalDB(final OutputStream outputFileStream, final PrintStream debugOutput, final boolean showLineCount)
+    public void exportLocalDB(final File outputFile, final PrintStream out)
             throws PwmOperationalException, IOException
     {
-        if (outputFileStream == null) {
-            throw new PwmOperationalException(PwmError.ERROR_UNKNOWN,"outputFileStream for exportLocalDB cannot be null");
+        if (outputFile == null) {
+            throw new PwmOperationalException(PwmError.ERROR_UNKNOWN,"outputFile for exportLocalDB cannot be null");
         }
 
-        writeStringToOut(debugOutput,"counting records in LocalDB...");
-        final int totalLines;
-        if (showLineCount) {
-            exportLineCounter = 0;
-            for (final LocalDB.DB loopDB : LocalDB.DB.values()) {
-                if (!BACKUP_IGNORE_DBs.contains(loopDB)) {
-                    exportLineCounter += localDB.size(loopDB);
-                }
-            }
-            totalLines = exportLineCounter;
-            writeStringToOut(debugOutput," total lines: " + totalLines);
-        } else {
-            totalLines = 0;
+        if (outputFile.exists()) {
+            throw new PwmOperationalException(PwmError.ERROR_UNKNOWN,"outputFile for exportLocalDB cannot already exist");
         }
+
+
+        writeStringToOut(out,"counting lines...");
+        exportLineCounter = 0;
+        for (final LocalDB.DB loopDB : LocalDB.DB.values()) {
+            if (!BACKUP_IGNORE_DBs.contains(loopDB)) {
+                exportLineCounter += localDB.size(loopDB);
+            }
+        }
+        final int totalLines = exportLineCounter;
+        writeStringToOut(out," total lines: " + totalLines);
         exportLineCounter = 0;
 
-        writeStringToOut(debugOutput,"export beginning");
+        writeStringToOut(out,"export beginning");
         final long startTime = System.currentTimeMillis();
         final Timer statTimer = new Timer(true);
         statTimer.schedule(new TimerTask() {
             @Override
             public void run() {
-                final String percentStr;
-                if (showLineCount) {
-                    final float percentComplete = (float) exportLineCounter / (float) totalLines;
-                    percentStr = DecimalFormat.getPercentInstance().format(percentComplete);
-                } else {
-                    percentStr = "n/a";
-                }
+                final float percentComplete = ((float) exportLineCounter / (float) totalLines);
+                final String percentStr = DecimalFormat.getPercentInstance().format(percentComplete);
 
-                writeStringToOut(debugOutput," exported " + exportLineCounter + " records, " + percentStr + " complete");
+                writeStringToOut(out," exported " + exportLineCounter + " records, " + percentStr + " complete");
             }
         },30 * 1000, 30 * 1000);
 
 
         CsvWriter csvWriter = null;
         try {
-            csvWriter = new CsvWriter(new OutputStreamWriter(new GZIPOutputStream(outputFileStream)),',');
+            csvWriter = new CsvWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(outputFile))),',');
             for (LocalDB.DB loopDB : LocalDB.DB.values()) {
                 if (!BACKUP_IGNORE_DBs.contains(loopDB)) {
                     for (final Iterator<String> iter = localDB.iterator(loopDB); iter.hasNext();) {
@@ -119,7 +112,7 @@ public class LocalDBUtility {
             }
         }
 
-        writeStringToOut(debugOutput, "export complete, exported " + exportLineCounter + " records in " + TimeDuration.fromCurrent(startTime).asLongString());
+        writeStringToOut(out, "export complete, exported " + exportLineCounter + " records in " + TimeDuration.fromCurrent(startTime).asLongString());
         statTimer.cancel();
     }
 
@@ -128,7 +121,7 @@ public class LocalDBUtility {
             return;
         }
 
-        out.println(PwmConstants.DEFAULT_DATETIME_FORMAT.format(new Date()) + " " + string);
+        out.println(string);
     }
 
     public void importLocalDB(final File inputFile, final PrintStream out)
@@ -142,7 +135,14 @@ public class LocalDBUtility {
             throw new PwmOperationalException(PwmError.ERROR_UNKNOWN,"inputFile for importLocalDB does not exist");
         }
 
-        writeStringToOut(out, "counting records in input file...");
+        writeStringToOut(out, "clearing LocalDB...");
+        for (final LocalDB.DB loopDB : LocalDB.DB.values()) {
+            writeStringToOut(out, " truncating " + loopDB.toString());
+            localDB.truncate(loopDB);
+        }
+        writeStringToOut(out, "LocalDB cleared");
+
+        writeStringToOut(out, "counting lines...");
         importLineCounter = 0;
         CsvReader csvReader = null;
         try {
@@ -154,31 +154,20 @@ public class LocalDBUtility {
             if (csvReader != null) {csvReader.close();}
         }
         final int totalLines = importLineCounter;
-
-        if (totalLines <= 0) {
-            throw new PwmOperationalException(PwmError.ERROR_UNKNOWN,"inputFile for importLocalDB is empty");
-        }
-
-        writeStringToOut(out, "clearing LocalDB...");
-        for (final LocalDB.DB loopDB : LocalDB.DB.values()) {
-            writeStringToOut(out, " truncating " + loopDB.toString());
-            localDB.truncate(loopDB);
-        }
-        writeStringToOut(out, "LocalDB cleared");
-
         importLineCounter = 0;
         writeStringToOut(out, " total lines: " + totalLines);
 
         writeStringToOut(out, "beginning restore...");
 
-        final Date startTime = new Date();
+        final long startTime = System.currentTimeMillis();
         final Timer statTimer = new Timer(true);
-        final TransactionSizeCalculator transactionCalculator = new TransactionSizeCalculator(900, 50, 50 * 1000);
+        final TransactionSizeCalculator transactionCalculator = new TransactionSizeCalculator(900, 1100, 50, 50 * 1000);
         statTimer.schedule(new TimerTask() {
             @Override
             public void run() {
-                final ProgressInfo progressInfo = new ProgressInfo(startTime, totalLines, importLineCounter);
-                writeStringToOut(out," restored " + progressInfo.debugOutput() + ", transactionSize=" + transactionCalculator.getTransactionSize());
+                final float percentComplete = ((float) importLineCounter / (float) totalLines);
+                final String percentStr = DecimalFormat.getPercentInstance().format(percentComplete);
+                writeStringToOut(out," restored " + importLineCounter + " records, " + percentStr + " complete, transactionSize=" + transactionCalculator.getTransactionSize());
             }
         },15 * 1000, 30 * 1000);
 

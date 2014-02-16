@@ -3,7 +3,7 @@
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
   ~ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
   --%>
 
+<%@ page import="com.novell.ldapchai.cr.ChallengeSet" %>
 <%@ page import="password.pwm.bean.servlet.SetupResponsesBean" %>
 <!DOCTYPE html>
 
@@ -31,7 +32,7 @@
 %>
 <html dir="<pwm:LocaleOrientation/>">
 <%@ include file="fragment/header.jsp" %>
-<body class="nihilo">
+<body class="nihilo" onload="pwmPageLoadHandler()">
 <script type="text/javascript" src="<%=request.getContextPath()%><pwm:url url='/public/resources/js/responses.js'/>"></script>
 <div id="wrapper">
     <jsp:include page="fragment/header-body.jsp">
@@ -41,16 +42,24 @@
         <p><pwm:Display key="Display_SetupHelpdeskResponses"/></p>
         <form action="<pwm:url url='SetupResponses'/>" method="post" name="setupResponses"
               enctype="application/x-www-form-urlencoded" id="setupResponses"
-              onsubmit="PWM_MAIN.handleFormSubmit('setresponses_button',this);return false">
+              onsubmit="handleFormSubmit('setresponses_button',this);return false">
             <%@ include file="fragment/message.jsp" %>
             <% request.setAttribute("setupData",responseBean.getHelpdeskResponseData()); %>
             <script type="text/javascript">PWM_GLOBAL['responseMode'] = "helpdesk";</script>
             <jsp:include page="fragment/setupresponses-form.jsp"/>
             <div id="buttonbar">
                 <input type="hidden" name="processAction" value="setHelpdeskResponses"/>
-                <input type="submit" name="setResponses" class="btn" id="setresponses_button" value="<pwm:Display key="Button_SetResponses"/>"/>
-                <%@ include file="/WEB-INF/jsp/fragment/button-reset.jsp" %>
-                <%@ include file="/WEB-INF/jsp/fragment/button-cancel.jsp" %>
+                <input type="submit" name="setResponses" class="btn" id="setresponses_button"
+                       value="<pwm:Display key="Button_SetResponses"/>"/>
+                <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_RESET_BUTTON)) { %>
+                <input type="reset" name="reset" class="btn"
+                       value="<pwm:Display key="Button_Reset"/>"/>
+                <% } %>
+                <% if (ContextManager.getPwmApplication(session).getConfig().readSettingAsBoolean(password.pwm.config.PwmSetting.DISPLAY_CANCEL_BUTTON)) { %>
+                <button style="visibility:hidden;" name="button" class="btn" id="button_cancel" onclick="handleFormCancel();return false">
+                    <pwm:Display key="Button_Cancel"/>
+                </button>
+                <% } %>
                 <input type="hidden" id="pwmFormID" name="pwmFormID" value="<pwm:FormID/>"/>
             </div>
         </form>
@@ -59,7 +68,7 @@
 </div>
 <script type="text/javascript">
     PWM_GLOBAL['startupFunctions'].push(function(){
-        PWM_RESPONSES.startupResponsesPage();
+        startupResponsesPage();
         document.forms[0].elements[0].focus();
         ShowHidePasswordHandler.initAllForms();
     });

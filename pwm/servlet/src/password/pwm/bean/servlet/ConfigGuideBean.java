@@ -1,13 +1,11 @@
 package password.pwm.bean.servlet;
 
-import password.pwm.AppProperty;
 import password.pwm.bean.PwmSessionBean;
 import password.pwm.config.PwmSetting;
 import password.pwm.config.StoredConfiguration;
 import password.pwm.config.value.BooleanValue;
 import password.pwm.servlet.ConfigGuideServlet;
 
-import java.io.Serializable;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.HashMap;
@@ -25,7 +23,7 @@ public class ConfigGuideBean implements PwmSessionBean {
 
     public ConfigGuideBean() {
         ConfigGuideServlet.updateLdapInfo(this.getStoredConfiguration(), new HashMap<String, String>(ConfigGuideServlet.defaultForm(storedConfiguration.getTemplate())), Collections.<String,String>emptyMap());
-        this.getStoredConfiguration().writeAppProperty(AppProperty.LDAP_PROMISCUOUS_ENABLE,"true");
+        this.getStoredConfiguration().writeSetting(PwmSetting.LDAP_PROMISCUOUS_SSL,new BooleanValue(true));
     }
 
     public ConfigGuideServlet.STEP getStep() {

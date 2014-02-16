@@ -83,7 +83,7 @@ public class MapDB_LocalDB implements LocalDBProvider {
             LOGGER.info("LocalDB closed in " + TimeDuration.fromCurrent(startTime).asCompactString());
         } catch (Exception e) {
             LOGGER.error("error while closing LocalDB: " + e.getMessage(), e);
-            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE,e.getMessage()));
+            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE,e.getMessage()));
         } finally {
             LOCK.writeLock().unlock();
         }
@@ -111,7 +111,7 @@ public class MapDB_LocalDB implements LocalDBProvider {
             final Object value = tree.get(key);
             return value == null ? null : value.toString();
         } catch (IOException e) {
-            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE,e.getMessage()));
+            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE,e.getMessage()));
         } finally {
             LOCK.readLock().unlock();
         }
@@ -138,18 +138,18 @@ public class MapDB_LocalDB implements LocalDBProvider {
             status = LocalDB.Status.OPEN;
         } catch (Exception e) {
             LOGGER.error("error while opening localDB: " + e.getMessage(), e);
-            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE,e.getMessage()));
+            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE,e.getMessage()));
         } finally {
             LOCK.writeLock().unlock();
         }
     }
 
-    public LocalDB.LocalDBIterator<String> iterator(final DB db)
+    public LocalDB.PwmDBIterator<String> iterator(final DB db)
             throws LocalDBException {
         try {
-            return new MapDBIterator<String>(db);
+            return new DbIterator<String>(db);
         } catch (Exception e) {
-            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE,e.getMessage()));
+            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE,e.getMessage()));
         }
     }
 
@@ -177,7 +177,7 @@ public class MapDB_LocalDB implements LocalDBProvider {
             tree.put(key, value);
             recman.commit();
         } catch (IOException e) {
-            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE,e.getMessage()));
+            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE,e.getMessage()));
         } finally {
             LOCK.writeLock().unlock();
         }
@@ -195,7 +195,7 @@ public class MapDB_LocalDB implements LocalDBProvider {
             recman.commit();
             return removedValue != null;
         } catch (IOException e) {
-            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE,e.getMessage()));
+            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE,e.getMessage()));
         } finally {
             LOCK.writeLock().unlock();
         }
@@ -207,7 +207,7 @@ public class MapDB_LocalDB implements LocalDBProvider {
             LOCK.readLock().lock();
             return getHTree(db).size();
         } catch (IOException e) {
-            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE,e.getMessage()));
+            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE,e.getMessage()));
         } finally {
             LOCK.readLock().unlock();
         }
@@ -227,7 +227,7 @@ public class MapDB_LocalDB implements LocalDBProvider {
             tree.keySet().clear();
             recman.commit();
         } catch (IOException e) {
-            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE,e.getMessage()));
+            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE,e.getMessage()));
         } finally {
             LOCK.writeLock().unlock();
         }
@@ -247,7 +247,7 @@ public class MapDB_LocalDB implements LocalDBProvider {
             tree.keySet().removeAll(keys);
             recman.commit();
         } catch (IOException e) {
-            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE,e.getMessage()));
+            throw new LocalDBException(new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE,e.getMessage()));
         } finally {
             LOCK.writeLock().unlock();
         }
@@ -275,10 +275,10 @@ public class MapDB_LocalDB implements LocalDBProvider {
 
 // -------------------------- INNER CLASSES --------------------------
 
-    private class MapDBIterator<K> implements LocalDB.LocalDBIterator<String> {
+    private class DbIterator<K> implements LocalDB.PwmDBIterator<String> {
         private Iterator<String> theIterator;
 
-        private MapDBIterator(final DB db) throws IOException, LocalDBException {
+        private DbIterator(final DB db) throws IOException, LocalDBException {
             this.theIterator = getHTree(db).keySet().iterator();
         }
 

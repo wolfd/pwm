@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,105 +23,57 @@
 package password.pwm.health;
 
 import password.pwm.config.Configuration;
+import password.pwm.i18n.Config;
+import password.pwm.i18n.LocaleHelper;
 
 import java.io.Serializable;
 import java.util.Locale;
 
 public class HealthRecord implements Serializable,Comparable<HealthRecord> {
     private final HealthStatus status;
-
-    // new fields
-    private final HealthTopic topic;
+    private final HealthTopic topicEnum;
     private final HealthMessage message;
+    private final String topic;
+    private final String detail;
     private final String[] fields;
 
-    // old fields
-    private final String old_topic;
-    private final String old_detail;
-
-    private boolean oldStyle = false;
-
     @Deprecated
-    public HealthRecord(
-            final HealthStatus status,
-            final String topic,
-            final String detail
-    ) {
-        this.oldStyle = true;
-
-        if (status == null) {
-            throw new NullPointerException("status cannot be null");
-        }
+    public HealthRecord(final HealthStatus status, final String topic, final String detail) {
         this.status = status;
+        this.topic = topic;
+        this.detail = detail;
 
-        this.old_topic = topic;
-        this.old_detail = detail;
-
-        this.topic = null;
+        this.topicEnum = null;
         this.message = null;
         this.fields = null;
     }
 
-    private HealthRecord(
-            final HealthStatus status,
-            final HealthTopic topicEnum,
-            final HealthMessage message,
-            final String[] fields
-    ) {
-
-        if (status == null) {
-            throw new NullPointerException("status cannot be null");
-        }
+    public HealthRecord(HealthStatus status, HealthTopic topicEnum, HealthMessage message, String[] fields) {
         this.status = status;
-
-        this.topic = topicEnum;
+        this.topicEnum = topicEnum;
         this.message = message;
         this.fields = fields;
 
-        this.old_topic = null;
-        this.old_detail = null;
+        this.topic = null;
+        this.detail = null;
     }
-
-    public static HealthRecord forMessage(HealthMessage message) {
-        return new HealthRecord(message.getStatus(), message.getTopic(), message, null);
-    }
-
-    public static HealthRecord forMessage(HealthMessage message, String... fields) {
-        return new HealthRecord(message.getStatus(), message.getTopic(), message, fields);
-    }
-
 
     public HealthStatus getStatus() {
         return status;
     }
 
     public String getTopic(final Locale locale, final Configuration config) {
-        if (oldStyle) {
-            return old_topic;
+        if (topic != null) {
+            return topic;
         }
-        return this.topic.getDescription(locale, config);
+        return LocaleHelper.getLocalizedMessage(locale,"ConfigTopic_" + topicEnum.toString(),config,Config.class);
     }
 
     public String getDetail(final Locale locale, final Configuration config) {
-        if (oldStyle) {
-            return old_detail;
+        if (detail != null) {
+            return detail;
         }
-        return this.message.getDescription(locale, config, fields);
-    }
-
-    public String toDebugString(final Locale locale, final Configuration config) {
-        if (oldStyle) {
-            return HealthRecord.class.getSimpleName() + " " + status + " " + old_topic + " " + old_detail;
-        }
-        final StringBuilder sb = new StringBuilder();
-        sb.append(HealthRecord.class.getSimpleName());
-        sb.append(" ");
-        sb.append(status.getDescription(locale,config));
-        sb.append(" ");
-        sb.append(this.getTopic(locale, config));
-        sb.append(" ");
-        sb.append(this.getDetail(locale, config));
-        return sb.toString();
+        return LocaleHelper.getLocalizedMessage(locale,"ConfigMessage_" + message.toString(),config,Config.class,fields);
     }
 
     public int compareTo(final HealthRecord otherHealthRecord) {
@@ -130,16 +82,11 @@ public class HealthRecord implements Serializable,Comparable<HealthRecord> {
             return statusCompare;
         }
 
-        final int topicCompare = this.getTopic(null,null).compareTo(otherHealthRecord.getTopic(null,null));
+        final int topicCompare = topic.compareTo(otherHealthRecord.topic);
         if (topicCompare != 0) {
             return topicCompare;
         }
 
-        final int detailCompare = this.getDetail(null,null).compareTo(otherHealthRecord.getDetail(null,null));
-        if (detailCompare != 0) {
-            return detailCompare;
-        }
-
-        return 0;
+        return detail.compareTo(otherHealthRecord.detail);
     }
 }

@@ -5,7 +5,7 @@
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -27,10 +27,9 @@
          contentType="text/html; charset=UTF-8" %>
 <%@ taglib uri="pwm" prefix="pwm" %>
 <%@ page isErrorPage="true" %>
-<% request.setAttribute(PwmConstants.REQUEST_ATTR_NO_REQ_COUNTER,"true"); %>
 <%@ include file="fragment/header.jsp" %>
 <% final int statusCode = pageContext.getErrorData().getStatusCode(); %>
-<body class="nihilo">
+<body onload="pwmPageLoadHandler();" class="nihilo">
 <div id="wrapper">
     <jsp:include page="fragment/header-body.jsp">
         <jsp:param name="pwm.PageName" value="Title_Error"/>
@@ -42,9 +41,9 @@
         <br/>
         <span id="message" class="message message-error">
             <% if (404 == statusCode) { %>
-            <%=PwmError.ERROR_HTTP_404.getLocalizedMessage(PwmSession.getPwmSession(session).getSessionStateBean().getLocale(),null)%>
+            <%=PwmError.getLocalizedMessage(PwmSession.getPwmSession(session).getSessionStateBean().getLocale(),PwmError.ERROR_HTTP_404,null)%>
             <% } else { %>
-            <%=PwmError.ERROR_UNKNOWN.getLocalizedMessage(PwmSession.getPwmSession(session).getSessionStateBean().getLocale(),null)%>
+            <%=PwmError.getLocalizedMessage(PwmSession.getPwmSession(session).getSessionStateBean().getLocale(),PwmError.ERROR_UNKNOWN,null)%>
             <% } %>
         </span>
         <br/>

@@ -23,7 +23,10 @@
 package password.pwm.tag;
 
 import org.apache.commons.lang.StringEscapeUtils;
-import password.pwm.*;
+import password.pwm.ContextManager;
+import password.pwm.PwmApplication;
+import password.pwm.PwmConstants;
+import password.pwm.PwmSession;
 import password.pwm.config.PwmSetting;
 import password.pwm.error.ErrorInformation;
 import password.pwm.error.PwmUnrecoverableException;
@@ -74,9 +77,7 @@ public class ErrorMessageTag extends PwmAbstractTag {
                 }  else {
                     errorMsg = error.toUserStr(pwmSession, pwmApplication);
                 }
-
-                final boolean allowHtml = Boolean.parseBoolean(pwmApplication.getConfig().readAppProperty(AppProperty.HTTP_HEADER_SEND_XVERSION));
-                if (!allowHtml) {
+                if (!PwmConstants.ALLOW_HTML_IN_ERROR_MESSAGES) {
                     errorMsg = StringEscapeUtils.escapeHtml(errorMsg);
                 }
                 pageContext.getOut().write(errorMsg);

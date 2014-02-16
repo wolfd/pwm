@@ -1,35 +1,37 @@
+<%@ page import="password.pwm.config.PwmSetting" %>
 <%@ page import="password.pwm.error.ErrorInformation" %>
 <%@ page import="password.pwm.error.PwmError" %>
 <%@ page import="password.pwm.util.ServletHelper" %>
 <%@ page import="password.pwm.util.stats.Statistic" %>
+<%@ page import="java.util.Locale" %>
 <%--
-  ~ Password Management Servlets (PWM)
-  ~ http://code.google.com/p/pwm/
-  ~
-  ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
-  ~
-  ~ This program is free software; you can redistribute it and/or modify
-  ~ it under the terms of the GNU General Public License as published by
-  ~ the Free Software Foundation; either version 2 of the License, or
-  ~ (at your option) any later version.
-  ~
-  ~ This program is distributed in the hope that it will be useful,
-  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  ~ GNU General Public License for more details.
-  ~
-  ~ You should have received a copy of the GNU General Public License
-  ~ along with this program; if not, write to the Free Software
-  ~ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-  --%>
+~ Password Management Servlets (PWM)
+~ http://code.google.com/p/pwm/
+~
+~ Copyright (c) 2006-2009 Novell, Inc.
+~ Copyright (c) 2009-2012 The PWM Project
+~
+~ This program is free software; you can redistribute it and/or modify
+~ it under the terms of the GNU General Public License as published by
+~ the Free Software Foundation; either version 2 of the License, or
+~ (at your option) any later version.
+~
+~ This program is distributed in the hope that it will be useful,
+~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+~ GNU General Public License for more details.
+~
+~ You should have received a copy of the GNU General Public License
+~ along with this program; if not, write to the Free Software
+~ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+--%>
 
 <!DOCTYPE html>
 <%@ page language="java" session="true" isThreadSafe="true"
          contentType="text/html; charset=UTF-8" %>
 <%@ taglib uri="pwm" prefix="pwm" %>
 <html dir="<pwm:LocaleOrientation/>">
-<% request.setAttribute(PwmConstants.REQUEST_ATTR_HIDE_THEME,"true"); %>
+<% request.setAttribute("noTheme","true"); %>
 <%@ include file="/WEB-INF/jsp/fragment/header.jsp" %>
 <% try { password.pwm.PwmSession.getPwmSession(session).unauthenticateUser(); } catch (Exception e) { }%>
 <%
@@ -40,7 +42,7 @@
         ServletHelper.forwardToErrorPage(request, response, true);
     }
 %>
-<body id="body" class="nihilo" style="background-color: black">
+<body id="body" class="nihilo" style="background-color: black" onload="pwmPageLoadHandler();">
 <div id="centerbody" style="margin-top: 0">
     <div id style="z-index: 3; position: relative; background: white; opacity: 0.9">
         <table id="form">
@@ -87,7 +89,7 @@
     function drawNextSprite() {
         require(["dojo","dojo/window"],function(dojo){
             if (passwordValue) {
-                var floatParent = PWM_MAIN.getObject("floatparent");
+                var floatParent = getObject("floatparent");
                 var vs = dojo.window.getBox();
 
                 posV += deltaV;
@@ -103,7 +105,7 @@
                 splatCount++;
                 var divId = "randomPwDiv" + splatCount % MAX_NODES;
                 { // remove old node
-                    var existingDiv = PWM_MAIN.getObject(divId);
+                    var existingDiv = getObject(divId);
                     if (existingDiv != null) {
                         floatParent.removeChild(existingDiv);
                     }
@@ -155,8 +157,8 @@
     function fetchRandomPassword() {
         require(["dojo"],function(dojo){
             dojo.xhrPost({
-                url: PWM_GLOBAL['url-restservice'] + "/randompassword",
-                headers: {"Accept":"application/json","X-RestClientKey":PWM_GLOBAL['restClientKey']},
+                url: PWM_GLOBAL['url-restservice'] + "/randompassword" + "?pwmFormID=" + PWM_GLOBAL['pwmFormID'],
+                headers: {"Accept":"application/json"},
                 dataType: "json",
                 timeout: 15000,
                 sync: false,
@@ -174,7 +176,7 @@
 
     function handleWarnFlash() {
         if (PWM_GLOBAL['pwm-health'] == "WARN") {
-            PWM_MAIN.flashDomElement(errorColor,'body',3000);
+            flashDomElement(errorColor,'body',3000);
         }
     }
 
@@ -201,7 +203,7 @@
     function startupHealthPage() {
         PWM_GLOBAL['pwm-health'] = 'GOOD';
         require(["dojo","dojo/domReady!","dojo/window"],function(dojo){
-            PWM_MAIN.flashDomElement('white','body',9000);
+            flashDomElement('white','body',9000);
 
             var vs = dojo.window.getBox();
             posH = Math.floor((Math.random() * (vs.w - 30)));
@@ -218,8 +220,12 @@
 
             drawNextSprite();
 
-            PWM_ADMIN.showAppHealth('healthBody', {showTimestamp:true});
-            PWM_ADMIN.showStatChart('<%=Statistic.PASSWORD_CHANGES%>',1,'statsChart',{refreshTime:31*1000});
+            showPwmHealth('healthBody', {showTimestamp:true});
+
+            showStatChart('<%=Statistic.PASSWORD_CHANGES%>',1,'statsChart');
+            setInterval(function(){
+                showStatChart('<%=Statistic.PASSWORD_CHANGES%>',1,'statsChart');
+            }, 31 * 1000);
 
             verticalCenter('centerbody');
             setInterval(function(){
@@ -234,8 +240,5 @@
         PWM_GLOBAL['idle_suspendTimeout'] = true;
     });
 </script>
-<script type="text/javascript" src="<%=request.getContextPath()%><pwm:url url='/public/resources/js/admin.js'/>"></script>
-<% request.setAttribute(PwmConstants.REQUEST_ATTR_HIDE_FOOTER_TEXT,"true"); %>
-<%@ include file="/WEB-INF/jsp/fragment/footer.jsp" %>
 </body>
 </html>

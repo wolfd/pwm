@@ -1,24 +1,3 @@
-/*
- * Password Management Servlets (PWM)
- * http://code.google.com/p/pwm/
- *
- * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2013 The PWM Project
- *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
- */
 package password.pwm.util.operations.cr;
 
 import com.google.gson.GsonBuilder;
@@ -42,21 +21,16 @@ import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-import password.pwm.AppProperty;
 import password.pwm.PwmApplication;
 import password.pwm.PwmConstants;
 import password.pwm.SessionManager;
 import password.pwm.bean.ResponseInfoBean;
-import password.pwm.bean.UserIdentity;
 import password.pwm.config.Configuration;
-import password.pwm.config.LdapProfile;
 import password.pwm.config.PwmSetting;
-import password.pwm.config.option.DataStorageMethod;
 import password.pwm.error.*;
-import password.pwm.ldap.LdapOperationsHelper;
+import password.pwm.util.Helper;
 import password.pwm.util.PwmLogger;
 import password.pwm.util.TimeDuration;
-import password.pwm.util.intruder.RecordType;
 
 import javax.security.auth.callback.Callback;
 import javax.security.auth.callback.CallbackHandler;
@@ -95,15 +69,12 @@ public class NMASCrOperator implements CrOperator {
 
     public NMASCrOperator(PwmApplication pwmApplication) {
         this.pwmApplication = pwmApplication;
-        maxThreadCount = Integer.parseInt(pwmApplication.getConfig().readAppProperty(AppProperty.NMAS_THREADS_MAX_COUNT));
-        final int MAX_SECONDS = Integer.parseInt(pwmApplication.getConfig().readAppProperty(AppProperty.NMAS_THREADS_MAX_SECONDS));
-        final int MIN_SECONDS = Integer.parseInt(pwmApplication.getConfig().readAppProperty(AppProperty.NMAS_THREADS_MIN_SECONDS));
-
+        maxThreadCount = PwmConstants.MAX_NMAS_THREAD_COUNT;
         int maxNmasIdleSeconds = (int)pwmApplication.getConfig().readSettingAsLong(PwmSetting.IDLE_TIMEOUT_SECONDS);
-        if (maxNmasIdleSeconds > MAX_SECONDS) {
-            maxNmasIdleSeconds = MAX_SECONDS;
-        } else if (maxNmasIdleSeconds < MIN_SECONDS) {
-            maxNmasIdleSeconds = MIN_SECONDS;
+        if (maxNmasIdleSeconds > PwmConstants.MAX_NMAS_THREAD_SECONDS) {
+            maxNmasIdleSeconds = PwmConstants.MAX_NMAS_THREAD_SECONDS;
+        } else if (maxNmasIdleSeconds < PwmConstants.MIN_NMAS_THREAD_SECONDS) {
+            maxNmasIdleSeconds = PwmConstants.MIN_NMAS_THREAD_SECONDS;
         }
         maxThreadIdleTime = new TimeDuration(maxNmasIdleSeconds * 1000);
     }
@@ -121,8 +92,7 @@ public class NMASCrOperator implements CrOperator {
                 if (timer == null) {
                     LOGGER.debug("starting NMASCrOperator watchdog timer, maxIdleThreadTime=" + maxThreadIdleTime.asCompactString());
                     timer = new Timer(PwmConstants.PWM_APP_NAME + "-NMASCrOperator watchdog timer",true);
-                    final long frequency = Long.parseLong(pwmApplication.getConfig().readAppProperty(AppProperty.NMAS_THREADS_WATCHDOG_FREQUENCY));
-                    timer.schedule(new ThreadWatchdogTask(),frequency,frequency);
+                    timer.schedule(new ThreadWatchdogTask(),PwmConstants.NMAS_WATCHDOG_FREQUENCY_MS,PwmConstants.NMAS_WATCHDOG_FREQUENCY_MS);
                 }
             }
         }
@@ -138,20 +108,19 @@ public class NMASCrOperator implements CrOperator {
 
     public ResponseSet readResponseSet(
             final ChaiUser theUser,
-            final UserIdentity userIdentity,
-            final String userGuid
+            final String user
     )
             throws PwmUnrecoverableException
     {
         final String userDN = theUser.getEntryDN();
-        pwmApplication.getIntruderManager().check(RecordType.USER_ID,userDN);
+        pwmApplication.getIntruderManager().check(null,theUser.getEntryDN(),null);
 
         try {
-            if (theUser.getChaiProvider().getDirectoryVendor() != ChaiProvider.DIRECTORY_VENDOR.NOVELL_EDIRECTORY) {
+            if (pwmApplication.getProxyChaiProvider().getDirectoryVendor() != ChaiProvider.DIRECTORY_VENDOR.NOVELL_EDIRECTORY) {
                 return null;
             }
 
-            final ResponseSet responseSet = new NMASCRResponseSet(pwmApplication, userIdentity);
+            final ResponseSet responseSet = new NMASCRResponseSet(pwmApplication, userDN);
             if (responseSet.getChallengeSet() == null) {
                 return null;
             }
@@ -165,7 +134,7 @@ public class NMASCrOperator implements CrOperator {
     }
 
     @Override
-    public ResponseInfoBean readResponseInfo(ChaiUser theUser, final UserIdentity userIdentity, String userGUID)
+    public ResponseInfoBean readResponseInfo(ChaiUser theUser, String userGUID)
             throws PwmUnrecoverableException
     {
         try {
@@ -173,7 +142,7 @@ public class NMASCrOperator implements CrOperator {
             if (responseSet == null) {
                 return null;
             }
-            final ResponseInfoBean responseInfoBean = CrOperators.convertToNoAnswerInfoBean(responseSet,DataStorageMethod.NMAS);
+            final ResponseInfoBean responseInfoBean = CrOperators.convertToNoAnswerInfoBean(responseSet);
             responseInfoBean.setTimestamp(null);
             return responseInfoBean;
         } catch (ChaiException e) {
@@ -268,27 +237,24 @@ public class NMASCrOperator implements CrOperator {
 
     public class NMASCRResponseSet implements ResponseSet, Serializable {
         private final PwmApplication pwmApplication;
-        private final UserIdentity userIdentity;
+        private final String userDN;
 
         final private ChaiConfiguration chaiConfiguration;
         private ChallengeSet challengeSet;
         private transient NMASResponseSession ldapChallengeSession;
         boolean passed;
 
-        private NMASCRResponseSet(PwmApplication pwmApplication, final UserIdentity userIdentity)
+        private NMASCRResponseSet(PwmApplication pwmApplication, final String userDN)
                 throws Exception
         {
             this.pwmApplication = pwmApplication;
-            this.userIdentity = userIdentity;
-
-            final LdapProfile ldapProfile = pwmApplication.getConfig().getLdapProfiles().get(userIdentity.getLdapProfileID());
+            this.userDN = userDN;
 
             final Configuration config = pwmApplication.getConfig();
             final List<String> ldapURLs = config.readSettingAsStringArray(PwmSetting.LDAP_SERVER_URLS);
             final String proxyDN = config.readSettingAsString(PwmSetting.LDAP_PROXY_USER_DN);
             final String proxyPW = config.readSettingAsString(PwmSetting.LDAP_PROXY_USER_PASSWORD);
-            chaiConfiguration = LdapOperationsHelper.createChaiConfiguration(config, ldapProfile, ldapURLs, proxyDN,
-                    proxyPW);
+            chaiConfiguration = Helper.createChaiConfiguration(config, ldapURLs, proxyDN, proxyPW, (int)maxThreadIdleTime.getMilliseconds());
             chaiConfiguration.setSetting(ChaiSetting.PROVIDER_IMPLEMENTATION, JLDAPProviderImpl.class.getName());
 
             cycle();
@@ -300,18 +266,18 @@ public class NMASCrOperator implements CrOperator {
                 ldapChallengeSession = null;
             }
             final LDAPConnection ldapConnection = makeLdapConnection();
-            ldapChallengeSession = new NMASResponseSession(userIdentity.getUserDN(),ldapConnection);
+            ldapChallengeSession = new NMASResponseSession(userDN,ldapConnection);
             final List<String> questions = ldapChallengeSession.getQuestions();
             challengeSet = questionsToChallengeSet(questions);
         }
 
         private LDAPConnection makeLdapConnection() throws Exception {
             final ChaiProvider chaiProvider = ChaiProviderFactory.createProvider(chaiConfiguration);
-            final ChaiUser theUser = ChaiFactory.createChaiUser(userIdentity.getUserDN(), chaiProvider);
+            final ChaiUser theUser = ChaiFactory.createChaiUser(userDN, chaiProvider);
             try {
                 if (theUser.isLocked()) {
                     LOGGER.trace("user " + theUser.getEntryDN() + " appears to be intruder locked, aborting nmas ResponseSet loading" );
-                    throw new PwmUnrecoverableException(new ErrorInformation(PwmError.ERROR_INTRUDER_LDAP,"nmas account is intruder locked-out"));
+                    throw new PwmUnrecoverableException(new ErrorInformation(PwmError.ERROR_INTRUDER_USER,"nmas account is intruder locked-out"));
                 } else if (!theUser.isAccountEnabled()) {
                     throw new PwmUnrecoverableException(new ErrorInformation(PwmError.ERROR_RESPONSES_NORESPONSES,"nmas account is disabled"));
                 }
@@ -384,7 +350,7 @@ public class NMASCrOperator implements CrOperator {
             if (!passed) {
                 try {
                     cycle();
-                    pwmApplication.getIntruderManager().convenience().checkUserIdentity(userIdentity);
+                    pwmApplication.getIntruderManager().check(null,userDN,null);
                     if (challengeSet == null) {
                         final String errorMsg = "unable to load next challenge set";
                         throw new ChaiUnavailableException(errorMsg, ChaiError.UNKNOWN);

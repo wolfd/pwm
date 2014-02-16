@@ -28,50 +28,27 @@ import password.pwm.i18n.Message;
 import java.util.Locale;
 
 public enum AuditEvent {
-
-    // system events
-    STARTUP(Message.EVENT_LOG_STARTUP, Type.SYSTEM, false),
-    SHUTDOWN(Message.EVENT_LOG_SHUTDOWN, Type.SYSTEM, false),
-    FATAL_EVENT(Message.EVENT_LOG_FATAL_EVENT, Type.SYSTEM, false),
-    MODIFY_CONFIGURATION(Message.EVENT_LOG_MODIFY_CONFIGURATION, Type.SYSTEM, false),
-
-    // user events
-    AUTHENTICATE(Message.EVENT_LOG_AUTHENTICATE, Type.USER, false),
-    CHANGE_PASSWORD(Message.EVENT_LOG_CHANGE_PASSWORD, Type.USER, true),
-    RECOVER_PASSWORD(Message.EVENT_LOG_RECOVER_PASSWORD, Type.USER, true),
-    SET_RESPONSES(Message.EVENT_LOG_SETUP_RESPONSES, Type.USER, true),
-    SET_OTP_SECRET(Message.EVENT_LOG_SETUP_OTP_SECRET, Type.USER, true),
-    ACTIVATE_USER(Message.EVENT_LOG_ACTIVATE_USER, Type.USER, true),
-    CREATE_USER(Message.EVENT_LOG_CREATE_USER, Type.USER, true),
-    UPDATE_PROFILE(Message.EVENT_LOG_UPDATE_PROFILE, Type.USER, true),
-    INTRUDER_LOCK(Message.EVENT_LOG_INTRUDER_LOCKOUT, Type.USER, true),
-    TOKEN_ISSUED(Message.EVENT_LOG_TOKEN_ISSUED, Type.USER, false),
-    TOKEN_CLAIMED(Message.EVENT_LOG_TOKEN_CLAIMED, Type.USER, false),
-    HELPDESK_SET_PASSWORD(Message.EVENT_LOG_HELPDESK_SET_PASSWORD, Type.USER, true),
-    HELPDESK_UNLOCK_PASSWORD(Message.EVENT_LOG_HELPDESK_UNLOCK_PASSWORD, Type.USER, true),
-    HELPDESK_CLEAR_RESPONSES(Message.EVENT_LOG_HELPDESK_CLEAR_RESPONSES, Type.USER, true),
-    HELPDESK_CLEAR_OTP_SECRET(Message.EVENT_LOG_HELPDESK_CLEAR_OTP_SECRET, Type.USER, true),
-    HELPDESK_ACTION(Message.EVENT_LOG_HELPDESK_ACTION, Type.USER, true),
-
-
-    ;
+    AUTHENTICATE(Message.EVENT_LOG_AUTHENTICATE),
+    CHANGE_PASSWORD(Message.EVENT_LOG_CHANGE_PASSWORD),
+    RECOVER_PASSWORD(Message.EVENT_LOG_RECOVER_PASSWORD),
+    SET_RESPONSES(Message.EVENT_LOG_SETUP_RESPONSES),
+    ACTIVATE_USER(Message.EVENT_LOG_ACTIVATE_USER),
+    CREATE_USER(Message.EVENT_LOG_CREATE_USER),
+    UPDATE_PROFILE(Message.EVENT_LOG_UPDATE_PROFILE),
+    INTRUDER_LOCK(Message.EVENT_LOG_INTRUDER_LOCKOUT),
+    HELPDESK_SET_PASSWORD(Message.EVENT_LOG_HELPDESK_SET_PASSWORD),
+    HELPDESK_UNLOCK_PASSWORD(Message.EVENT_LOG_HELPDESK_UNLOCK_PASSWORD),
+    HELPDESK_CLEAR_RESPONSES(Message.EVENT_LOG_HELPDESK_CLEAR_RESPONSES),
+    UNKNOWN(null);
 
     final private Message message;
-    final private boolean storeOnUser;
-    private Type type;
 
-    AuditEvent(final Message message, final Type type, boolean storeOnUser) {
+    AuditEvent(final Message message) {
         this.message = message;
-        this.storeOnUser = storeOnUser;
-        this.type = type;
     }
 
     public Message getMessage() {
         return message;
-    }
-
-    public boolean isStoreOnUser() {
-        return storeOnUser;
     }
 
     public static AuditEvent forKey(final String key) {
@@ -85,7 +62,7 @@ public enum AuditEvent {
             }
         }
 
-        return null;
+        return UNKNOWN;
     }
 
     public String getLocalizedString(final Configuration config, final Locale locale) {
@@ -93,14 +70,5 @@ public enum AuditEvent {
             return "[unknown event]";
         }
         return Message.getLocalizedMessage(locale,this.getMessage(),config);
-    }
-
-    public Type getType() {
-        return type;
-    }
-
-    public enum Type {
-        USER,
-        SYSTEM
     }
 }

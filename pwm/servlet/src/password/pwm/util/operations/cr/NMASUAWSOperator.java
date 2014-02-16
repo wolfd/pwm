@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2013 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,9 +31,7 @@ import com.novell.ldapchai.exception.ChaiValidationException;
 import password.pwm.PwmApplication;
 import password.pwm.PwmConstants;
 import password.pwm.bean.ResponseInfoBean;
-import password.pwm.bean.UserIdentity;
 import password.pwm.config.PwmSetting;
-import password.pwm.config.option.DataStorageMethod;
 import password.pwm.error.ErrorInformation;
 import password.pwm.error.PwmError;
 import password.pwm.error.PwmUnrecoverableException;
@@ -60,12 +58,12 @@ public class NMASUAWSOperator implements CrOperator {
     }
 
     @Override
-    public ResponseSet readResponseSet(final ChaiUser theUser, final UserIdentity userIdentity, final String userGUID) throws PwmUnrecoverableException {
+    public ResponseSet readResponseSet(ChaiUser theUser, String userGUID) throws PwmUnrecoverableException {
         return readResponsesFromNovellUA(pwmApplication,theUser);
     }
 
     @Override
-    public ResponseInfoBean readResponseInfo(final ChaiUser theUser, final UserIdentity userIdentity, final String userGUID) throws PwmUnrecoverableException {
+    public ResponseInfoBean readResponseInfo(ChaiUser theUser, String userGUID) throws PwmUnrecoverableException {
         final ResponseSet responseSet = readResponsesFromNovellUA(pwmApplication,theUser);
         if (responseSet == null) {
             return null;
@@ -86,8 +84,7 @@ public class NMASUAWSOperator implements CrOperator {
                     helpdeskCrMap,
                     PwmConstants.DEFAULT_LOCALE,
                     responseSet.getChallengeSet().getMinRandomRequired(),
-                    responseSet.getChallengeSet().getIdentifier(),
-                    DataStorageMethod.NMASUAWS
+                    responseSet.getChallengeSet().getIdentifier()
             );
         } catch (ChaiValidationException e) {
             LOGGER.error("unexpected error converting NMASUserAppWebService ResponseSet to ResponseInfoBean: " + e.getMessage());

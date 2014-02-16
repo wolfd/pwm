@@ -4,7 +4,7 @@
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -31,9 +31,8 @@
     } catch (PwmUnrecoverableException e) {
         errorInfo = e.getErrorInformation();
     } %>
-<% request.setAttribute(PwmConstants.REQUEST_ATTR_NO_REQ_COUNTER,"true"); %>
 <%@ include file="fragment/header.jsp" %>
-<body class="nihilo">
+<body onload="pwmPageLoadHandler();" class="nihilo">
 <div id="wrapper">
     <jsp:include page="fragment/header-body.jsp">
         <jsp:param name="pwm.PageName" value="Title_Error"/>
@@ -48,7 +47,6 @@
         <br/>
         <br/>
         <% if (pwmApplicationHeader != null && pwmApplicationHeader.getApplicationMode() != PwmApplication.MODE.ERROR) { %>
-        <% if (errorInfo != null && !errorInfo.getError().isErrorIsPermanent()) { %>
         <div id="buttonbar">
             <form action="<%=request.getContextPath()%>/public/<pwm:url url='CommandServlet'/>" method="post"
                   enctype="application/x-www-form-urlencoded">
@@ -57,10 +55,9 @@
                        value="continue"/>
                 <input type="submit" name="button" class="btn"
                        value="    <pwm:Display key="Button_Continue"/>    "
-                       id="button_continue" autofocus="autofocus"/>
+                       id="button_continue"/>
             </form>
         </div>
-        <% } %>
         <% } %>
     </div>
     <div class="push"></div>

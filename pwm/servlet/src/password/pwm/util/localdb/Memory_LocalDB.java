@@ -52,7 +52,7 @@ public class Memory_LocalDB implements LocalDBProvider {
             Helper.pause(100);
             System.gc();
             if (currentFreeMem < MIN_FREE_MEMORY) {
-                throw new LocalDBException(new ErrorInformation(PwmError.ERROR_LOCALDB_UNAVAILABLE,"out of memory, unable to add new records"));
+                throw new LocalDBException(new ErrorInformation(PwmError.ERROR_PWMDB_UNAVAILABLE,"out of memory, unable to add new records"));
             }
         }
     }
@@ -116,7 +116,7 @@ public class Memory_LocalDB implements LocalDBProvider {
         state = LocalDB.Status.OPEN;
     }
 
-    public LocalDB.LocalDBIterator<String> iterator(final DB db) throws LocalDBException {
+    public LocalDB.PwmDBIterator<String> iterator(final DB db) throws LocalDBException {
         return new DbIterator(db);
     }
 
@@ -184,7 +184,7 @@ public class Memory_LocalDB implements LocalDBProvider {
 
 // -------------------------- INNER CLASSES --------------------------
 
-    private class DbIterator<K> implements LocalDB.LocalDBIterator<String> {
+    private class DbIterator<K> implements LocalDB.PwmDBIterator<String> {
         private final Iterator<String> iterator;
 
         private DbIterator(final DB db) {

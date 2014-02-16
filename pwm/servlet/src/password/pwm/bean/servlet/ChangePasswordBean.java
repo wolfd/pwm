@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,10 +22,7 @@
 
 package password.pwm.bean.servlet;
 
-import password.pwm.PasswordChangeProgressChecker;
 import password.pwm.bean.PwmSessionBean;
-
-import java.util.Date;
 
 /**
  * @author Jason D. Rivard
@@ -34,17 +31,20 @@ public class ChangePasswordBean implements PwmSessionBean {
 // ------------------------------ FIELDS ------------------------------
 
     // ------------------------- PUBLIC CONSTANTS -------------------------
+    private String newPassword;
     private boolean agreementPassed;
     private boolean currentPasswordRequired;
     private boolean currentPasswordPassed;
     private boolean formPassed;
     private boolean allChecksPassed;
 
-    private PasswordChangeProgressChecker.ProgressTracker changeProgressTracker;
-    private Date changePasswordMaxCompletion;
-
 
 // --------------------- GETTER / SETTER METHODS ---------------------
+
+    public String getNewPassword()
+    {
+        return newPassword;
+    }
 
     public boolean isAgreementPassed() {
         return agreementPassed;
@@ -86,24 +86,16 @@ public class ChangePasswordBean implements PwmSessionBean {
         this.allChecksPassed = allChecksPassed;
     }
 
-    public PasswordChangeProgressChecker.ProgressTracker getChangeProgressTracker()
+    // -------------------------- OTHER METHODS --------------------------
+
+    public void clearPassword()
     {
-        return changeProgressTracker;
+        newPassword = null;
     }
 
-    public void setChangeProgressTracker(PasswordChangeProgressChecker.ProgressTracker changeProgressTracker)
+    public void setNewPassword(final String newPassword)
     {
-        this.changeProgressTracker = changeProgressTracker;
-    }
-
-    public Date getChangePasswordMaxCompletion()
-    {
-        return changePasswordMaxCompletion;
-    }
-
-    public void setChangePasswordMaxCompletion(Date changePasswordMaxCompletion)
-    {
-        this.changePasswordMaxCompletion = changePasswordMaxCompletion;
+        this.newPassword = newPassword;
     }
 }
 

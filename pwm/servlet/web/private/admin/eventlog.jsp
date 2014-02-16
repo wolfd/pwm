@@ -3,7 +3,7 @@
   ~ http://code.google.com/p/pwm/
   ~
   ~ Copyright (c) 2006-2009 Novell, Inc.
-  ~ Copyright (c) 2009-2014 The PWM Project
+  ~ Copyright (c) 2009-2012 The PWM Project
   ~
   ~ This program is free software; you can redistribute it and/or modify
   ~ it under the terms of the GNU General Public License as published by
@@ -21,13 +21,13 @@
   --%>
 
 <%@ page import="com.google.gson.Gson" %>
-<%@ page import="password.pwm.util.Helper" %>
 <%@ page import="password.pwm.util.LocalDBLogger" %>
 <%@ page import="password.pwm.util.PwmLogEvent" %>
 <%@ page import="password.pwm.util.PwmLogLevel" %>
 <%@ page import="java.text.NumberFormat" %>
 <%@ page import="java.util.LinkedHashMap" %>
 <%@ page import="java.util.Map" %>
+<%@ page import="java.util.TimeZone" %>
 <!DOCTYPE html>
 <%@ page language="java" session="true" isThreadSafe="true"
          contentType="text/html; charset=UTF-8" %>
@@ -36,15 +36,16 @@
 <html dir="<pwm:LocaleOrientation/>">
 <%@ include file="/WEB-INF/jsp/fragment/header.jsp" %>
 <% final LocalDBLogger localDBLogger = ContextManager.getPwmApplication(session).getLocalDBLogger(); %>
-<body class="nihilo">
+<body class="nihilo" onload="pwmPageLoadHandler();">
 <div id="wrapper">
     <jsp:include page="/WEB-INF/jsp/fragment/header-body.jsp">
         <jsp:param name="pwm.PageName" value="Event Log"/>
     </jsp:include>
-    <div id="centerbody" style="width: 96%; margin-left: 2%; margin-right: 2%; background: white">
+    <br/>
     <%@ include file="admin-nav.jsp" %>
+    <div style="width: 96%; margin-left: 2%; margin-right: 2%; background: white">
         <form action="<pwm:url url='eventlog.jsp'/>" method="get" enctype="application/x-www-form-urlencoded"
-              name="searchForm" id="searchForm" onsubmit="PWM_MAIN.handleFormSubmit('submit_button',this)">
+              name="searchForm" id="searchForm" onsubmit="handleFormSubmit('submit_button',this)">
             <table style="">
                 <tr style="width:0">
                     <td class="key" style="border:0">
@@ -180,11 +181,13 @@
         <script type="text/javascript">
             var data = [];
             <%
-                final Gson gson = Helper.getGson();
+                final SimpleDateFormat timeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                final Gson gson = new Gson();
+                timeFormat.setTimeZone(TimeZone.getTimeZone("Zulu"));
                 for (final PwmLogEvent event : searchResults.getEvents()) {
                     try {
-                        final Map<String, Object> rowData = new LinkedHashMap<String, Object>();
-                        rowData.put("timestamp", event.getDate());
+                        final Map<String, String> rowData = new LinkedHashMap<String, String>();
+                        rowData.put("timestamp", timeFormat.format(event.getDate()));
                         rowData.put("level", event.getLevel().toString());
                         rowData.put("src", event.getSource());
                         rowData.put("user", event.getActor());
@@ -224,7 +227,7 @@
                                 }, "dgrid");
                                 grid.set("sort","timestamp");
                                 grid.renderArray(data);
-                                PWM_MAIN.getObject('WaitDialogBlank').style.display = 'none';
+                                getObject('WaitDialogBlank').style.display = 'none';
                             });
                 };
             </script>

@@ -29,12 +29,10 @@ import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.util.EntityUtils;
 import password.pwm.config.PwmSetting;
-import password.pwm.config.option.DataStorageMethod;
 import password.pwm.error.ErrorInformation;
 import password.pwm.error.PwmError;
 import password.pwm.health.HealthRecord;
 import password.pwm.health.HealthStatus;
-import password.pwm.i18n.Display;
 import password.pwm.util.Helper;
 import password.pwm.util.PwmLogger;
 import password.pwm.util.TimeDuration;
@@ -45,7 +43,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -70,11 +67,11 @@ public class VersionChecker implements PwmService {
             try {
                 final String versionChkInfoJson = pwmApplication.getLocalDB().get(LocalDB.DB.PWM_META,PWMDB_KEY_VERSION_CHECK_INFO_CACHE);
                 if (versionChkInfoJson != null && versionChkInfoJson.length() > 0) {
-                    final Gson gson = Helper.getGson();
+                    final Gson gson = new Gson();
                     versionCheckInfoCache = gson.fromJson(versionChkInfoJson, VersionCheckInfoCache.class);
                 }
             } catch (LocalDBException e) {
-                LOGGER.error("error reading version check info out of LocalDB: " + e.getMessage());
+                LOGGER.error("error reading version check info out of PwmDB: " + e.getMessage());
             }
         }
 
@@ -89,7 +86,7 @@ public class VersionChecker implements PwmService {
 
     public String currentVersion() {
         if (!pwmApplication.getConfig().readSettingAsBoolean(PwmSetting.VERSION_CHECK_ENABLE)) {
-            return Display.getLocalizedMessage(PwmConstants.DEFAULT_LOCALE, "Value_NotApplicable", pwmApplication.getConfig());
+            return "n/a";
         }
 
         try {
@@ -100,15 +97,11 @@ public class VersionChecker implements PwmService {
         } catch (Exception e) {
             LOGGER.error("unable to retrieve current version data from cloud: " + e.toString());
         }
-        return Display.getLocalizedMessage(PwmConstants.DEFAULT_LOCALE, "Value_NotApplicable", pwmApplication.getConfig());
+        return "n/a";
     }
 
     public boolean isVersionCurrent() {
         if (!pwmApplication.getConfig().readSettingAsBoolean(PwmSetting.VERSION_CHECK_ENABLE)) {
-            return true;
-        }
-
-        if (PwmConstants.BUILD_NUMBER == null || PwmConstants.BUILD_NUMBER.length() < 1) {
             return true;
         }
 
@@ -155,11 +148,11 @@ public class VersionChecker implements PwmService {
 
         if (pwmApplication.getLocalDB() != null && pwmApplication.getLocalDB().status() == LocalDB.Status.OPEN) {
             try {
-                final Gson gson = Helper.getGson();
+                final Gson gson = new Gson();
                 final String gsonVersionInfo = gson.toJson(versionCheckInfoCache);
                 pwmApplication.getLocalDB().put(LocalDB.DB.PWM_META,PWMDB_KEY_VERSION_CHECK_INFO_CACHE,gsonVersionInfo);
             } catch (LocalDBException e) {
-                LOGGER.error("error writing version check info out of LocalDB: " + e.getMessage());
+                LOGGER.error("error writing version check info out of PwmDB: " + e.getMessage());
             }
         }
 
@@ -177,7 +170,7 @@ public class VersionChecker implements PwmService {
             throw new IOException("http response error code: " + httpResponse.getStatusLine().getStatusCode());
         }
         final String responseBody = EntityUtils.toString(httpResponse.getEntity());
-        Gson gson = Helper.getGson();
+        Gson gson = new Gson();
         return gson.fromJson(responseBody, new TypeToken<Map<String, String>>() {}.getType());
     }
 
@@ -196,10 +189,10 @@ public class VersionChecker implements PwmService {
             if (checkInfoCache.getLastError() == null) {
                 if (!isVersionCurrent()) {
                     final StringBuilder healthMsg = new StringBuilder();
-                    healthMsg.append("This version of " + PwmConstants.PWM_APP_NAME + " is out of date.");
+                    healthMsg.append("This version of PWM is out of date.");
                     healthMsg.append("  The current version is ").append(versionCheckInfoCache.getCurrentVersion());
                     healthMsg.append(" (b").append(versionCheckInfoCache.getCurrentBuild()).append(").");
-                    healthMsg.append("  Check the project page for more information.");
+                    healthMsg.append("  Check the PWM project page for more information.");
                     returnRecords.add(new HealthRecord(HealthStatus.CAUTION,"Version",healthMsg.toString()));
                 }
             } else {
@@ -238,10 +231,5 @@ public class VersionChecker implements PwmService {
         public String getCurrentBuild() {
             return currentBuild;
         }
-    }
-
-    public ServiceInfo serviceInfo()
-    {
-        return new ServiceInfo(Collections.<DataStorageMethod>emptyList());
     }
 }

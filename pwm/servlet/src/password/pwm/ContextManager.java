@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,7 +28,6 @@ import password.pwm.error.ErrorInformation;
 import password.pwm.error.PwmError;
 import password.pwm.error.PwmUnrecoverableException;
 import password.pwm.servlet.ResourceFileServlet;
-import password.pwm.util.Helper;
 import password.pwm.util.PwmLogger;
 import password.pwm.util.ServletHelper;
 
@@ -38,7 +37,6 @@ import javax.servlet.http.HttpSession;
 import java.io.File;
 import java.io.Serializable;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class ContextManager implements Serializable {
 // ------------------------------ FIELDS ------------------------------
@@ -54,7 +52,7 @@ public class ContextManager implements Serializable {
 
     private volatile boolean restartRequestedFlag = false;
 
-    private final transient Set<PwmSession> activeSessions = Collections.newSetFromMap(new ConcurrentHashMap<PwmSession, Boolean>());
+    private final transient Map<PwmSession, Object> activeSessions = new WeakHashMap<PwmSession, Object>();
 
     public ContextManager(ServletContext servletContext) {
         this.servletContext = servletContext;
@@ -70,10 +68,6 @@ public class ContextManager implements Serializable {
         return getContextManager(session.getServletContext()).getPwmApplication();
     }
 
-    public static PwmApplication getPwmApplication(final ServletContext theContext) throws PwmUnrecoverableException {
-        return getContextManager(theContext).getPwmApplication();
-    }
-
     public static ContextManager getContextManager(final HttpSession session) throws PwmUnrecoverableException {
         return getContextManager(session.getServletContext());
     }
@@ -83,7 +77,7 @@ public class ContextManager implements Serializable {
         final Object theManager = theContext.getAttribute(PwmConstants.CONTEXT_ATTR_CONTEXT_MANAGER);
         if (theManager == null) {
             final String errorMsg = "unable to load the context manager from servlet context";
-            final ErrorInformation errorInformation = new ErrorInformation(PwmError.ERROR_APP_UNAVAILABLE,errorMsg);
+            final ErrorInformation errorInformation = new ErrorInformation(PwmError.ERROR_PWM_UNAVAILABLE,errorMsg);
             throw new PwmUnrecoverableException(errorInformation);
         }
 
@@ -100,7 +94,7 @@ public class ContextManager implements Serializable {
             if (startupErrorInformation != null) {
                 errorInformation = startupErrorInformation;
             } else {
-                errorInformation = new ErrorInformation(PwmError.ERROR_APP_UNAVAILABLE,"application is not yet available, please try again in a moment.");
+                errorInformation = new ErrorInformation(PwmError.ERROR_PWM_UNAVAILABLE,"application is not yet available");
             }
             throw new PwmUnrecoverableException(errorInformation);
         }
@@ -125,78 +119,48 @@ public class ContextManager implements Serializable {
             startupErrorInformation = doTest.doTest();
         }
 
-        Configuration configuration = null;
-        File pwmApplicationPath = null;
-        PwmApplication.MODE mode = PwmApplication.MODE.ERROR;
-        File configurationFile = null;
         try {
+            Configuration configuration = null;
+            File pwmApplicationPath = null;
             if (startupErrorInformation == null) {
                 final String configFilePathName = servletContext.getInitParameter(PwmConstants.CONFIG_FILE_CONTEXT_PARAM);
-                configurationFile = ServletHelper.figureFilepath(configFilePathName, "WEB-INF/", servletContext);
+                final File configurationFile = ServletHelper.figureFilepath(configFilePathName, "WEB-INF/", servletContext);
                 configReader = new ConfigurationReader(configurationFile);
-                configReader.getStoredConfiguration().lock();
                 configuration = configReader.getConfiguration();
                 pwmApplicationPath = (ServletHelper.figureFilepath(".", "WEB-INF/", servletContext)).getCanonicalFile();
             }
-
-            if (configReader == null) {
-                mode = startupErrorInformation == null ? PwmApplication.MODE.ERROR : PwmApplication.MODE.ERROR;
-            } else {
-                mode = startupErrorInformation == null ? configReader.getConfigMode() : PwmApplication.MODE.ERROR;
-            }
-
+            final PwmApplication.MODE mode = startupErrorInformation == null ? (configReader == null ? PwmApplication.MODE.ERROR : configReader.getConfigMode()) : PwmApplication.MODE.ERROR;
             if (startupErrorInformation == null) {
                 startupErrorInformation = configReader.getConfigFileError();
             }
-
             if (PwmApplication.MODE.ERROR == mode) {
                 System.err.println("Startup Error: " + startupErrorInformation == null ? "un-specified error" : startupErrorInformation.toDebugStr());
                 System.out.println("Startup Error: " + startupErrorInformation == null ? "un-specified error" : startupErrorInformation.toDebugStr());
             }
-        } catch (Throwable e) {
-            handleStartupError("unable to initialize pwm due to configuration related error: ",e);
-        }
-
-        try {
             pwmApplication = new PwmApplication(configuration, mode, pwmApplicationPath);
+        } catch (OutOfMemoryError e) {
+            final String errorMsg = "JAVA OUT OF MEMORY ERROR!, please allocate more memory for java: " + e.getMessage();
+            startupErrorInformation = new ErrorInformation(PwmError.ERROR_PWM_UNAVAILABLE, errorMsg);
+            try {LOGGER.fatal(errorMsg);} catch (Exception e2) {/* we tried anyway.. */}
+            System.err.println(errorMsg);
         } catch (Exception e) {
-            handleStartupError("unable to initialize pwm: ",e);
+            final String errorMsg = "unable to initialize pwm due to configuration related error: " + e.getMessage();
+            startupErrorInformation = new ErrorInformation(PwmError.ERROR_PWM_UNAVAILABLE, errorMsg);
+            try {LOGGER.fatal(errorMsg);} catch (Exception e2) {/* we tried anyway.. */}
+            System.err.println(errorMsg);
+            System.out.println(errorMsg);
+            e.printStackTrace();
         }
 
         if ("true".equalsIgnoreCase(servletContext.getInitParameter("configChange-reload"))) {
-            final String threadName = Helper.makeThreadName(pwmApplication, this.getClass()) + " timer";
-            taskMaster = new Timer(threadName, true);
+            taskMaster = new Timer(PwmConstants.PWM_APP_NAME + "-ContextManager timer", true);
             taskMaster.schedule(new ConfigFileWatcher(), PwmConstants.CONFIG_FILE_SCAN_FREQUENCY, PwmConstants.CONFIG_FILE_SCAN_FREQUENCY);
-            taskMaster.schedule(new SessionWatcherTask(), 5031, 5031);
+            taskMaster.schedule(new SessionWatcherTask(), PwmConstants.CONFIG_FILE_SCAN_FREQUENCY, PwmConstants.CONFIG_FILE_SCAN_FREQUENCY);
         }
-
-        LOGGER.debug(
-                "configuration file was loaded from " + (configurationFile == null ? "null" : configurationFile.getAbsoluteFile()));
-    }
-
-    private void handleStartupError(final String msgPrefix, final Throwable throwable) {
-        final String errorMsg;
-        if (throwable instanceof OutOfMemoryError) {
-            errorMsg = "JAVA OUT OF MEMORY ERROR!, please allocate more memory for java: " + throwable.getMessage();
-        } else {
-            errorMsg = throwable.getMessage();
-        }
-
-        startupErrorInformation = new ErrorInformation(PwmError.ERROR_APP_UNAVAILABLE, msgPrefix + errorMsg);
-
-        try {
-            LOGGER.fatal(errorMsg);
-        } catch (Exception e2) {
-            // noop
-        }
-
-        System.err.println(errorMsg);
-        System.out.println(errorMsg);
-        throwable.printStackTrace();
     }
 
     void shutdown() {
-        startupErrorInformation = new ErrorInformation(PwmError.ERROR_APP_UNAVAILABLE, "shutting down");
+        startupErrorInformation = new ErrorInformation(PwmError.ERROR_PWM_UNAVAILABLE, "shutting down");
         try {
             final PwmApplication methodLocalPwmApp = this.getPwmApplication();
             methodLocalPwmApp.shutdown();
@@ -221,23 +185,19 @@ public class ContextManager implements Serializable {
     public void reinitialize() {
         if ("true".equalsIgnoreCase(servletContext.getInitParameter("configChange-reload"))) {
             restartRequestedFlag = true;
-            try {
-                taskMaster.schedule(new ConfigFileWatcher(),0);
-            } catch (IllegalStateException e) {
-                LOGGER.debug("could not schedule config file watcher, timer is in illegal state: " + e.getMessage());
-            }
+            taskMaster.schedule(new ConfigFileWatcher(),0);
         } else {
             LOGGER.info("skipping application restart due to web.xml configChange-reload=false");
         }
     }
 
     public Set<PwmSession> getPwmSessions() {
-        return Collections.unmodifiableSet(activeSessions);
+        return Collections.unmodifiableSet(activeSessions.keySet());
     }
 
     public void addPwmSession(final PwmSession pwmSession) {
         try {
-            activeSessions.add(pwmSession);
+            activeSessions.put(pwmSession, new Object());
         } catch (Exception e) {
             LOGGER.trace("error adding new session to list of known sessions: " + e.getMessage());
         }
@@ -251,20 +211,24 @@ public class ContextManager implements Serializable {
 
     public class SessionWatcherTask extends TimerTask {
         public void run() {
-            final Set<PwmSession> copiedMap = new HashSet<PwmSession>();
+            final Map<PwmSession, Object> copiedMap = new HashMap<PwmSession, Object>();
 
             try {
-                copiedMap.addAll(activeSessions);
+                synchronized (activeSessions) {
+                    copiedMap.putAll(activeSessions);
+                }
 
                 final Set<PwmSession> deadSessions = new HashSet<PwmSession>();
 
-                for (final PwmSession pwmSession : copiedMap) {
+                for (final PwmSession pwmSession : copiedMap.keySet()) {
                     if (!pwmSession.isValid()) {
                         deadSessions.add(pwmSession);
                     }
                 }
 
-                activeSessions.removeAll(deadSessions);
+                synchronized (activeSessions) {
+                    activeSessions.keySet().removeAll(deadSessions);
+                }
             } catch (Throwable e) {
                 LOGGER.error("error clearing sessions during restart: " + e.getMessage());
             }
@@ -290,6 +254,7 @@ public class ContextManager implements Serializable {
             LOGGER.info("beginning application restart");
             try {
                 ResourceFileServlet.clearCache(servletContext);
+                pwmApplication.setLastLdapFailure(null);
                 shutdown();
             } catch (Exception e) {
                 LOGGER.fatal("unexpected error during pwm shutdown: " + e.getMessage(),e);
@@ -331,7 +296,7 @@ public class ContextManager implements Serializable {
                 System.out.println(errorMsg);
                 System.err.println(errorMsg);
                 LOGGER.fatal(errorMsg);
-                return new ErrorInformation(PwmError.ERROR_APP_UNAVAILABLE, errorMsg);
+                return new ErrorInformation(PwmError.ERROR_PWM_UNAVAILABLE, errorMsg);
             }
             return null;
         }

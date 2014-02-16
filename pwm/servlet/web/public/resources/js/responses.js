@@ -3,7 +3,7 @@
  * http://code.google.com/p/pwm/
  *
  * Copyright (c) 2006-2009 Novell, Inc.
- * Copyright (c) 2009-2014 The PWM Project
+ * Copyright (c) 2009-2012 The PWM Project
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,137 +27,107 @@ var PARAM_QUESTION_PREFIX = "PwmResponse_Q_";
 PWM_GLOBAL['simpleRandomSelectElements'] = {};
 PWM_GLOBAL['simpleRandomOptions'] = [];
 
-var PWM_RESPONSES = PWM_RESPONSES || {};
-
 // takes response values in the fields, sends an http request to the servlet
 // and then parses (and displays) the response from the servlet.
-PWM_RESPONSES.validateResponses=function() {
+function validateResponses() {
     require(["dojo/dom-form"], function(domForm){
         var serviceUrl = PWM_GLOBAL['url-setupresponses'] + "?processAction=validateResponses";
         if (PWM_GLOBAL['responseMode']) {
             serviceUrl += "&responseMode=" + PWM_GLOBAL['responseMode'];
         }
         var validationProps = {};
-        validationProps['messageWorking'] = PWM_MAIN.showString('Display_CheckingResponses');
+        validationProps['messageWorking'] = showString('Display_CheckingResponses');
         validationProps['serviceURL'] = serviceUrl;
         validationProps['readDataFunction'] = function(){
             return domForm.toObject('setupResponses');
         };
         validationProps['processResultsFunction'] = function(data){
-            PWM_RESPONSES.updateDisplay(data);
+            updateDisplay(data);
         };
 
-        PWM_MAIN.pwmFormValidator(validationProps);
+        pwmFormValidator(validationProps);
     });
-};
+}
 
-PWM_RESPONSES.updateDisplay=function(resultInfo) {
+function updateDisplay(resultInfo)
+{
     if (resultInfo == null) {
-        PWM_MAIN.getObject("setresponses_button").disabled = false;
+        getObject("setresponses_button").disabled = false;
         return;
     }
 
     var result = resultInfo["message"];
 
     if (resultInfo["success"] == true) {
-        PWM_MAIN.getObject("setresponses_button").disabled = false;
-        PWM_MAIN.showSuccess(result);
+        getObject("setresponses_button").disabled = false;
+        showSuccess(result);
     } else {
-        PWM_MAIN.getObject("setresponses_button").disabled = true;
-        PWM_MAIN.showError(result);
+        getObject("setresponses_button").disabled = true;
+        showError(result);
     }
-};
+}
 
-PWM_RESPONSES.makeSelectOptionsDistinct=function() {
+function makeSelectOptionsDistinct() {
     require(["dojo","dijit/registry","dojo/_base/array","dojo/on","dojo/data/ObjectStore","dojo/store/Memory"],
         function(dojo,registry,array,dojoOn,ObjectStore,Memory){
-            var startTime = (new Date()).getTime();
-            console.log('entering makeSelectOptionsDistinct()');
+        console.log('entering makeSelectOptionsDistinct()');
+        var allPossibleTexts = PWM_GLOBAL['simpleRandomOptions'];
+        var initialChoiceText = showString('Display_SelectionIndicator');
+        var simpleRandomSelectElements = PWM_GLOBAL['simpleRandomSelectElements'];
+        var currentlySelectedTexts = [];
 
-            // cancel all the existing onchange events so they dont trigger while this function manipulates the select elements
-            if (PWM_GLOBAL['randomSelectEventHandlers']) {
-                for (var eventHandler in PWM_GLOBAL['randomSelectEventHandlers']) {
-                    (function(eventHandler){
-                        PWM_GLOBAL['randomSelectEventHandlers'][eventHandler].remove();
-                    }(eventHandler));
+        for (var responseID in simpleRandomSelectElements) {
+            (function(responseID){
+                var selectWidget = registry.byId(responseID);
+                var selectedValue = selectWidget.get('value');
+                currentlySelectedTexts.push(selectedValue);
+            }(responseID));
+        }
+
+        for (var responseID in simpleRandomSelectElements) {
+            (function(responseID){
+                var questionID = simpleRandomSelectElements[responseID];
+                var selectWidget = registry.byId(responseID);
+                selectWidget.set('onchange',null);
+                var selectedValue = selectWidget.get('value');
+                var dataOptions = [];
+                if (selectedValue == 'UNSELECTED') {
+                    getObject(questionID).disabled = true;
+                    getObject(questionID).readonly = true;
+                    dataOptions.push({id:'UNSELECTED',label:'&nbsp;&nbsp---' + initialChoiceText + '---'})
+                } else {
+                    selectWidget.removeOption('UNSELECTED');
+                    getObject(questionID).disabled = false;
+                    getObject(questionID).readonly = false;
                 }
-            }
-            PWM_GLOBAL['randomSelectEventHandlers'] = new Array();
-
-            // all possible random questions (populated by the jsp)
-            var allPossibleTexts = PWM_GLOBAL['simpleRandomOptions'];
-
-            // string that is used at the top of unconfigured select list
-            var initialChoiceText = PWM_MAIN.showString('Display_SelectionIndicator');
-
-            // the HTML select elements (populated by the jsp)
-            var simpleRandomSelectElements = PWM_GLOBAL['simpleRandomSelectElements'];
-
-            // texts that are in use
-            var currentlySelectedTexts = [];
-
-            for (var responseID in simpleRandomSelectElements) {
-                (function(responseID){
-                    var selectWidget = registry.byId(responseID);
-                    var selectedValue = selectWidget.get('value');
-                    currentlySelectedTexts.push(selectedValue);
-                }(responseID));
-            }
-
-            // repopulate the select elements
-            for (var responseID in simpleRandomSelectElements) {
-                (function(responseID){
-                    var questionID = simpleRandomSelectElements[responseID];
-                    var selectWidget = registry.byId(responseID);
-                    var selectedValue = selectWidget.get('value');
-                    var dataOptions = [];
-                    if (selectedValue == 'UNSELECTED') {
-                        PWM_MAIN.getObject(questionID).disabled = true;
-                        PWM_MAIN.getObject(questionID).readonly = true;
-                        dataOptions.push({id:'UNSELECTED',label:'&nbsp;&nbsp---' + initialChoiceText + '---'})
-                    } else {
-                        selectWidget.removeOption('UNSELECTED');
-                        PWM_MAIN.getObject(questionID).disabled = false;
-                        PWM_MAIN.getObject(questionID).readonly = false;
-                    }
-                    for (var i = 0; i < allPossibleTexts.length; i++) {
+                for (var i = 0; i < allPossibleTexts.length; i++) {
                         var loopText = allPossibleTexts[i];
                         if (loopText == selectedValue || array.indexOf(currentlySelectedTexts,loopText) == -1) {
                             dataOptions.push({id:loopText,label:loopText});
                         }
-                    }
-                    var store = new Memory({data:dataOptions});
-                    var os = new ObjectStore({ objectStore: store });
-                    selectWidget.setStore(os,selectedValue);
-                }(responseID));
-            }
+                }
+                var store = new Memory({data:dataOptions});
+                var os = new ObjectStore({ objectStore: store });
+                selectWidget.setStore(os,selectedValue);
+                dojoOn.once(selectWidget,"change",function(){
+                    getObject(questionID).value = '';
+                    makeSelectOptionsDistinct();
+                    validateResponses();
+                });
+            }(responseID));
+        }
+    });
+}
 
-            // add the onchange events (and store so they can be removed on next event execution
-            for (var responseID in simpleRandomSelectElements) {
-                (function(responseID){
-                    var questionID = simpleRandomSelectElements[responseID];
-                    var selectWidget = registry.byId(responseID);
-                    var eventHandler = dojoOn(selectWidget,"change",function(){
-                        PWM_MAIN.getObject(questionID).value = '';
-                        PWM_RESPONSES.makeSelectOptionsDistinct();
-                        PWM_RESPONSES.validateResponses();
-                        PWM_MAIN.getObject(questionID).focus();
-                    });
-                    PWM_GLOBAL['randomSelectEventHandlers'].push(eventHandler);
-                }(responseID));
-            }
-            console.log('exiting makeSelectOptionsDistinct(), duration:' + (((new Date()).getTime()) - startTime) + "ms");
-        });
-};
-
-PWM_RESPONSES.startupResponsesPage=function() {
-    var initialPrompt = PWM_MAIN.showString('Display_ResponsesPrompt');
+function startupResponsesPage()
+{
+    var initialPrompt = showString('Display_ResponsesPrompt');
     if (initialPrompt != null && initialPrompt.length > 1) {
-        var messageElement = PWM_MAIN.getObject("message");
+        var messageElement = getObject("message");
         if (messageElement.firstChild.nodeValue.length < 2) {
-            PWM_MAIN.showInfo(initialPrompt);
+            showInfo(initialPrompt);
         }
     }
-};
+}
 
 
